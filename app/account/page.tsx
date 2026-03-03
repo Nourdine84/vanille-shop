@@ -5,38 +5,39 @@ export default function AccountPage() {
     <div className="container mx-auto py-16">
       <h1 className="text-3xl font-bold mb-10">Mon Compte</h1>
       
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
-        <p className="text-yellow-700">
-          ⚠️ Fonctionnalité en cours de développement
-        </p>
-      </div>
-
       <div className="grid md:grid-cols-2 gap-8">
+        {/* Carte Informations personnelles */}
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Connexion</h2>
+          <h2 className="text-xl font-semibold mb-4">Informations personnelles</h2>
           <p className="text-gray-600 mb-4">
-            Connectez-vous pour voir votre historique de commandes.
+            Gérez vos informations personnelles et votre mot de passe.
           </p>
-          <Link href="/api/auth/signin" className="btn-primary">
-            Se connecter
+          <Link href="/account/profile" className="text-amber-600 hover:underline">
+            Modifier mon profil →
           </Link>
         </div>
 
+        {/* Carte Commandes - NOUVEAU LIEN */}
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Créer un compte</h2>
+          <h2 className="text-xl font-semibold mb-4">Mes commandes</h2>
           <p className="text-gray-600 mb-4">
-            Inscrivez-vous pour faciliter vos achats.
+            Consultez l'historique de vos commandes.
           </p>
-          <Link href="/api/auth/signup" className="btn-secondary">
-            S'inscrire
+          <Link href="/account/orders" className="text-amber-600 hover:underline">
+            Voir mes commandes →
           </Link>
         </div>
-      </div>
 
-      <div className="mt-12">
-        <Link href="/products" className="text-amber-600 hover:underline">
-          ← Retour aux produits
-        </Link>
+        {/* Carte Déconnexion */}
+        <div className="border rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Déconnexion</h2>
+          <p className="text-gray-600 mb-4">
+            Vous souhaitez vous déconnecter ?
+          </p>
+          <button className="text-red-600 hover:underline">
+            Se déconnecter
+          </button>
+        </div>
       </div>
     </div>
   );
