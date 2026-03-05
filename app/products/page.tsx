@@ -1,40 +1,32 @@
+import { prisma } from "../../lib/prisma";
 import Link from "next/link";
 
-type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  priceCents: number;
-  imageUrl: string | null;
-};
-
-async function getProducts(): Promise<Product[]> {
-  const res = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Erreur chargement produits");
-  }
-
-  return res.json();
-}
-
 export default async function ProductsPage() {
-  const products = await getProducts();
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      description: true,
+      priceCents: true,
+      imageUrl: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="max-w-6xl mx-auto py-16 px-4">
       <h1 className="text-3xl font-bold mb-10">Nos Produits</h1>
 
       <div className="grid md:grid-cols-3 gap-8">
-        {products.map((product) => (
+      {products.map((product: any) => (
           <div
             key={product.id}
             className="border rounded-xl p-6 flex flex-col shadow-sm"
           >
             {product.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={product.imageUrl}
                 alt={product.name}
