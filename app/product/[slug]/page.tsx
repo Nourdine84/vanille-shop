@@ -1,56 +1,55 @@
-import { prisma } from "../../../lib/prisma";
+"use client";
+
+import { useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import AddToCartButton from "../../../components/AddToCartButton";
+import QuantitySelector from "../../../components/QuantitySelector";
 
-export default async function ProductPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const product = await prisma.product.findUnique({
-    where: { slug: params.slug },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      description: true,
-      priceCents: true,
-      imageUrl: true,
-      // ⚠️ NE PAS METTRE createdAt, updatedAt, etc.
-    },
-  });
+type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  priceCents: number;
+  imageUrl: string | null;
+};
 
+export default function ProductPage({ params }: { params: { slug: string } }) {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/products/${params.slug}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setProduct(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [params.slug]);
+
+  if (loading) return <div className="container mx-auto py-16">Chargement...</div>;
   if (!product) return notFound();
-
-  // ✅ On crée un objet 100% sérialisable
-  const safeProduct = {
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    description: product.description,
-    priceCents: product.priceCents,
-    imageUrl: product.imageUrl,
-  };
 
   return (
     <div className="container mx-auto py-16">
       <div className="grid md:grid-cols-2 gap-12">
-        {safeProduct.imageUrl && (
+        {product.imageUrl && (
           <img
-            src={safeProduct.imageUrl}
-            alt={safeProduct.name}
+            src={product.imageUrl}
+            alt={product.name}
             className="rounded-lg"
           />
         )}
 
         <div>
-          <h1 className="text-3xl font-bold mb-4">{safeProduct.name}</h1>
-          <p className="text-gray-600 mb-6">{safeProduct.description}</p>
+          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+          <p className="text-gray-600 mb-6">{product.description}</p>
           <p className="text-2xl font-semibold mb-6">
-            {(safeProduct.priceCents / 100).toFixed(2)} €
+            {(product.priceCents / 100).toFixed(2)} €
           </p>
 
-          <AddToCartButton product={safeProduct} />
+          <AddToCartButton product={product} />
         </div>
       </div>
     </div>
