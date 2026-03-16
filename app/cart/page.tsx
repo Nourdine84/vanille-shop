@@ -1,87 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useCart } from "../../context/CartContext";
-
-type CartItem = {
-  id: string;
-  slug: string;
-  name: string;
-  priceCents: number;
-  quantity: number;
-  imageUrl?: string | null;
-};
+import { useCartStore } from "../../lib/cart-store";
 
 export default function CartPage() {
-  const { items, removeFromCart, clearCart, totalCents } = useCart();
-  const [mounted, setMounted] = useState(false);
+  const { cart, removeFromCart } = useCartStore();
 
-  // Logs pour debug (à supprimer plus tard)
-  useEffect(() => {
-    console.log("🛒 CartPage - items:", items);
-    console.log("💰 CartPage - totalCents:", totalCents);
-  }, [items, totalCents]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <div className="container mx-auto py-16">Chargement...</div>;
-  }
+  const total = cart.reduce(
+    (sum, item) => sum + item.priceCents * item.quantity,
+    0
+  );
 
   return (
-    <div className="container mx-auto py-16">
-      <h1 className="text-3xl font-bold mb-10">Votre Panier</h1>
+    <div className="max-w-5xl mx-auto py-20 px-6">
+      <h1 className="text-3xl font-bold mb-8">Votre panier</h1>
 
-      {items.length === 0 ? (
-        <p className="text-gray-600">Votre panier est vide.</p>
-      ) : (
-        <>
-          <div className="space-y-6">
-            {items.map((item: CartItem) => (
-              <div key={item.id} className="border p-6 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-gray-600">
-                    {(item.priceCents / 100).toFixed(2)} € x {item.quantity}
-                  </p>
-                </div>
-                <button
-                  className="text-red-500 hover:underline"
-                  onClick={() => removeFromCart(item.id)}
-                >
-                  Supprimer
-                </button>
-              </div>
-            ))}
+      {cart.length === 0 && <p>Votre panier est vide.</p>}
+
+      {cart.map((item) => (
+        <div
+          key={item.id}
+          className="flex justify-between border-b py-4"
+        >
+          <div>
+            <h2 className="font-semibold">{item.name}</h2>
+            <p>Quantité : {item.quantity}</p>
           </div>
 
-          <div className="mt-10 text-right">
-            <p className="text-xl font-bold">
-              Total : {(totalCents / 100).toFixed(2)} €
-            </p>
-            <div className="flex gap-4 justify-end mt-4">
-              <button
-                className="btn-secondary"
-                onClick={clearCart}
-              >
-                Vider le panier
-              </button>
-              <Link href="/checkout" className="btn-primary">
-                Procéder au paiement
-              </Link>
-            </div>
+          <div>
+            {(item.priceCents / 100).toFixed(2)} €
           </div>
-        </>
+
+          <button
+            onClick={() => removeFromCart(item.id)}
+            className="text-red-500"
+          >
+            Supprimer
+          </button>
+        </div>
+      ))}
+
+      {cart.length > 0 && (
+        <div className="mt-10 text-right">
+          <p className="text-2xl font-bold">
+            Total : {(total / 100).toFixed(2)} €
+          </p>
+        </div>
       )}
-
-      <div className="mt-10">
-        <Link href="/products" className="btn-primary">
-          Continuer mes achats
-        </Link>
-      </div>
     </div>
   );
 }

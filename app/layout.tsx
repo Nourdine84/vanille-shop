@@ -1,16 +1,22 @@
-import "./globals.css";
-import Providers from "./providers";
+import "./globals.css"
+import type { ReactNode } from "react"
+
+export const metadata = {
+  title: "Vanille Or",
+  description: "Boutique Vanille Premium",
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode
 }) {
+
   return (
     <html lang="fr">
-      <body>
-        <Providers>{children}</Providers>
+      <body className="bg-white text-gray-900">
+        {children}
       </body>
     </html>
-  );
+  )
 }
