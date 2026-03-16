@@ -1,46 +1,47 @@
-import dynamic from "next/dynamic";
-import Image from "next/image";
+import dynamic from "next/dynamic"
+import Image from "next/image"
 
 const AddToCart = dynamic(
   () => import("../../../components/add-to-cart"),
   { ssr: false }
-);
+)
 
 type Product = {
-  id: string;
-  name: string;
-  description: string;
-  priceCents: number;
-  imageUrl?: string;
-};
+  id: string
+  name: string
+  description: string
+  priceCents: number
+  imageUrl?: string
+}
 
 async function getProduct(slug: string): Promise<Product | null> {
 
   const res = await fetch(
     `http://localhost:3000/api/products/${slug}`,
     { cache: "no-store" }
-  );
+  )
 
   if (!res.ok) {
-    return null;
+    return null
   }
 
-  return res.json();
+  return res.json()
 }
 
-/* SEO PRODUIT */
+/* SEO METADATA */
+
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: { slug: string }
 }) {
 
-  const product = await getProduct(params.slug);
+  const product = await getProduct(params.slug)
 
   if (!product) {
     return {
-      title: "Produit introuvable | Vanille Or"
-    };
+      title: "Produit introuvable | Vanille Or",
+    }
   }
 
   return {
@@ -50,17 +51,17 @@ export async function generateMetadata({
       title: product.name,
       description: product.description,
       images: product.imageUrl ? [product.imageUrl] : [],
-    }
-  };
+    },
+  }
 }
 
 export default async function ProductPage({
   params,
 }: {
-  params: { slug: string };
+  params: { slug: string }
 }) {
 
-  const product = await getProduct(params.slug);
+  const product = await getProduct(params.slug)
 
   if (!product) {
     return (
@@ -69,11 +70,34 @@ export default async function ProductPage({
           Produit introuvable
         </h1>
       </div>
-    );
+    )
+  }
+
+  /* RICH SNIPPET GOOGLE */
+
+  const jsonLd = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.imageUrl,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "EUR",
+      price: (product.priceCents / 100).toFixed(2),
+      availability: "https://schema.org/InStock",
+    },
   }
 
   return (
     <div className="max-w-5xl mx-auto py-24 px-6 grid md:grid-cols-2 gap-12">
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
 
       {/* IMAGE PRODUIT */}
 
@@ -85,6 +109,7 @@ export default async function ProductPage({
             alt={product.name}
             width={600}
             height={600}
+            priority
             className="rounded-xl object-cover"
           />
         ) : (
@@ -123,5 +148,5 @@ export default async function ProductPage({
       </div>
 
     </div>
-  );
+  )
 }
