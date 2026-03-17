@@ -1,47 +1,43 @@
-import dynamic from "next/dynamic"
-import Image from "next/image"
+import Image from "next/image";
+import dynamic from "next/dynamic";
 
 const AddToCart = dynamic(
   () => import("../../../components/add-to-cart"),
   { ssr: false }
-)
+);
 
 type Product = {
-  id: string
-  name: string
-  description: string
-  priceCents: number
-  imageUrl?: string
-}
+  id: string;
+  name: string;
+  description: string;
+  priceCents: number;
+  imageUrl?: string;
+};
 
 async function getProduct(slug: string): Promise<Product | null> {
-
   const res = await fetch(
     `http://localhost:3000/api/products/${slug}`,
     { cache: "no-store" }
-  )
+  );
 
   if (!res.ok) {
-    return null
+    return null;
   }
 
-  return res.json()
+  return res.json();
 }
-
-/* SEO METADATA */
 
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: { slug: string };
 }) {
-
-  const product = await getProduct(params.slug)
+  const product = await getProduct(params.slug);
 
   if (!product) {
     return {
       title: "Produit introuvable | Vanille Or",
-    }
+    };
   }
 
   return {
@@ -52,16 +48,15 @@ export async function generateMetadata({
       description: product.description,
       images: product.imageUrl ? [product.imageUrl] : [],
     },
-  }
+  };
 }
 
 export default async function ProductPage({
   params,
 }: {
-  params: { slug: string }
+  params: { slug: string };
 }) {
-
-  const product = await getProduct(params.slug)
+  const product = await getProduct(params.slug);
 
   if (!product) {
     return (
@@ -70,10 +65,8 @@ export default async function ProductPage({
           Produit introuvable
         </h1>
       </div>
-    )
+    );
   }
-
-  /* RICH SNIPPET GOOGLE */
 
   const jsonLd = {
     "@context": "https://schema.org/",
@@ -87,11 +80,12 @@ export default async function ProductPage({
       price: (product.priceCents / 100).toFixed(2),
       availability: "https://schema.org/InStock",
     },
-  }
+  };
 
   return (
     <div className="max-w-5xl mx-auto py-24 px-6 grid md:grid-cols-2 gap-12">
-
+      
+      {/* SEO JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -99,18 +93,16 @@ export default async function ProductPage({
         }}
       />
 
-      {/* IMAGE PRODUIT */}
-
+      {/* IMAGE */}
       <div>
-
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             width={600}
             height={600}
-            priority
             className="rounded-xl object-cover"
+            priority
           />
         ) : (
           <div className="bg-gray-200 h-[400px] flex items-center justify-center rounded-xl">
@@ -119,13 +111,10 @@ export default async function ProductPage({
             </span>
           </div>
         )}
-
       </div>
 
-      {/* INFOS PRODUIT */}
-
+      {/* INFOS */}
       <div>
-
         <h1 className="text-4xl font-bold text-amber-900 mb-4">
           {product.name}
         </h1>
@@ -144,9 +133,7 @@ export default async function ProductPage({
           priceCents={product.priceCents}
           imageUrl={product.imageUrl}
         />
-
       </div>
-
     </div>
-  )
+  );
 }

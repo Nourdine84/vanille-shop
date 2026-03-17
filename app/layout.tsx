@@ -1,22 +1,18 @@
-import "./globals.css"
-import type { ReactNode } from "react"
-
-export const metadata = {
-  title: "Vanille Or",
-  description: "Boutique Vanille Premium",
-}
+import "./globals.css";
+import Header from "../components/layout/Header";
 
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode
+  children: React.ReactNode;
 }) {
-
   return (
     <html lang="fr">
-      <body className="bg-white text-gray-900">
+      <body>
+        <Header />
         {children}
       </body>
     </html>
-  )
+  );
 }
+
