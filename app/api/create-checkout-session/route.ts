@@ -1,40 +1,35 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../lib/auth";
-import { prisma } from "../../../lib/prisma";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-02-25.clover",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+
+type CheckoutItem = {
+  id: string;
+  name: string;
+  priceCents: number;
+  imageUrl?: string;
+  quantity: number;
+};
 
 export async function POST(req: Request) {
   try {
-    const { items } = await req.json();
-    const session = await getServerSession(authOptions);
+    const body = await req.json();
+    const items: CheckoutItem[] = body?.items ?? [];
 
-    console.log("📦 Création session Stripe pour:", items);
-    console.log("👤 Utilisateur connecté:", session?.user?.email || "Anonyme");
-
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: "Panier vide" },
         { status: 400 }
       );
     }
 
-    // Récupérer l'utilisateur en base pour avoir son ID
-    let userId = null;
-    if (session?.user?.email) {
-      const user = await (prisma as any).user.findUnique({
-        where: { email: session.user.email },
-      });
-      userId = user?.id || null;
-    }
+    const baseUrl =
+      process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
-    const stripeSession = await stripe.checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
       payment_method_types: ["card"],
-      line_items: items.map((item: any) => ({
+      line_items: items.map((item) => ({
         price_data: {
           currency: "eur",
           product_data: {
@@ -44,21 +39,16 @@ export async function POST(req: Request) {
         },
         quantity: item.quantity,
       })),
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/cart`,
-      metadata: {
-        userId: userId || "",
-      },
+      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/cart`,
     });
 
-    console.log("✅ Session créée:", stripeSession.id);
-    return NextResponse.json({ sessionId: stripeSession.id, url: stripeSession.url });
-    
+    return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("❌ Erreur Stripe:", error);
+    console.error("Stripe checkout error:", error);
+
     return NextResponse.json(
-      { error: "Erreur lors de la création de la session" },
+      { error: "Impossible de créer la session Stripe" },
       { status: 500 }
     );
   }
