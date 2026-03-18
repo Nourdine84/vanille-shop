@@ -30,7 +30,29 @@ export default async function ProductPage({
   if (!product) {
     return (
       <div className="container py-10">
-        <h1>Produit introuvable</h1>
+        <div
+          style={{
+            border: "1px dashed #d1d5db",
+            borderRadius: "16px",
+            padding: "40px",
+            textAlign: "center",
+            background: "#fafafa",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "28px",
+              fontWeight: 700,
+              marginBottom: "10px",
+            }}
+          >
+            Produit introuvable
+          </h1>
+
+          <p style={{ color: "#6b7280" }}>
+            Le produit demandé n’existe pas ou n’est plus disponible.
+          </p>
+        </div>
       </div>
     );
   }
@@ -40,7 +62,7 @@ export default async function ProductPage({
       <div
         style={{
           display: "grid",
-          gap: "40px",
+          gap: "48px",
           gridTemplateColumns: "1fr 1fr",
           alignItems: "start",
         }}
@@ -51,24 +73,81 @@ export default async function ProductPage({
             alt={product.name}
             style={{
               width: "100%",
-              borderRadius: "12px",
+              borderRadius: "20px",
               display: "block",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+              background: "#fff",
             }}
           />
         </div>
 
         <div>
-          <h1 style={{ fontSize: "32px", fontWeight: 700, marginBottom: "16px" }}>
+          <p
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              letterSpacing: "1.5px",
+              textTransform: "uppercase",
+              color: "#a16207",
+              marginBottom: "12px",
+            }}
+          >
+            Vanille premium
+          </p>
+
+          <h1
+            style={{
+              fontSize: "40px",
+              fontWeight: 700,
+              lineHeight: 1.1,
+              marginBottom: "18px",
+            }}
+          >
             {product.name}
           </h1>
 
-          <p style={{ color: "#4b5563", marginBottom: "24px" }}>
+          <p
+            style={{
+              color: "#4b5563",
+              marginBottom: "28px",
+              fontSize: "16px",
+              lineHeight: 1.7,
+            }}
+          >
             {product.description}
           </p>
 
-          <p style={{ fontSize: "28px", fontWeight: 600, marginBottom: "24px" }}>
+          <p
+            style={{
+              fontSize: "32px",
+              fontWeight: 700,
+              marginBottom: "24px",
+            }}
+          >
             {(product.priceCents / 100).toFixed(2)} €
           </p>
+
+          <div
+            style={{
+              padding: "18px",
+              border: "1px solid #ece7df",
+              borderRadius: "16px",
+              background: "#fffdf9",
+              marginBottom: "20px",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                color: "#6b7280",
+                fontSize: "14px",
+                lineHeight: 1.6,
+              }}
+            >
+              Une vanille sélectionnée pour son parfum intense, son aspect premium
+              et sa qualité idéale pour les recettes raffinées.
+            </p>
+          </div>
 
           <AddToCart
             product={{

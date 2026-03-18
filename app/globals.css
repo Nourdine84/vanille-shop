@@ -61,3 +61,43 @@ textarea,
 select {
   pointer-events: auto !important;
 }
+
+/* === VANILLE OR PREMIUM === */
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  /* Boutons premium */
+  .btn-primary {
+    background: #111;
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: 0.2s;
+  }
+  
+  .btn-primary:hover {
+    background: #000;
+    transform: translateY(-1px);
+  }
+  
+  /* Version luxe */
+  .btn-secondary {
+    border: 1px solid #111;
+    padding: 10px 16px;
+    border-radius: 10px;
+  }
+  
+  /* Hover card */
+  .card-hover {
+    transition: 0.2s;
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-4px);
+  }
+  
