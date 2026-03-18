@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useToast } from "./ui/toast";
 
 type User = {
   id: string;
@@ -11,6 +12,7 @@ type User = {
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -30,8 +32,19 @@ export default function Header() {
   }, []);
 
   const handleLogout = async () => {
-    await fetch("/api/logout", { method: "POST" });
-    window.location.href = "/";
+    try {
+      await fetch("/api/logout", { method: "POST" });
+
+      showToast("Déconnecté avec succès 👋", "info");
+
+      // petit delay pour voir le toast
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 800);
+    } catch (err) {
+      console.error(err);
+      showToast("Erreur lors de la déconnexion", "error");
+    }
   };
 
   return (
@@ -50,12 +63,10 @@ export default function Header() {
           alignItems: "center",
         }}
       >
-        {/* LOGO */}
         <Link href="/" style={{ fontWeight: 700, fontSize: "20px" }}>
           Vanille Or
         </Link>
 
-        {/* NAV */}
         <nav style={{ display: "flex", gap: "16px", alignItems: "center" }}>
           <Link href="/products">Produits</Link>
           <Link href="/cart">Panier</Link>

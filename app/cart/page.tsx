@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import { useCartStore } from "../../lib/cart-store";
+import { useToast } from "../../components/ui/toast";
 
 export default function CartPage() {
-  const { cart, removeFromCart, clearCart } = useCartStore();
+  const { cart, removeFromCart } = useCartStore();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const total = cart.reduce(
     (sum, item) => sum + item.priceCents * item.quantity,
@@ -14,15 +15,14 @@ export default function CartPage() {
   );
 
   const handleCheckout = async () => {
+    if (cart.length === 0) {
+      showToast("Votre panier est vide 🛒", "error");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      setError("");
-      setLoading(true);
-
-      if (cart.length === 0) {
-        setError("Votre panier est vide.");
-        return;
-      }
-
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: {
@@ -34,19 +34,16 @@ export default function CartPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data?.error || "Erreur lors du checkout.");
+        showToast("Erreur lors du paiement", "error");
         return;
       }
 
-      if (data?.url) {
-        window.location.href = data.url;
-        return;
-      }
+      showToast("Redirection vers le paiement...", "info");
 
-      setError("URL Stripe introuvable.");
+      window.location.href = data.url;
     } catch (err) {
-      console.error("Checkout client error:", err);
-      setError("Une erreur est survenue pendant la redirection.");
+      console.error(err);
+      showToast("Erreur réseau", "error");
     } finally {
       setLoading(false);
     }
@@ -54,69 +51,79 @@ export default function CartPage() {
 
   return (
     <div className="container py-10">
-      <h1 style={{ fontSize: "32px", fontWeight: 700, marginBottom: "24px" }}>
-        Panier
-      </h1>
+      <h1 className="text-3xl font-bold mb-6">Votre panier</h1>
 
       {cart.length === 0 ? (
-        <p>Votre panier est vide</p>
+        <div
+          style={{
+            padding: "40px",
+            border: "1px dashed #ccc",
+            borderRadius: "12px",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ marginBottom: "10px" }}>
+            Votre panier est vide 🛒
+          </p>
+          <p style={{ color: "#6b7280" }}>
+            Ajoutez des produits pour commencer
+          </p>
+        </div>
       ) : (
-        <div style={{ display: "grid", gap: "16px" }}>
-          {cart.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                border: "1px solid #e5e7eb",
-                padding: "16px",
-                borderRadius: "10px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <p style={{ fontWeight: 600 }}>{item.name}</p>
-                <p>Quantité : {item.quantity}</p>
-                <p>{(item.priceCents / 100).toFixed(2)} €</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => removeFromCart(item.id)}
-                className="btn-secondary"
+        <>
+          <div style={{ display: "grid", gap: "20px" }}>
+            {cart.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  border: "1px solid #eee",
+                  padding: "16px",
+                  borderRadius: "12px",
+                }}
               >
-                Supprimer
-              </button>
-            </div>
-          ))}
+                <div>
+                  <p className="font-semibold">{item.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {item.quantity} x {(item.priceCents / 100).toFixed(2)} €
+                  </p>
+                </div>
 
-          <div style={{ fontSize: "24px", fontWeight: 700 }}>
-            Total : {(total / 100).toFixed(2)} €
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <p className="font-bold">
+                    {(item.priceCents * item.quantity / 100).toFixed(2)} €
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      removeFromCart(item.id);
+                      showToast("Produit supprimé ❌", "info");
+                    }}
+                  >
+                    ❌
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {error ? (
-            <p style={{ color: "#dc2626", fontWeight: 600 }}>{error}</p>
-          ) : null}
-
-          <div style={{ display: "flex", gap: "12px" }}>
-            <button type="button" onClick={clearCart} className="btn-secondary">
-              Vider le panier
-            </button>
+          {/* TOTAL */}
+          <div style={{ marginTop: "30px", textAlign: "right" }}>
+            <p className="text-xl font-bold mb-4">
+              Total : {(total / 100).toFixed(2)} €
+            </p>
 
             <button
-              type="button"
               onClick={handleCheckout}
               className="btn-primary"
               disabled={loading}
-              style={{
-                opacity: loading ? 0.7 : 1,
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
             >
-              {loading ? "Redirection..." : "Payer"}
+              {loading ? "Chargement..." : "Payer maintenant"}
             </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

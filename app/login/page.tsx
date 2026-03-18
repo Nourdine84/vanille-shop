@@ -2,10 +2,13 @@
 
 import React, { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useToast } from "../../components/ui/toast";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/account";
+
+  const { showToast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,14 +35,18 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data?.error || "Erreur de connexion.");
+        const message = data?.error || "Erreur de connexion.";
+        setError(message);
+        showToast(message, "error");
         return;
       }
 
+      showToast("Connexion réussie 🎉", "success");
       window.location.href = redirectTo;
     } catch (err) {
       console.error(err);
       setError("Erreur réseau.");
+      showToast("Erreur réseau", "error");
     } finally {
       setLoading(false);
     }

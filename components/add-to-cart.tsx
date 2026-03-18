@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
 import { useCartStore } from "../lib/cart-store";
+import { useToast } from "./ui/toast";
 
 type Props = {
   product: {
@@ -14,28 +14,24 @@ type Props = {
 
 export default function AddToCart({ product }: Props) {
   const addToCart = useCartStore((state) => state.addToCart);
+  const { showToast } = useToast();
 
   const handleClick = () => {
-    alert("CLICK OK");
-    console.log("🔥 CLICK ADD", product);
+    try {
+      addToCart({
+        ...product,
+        quantity: 1,
+      });
 
-    addToCart({
-      ...product,
-      quantity: 1,
-    });
+      showToast("Produit ajouté au panier 🛒", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Erreur lors de l'ajout", "error");
+    }
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="btn-primary"
-      style={{
-        width: "100%",
-        position: "relative",
-        zIndex: 9999,
-      }}
-    >
+    <button onClick={handleClick} className="btn-primary w-full">
       Ajouter au panier
     </button>
   );

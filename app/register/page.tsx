@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import { useToast } from "../../components/ui/toast";
 
 export default function RegisterPage() {
+  const { showToast } = useToast();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,14 +33,18 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data?.error || "Erreur d'inscription.");
+        const message = data?.error || "Erreur d'inscription.";
+        setError(message);
+        showToast(message, "error");
         return;
       }
 
+      showToast("Compte créé 🎉", "success");
       window.location.href = "/account";
     } catch (err) {
       console.error(err);
       setError("Erreur réseau.");
+      showToast("Erreur réseau", "error");
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import "./globals.css";
-import React from "react";
+import HeaderWrapper from "../components/header-wrapper";
+import { ToastProvider } from "../components/ui/toast";
 
 export default function RootLayout({
   children,
@@ -8,7 +9,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        <ToastProvider>
+          <HeaderWrapper />
+          {children}
+        </ToastProvider>
+      </body>
     </html>
   );
 }
