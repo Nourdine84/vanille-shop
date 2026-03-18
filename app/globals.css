@@ -1,17 +1,63 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { background-color: #ffffff; color: #1f2937; }
-.container { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
-.btn-primary { @apply bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200; }
-.btn-secondary { @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition duration-200; }
-.card { @apply bg-white rounded-lg shadow-md hover:shadow-lg transition duration-200; }
-button {
-    pointer-events: auto !important;
-  }
-  
-  div {
-    pointer-events: auto !important;
-  }
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  color: #1f2937;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.btn-primary {
+  background: #d97706;
+  color: white;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #b45309;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #1f2937;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  pointer-events: auto !important;
+}

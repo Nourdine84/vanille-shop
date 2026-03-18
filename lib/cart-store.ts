@@ -1,4 +1,7 @@
+"use client";
+
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type CartItem = {
   id: string;
@@ -8,36 +11,50 @@ export type CartItem = {
   quantity: number;
 };
 
-type CartStore = {
+type CartState = {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
+  clearCart: () => void;
 };
 
-export const useCartStore = create<CartStore>((set) => ({
-  cart: [],
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      cart: [],
 
-  addToCart: (item) =>
-    set((state) => {
-      const existing = state.cart.find((i) => i.id === item.id);
+      addToCart: (item) => {
+        console.log("🛒 STORE ADD", item);
 
-      if (existing) {
-        return {
-          cart: state.cart.map((i) =>
-            i.id === item.id
-              ? { ...i, quantity: i.quantity + item.quantity }
-              : i
-          ),
-        };
-      }
+        const existing = get().cart.find((i) => i.id === item.id);
 
-      return {
-        cart: [...state.cart, item],
-      };
+        if (existing) {
+          set({
+            cart: get().cart.map((i) =>
+              i.id === item.id
+                ? { ...i, quantity: i.quantity + 1 }
+                : i
+            ),
+          });
+        } else {
+          set({
+            cart: [...get().cart, item],
+          });
+        }
+      },
+
+      removeFromCart: (id) => {
+        set({
+          cart: get().cart.filter((item) => item.id !== id),
+        });
+      },
+
+      clearCart: () => {
+        set({ cart: [] });
+      },
     }),
-
-  removeFromCart: (id) =>
-    set((state) => ({
-      cart: state.cart.filter((item) => item.id !== id),
-    })),
-}));
+    {
+      name: "cart-storage", // 🔥 stockage navigateur
+    }
+  )
+);

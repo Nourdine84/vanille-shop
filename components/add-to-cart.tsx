@@ -1,35 +1,40 @@
 "use client";
 
+import React from "react";
 import { useCartStore } from "../lib/cart-store";
 
 type Props = {
-  id: string;
-  name: string;
-  priceCents: number;
-  imageUrl?: string;
+  product: {
+    id: string;
+    name: string;
+    priceCents: number;
+    imageUrl?: string;
+  };
 };
 
-export default function AddToCart({
-  id,
-  name,
-  priceCents,
-  imageUrl,
-}: Props) {
+export default function AddToCart({ product }: Props) {
   const addToCart = useCartStore((state) => state.addToCart);
 
-  const handleAddToCart = () => {
+  const handleClick = () => {
+    alert("CLICK OK");
+    console.log("🔥 CLICK ADD", product);
+
     addToCart({
-      id,
-      name,
-      priceCents,
-      imageUrl,
+      ...product,
+      quantity: 1,
     });
   };
 
   return (
     <button
-      onClick={handleAddToCart}
-      className="bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition"
+      type="button"
+      onClick={handleClick}
+      className="btn-primary"
+      style={{
+        width: "100%",
+        position: "relative",
+        zIndex: 9999,
+      }}
     >
       Ajouter au panier
     </button>
