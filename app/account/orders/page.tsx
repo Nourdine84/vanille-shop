@@ -1,74 +1,75 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
-import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
-
-  const user = await (prisma as any).user.findUnique({
-    where: { email: session.user.email },
-    include: {
-      orders: {
-        orderBy: { createdAt: "desc" },
-      },
-    },
+  const orders = await prisma.order.findMany({
+    orderBy: { createdAt: "desc" },
   });
 
-  const orders = user?.orders || [];
-
   return (
-    <div className="container mx-auto py-16">
-      <h1 className="text-3xl font-bold mb-10">Mes commandes</h1>
+    <div className="container py-10">
+      <h1 className="text-3xl font-bold mb-6">Mes commandes</h1>
 
       {orders.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 mb-4">Vous n'avez pas encore passé de commande.</p>
-          <Link href="/products" className="btn-primary">
-            Découvrir nos produits
-          </Link>
-        </div>
+        <p>Aucune commande pour le moment</p>
       ) : (
         <div className="space-y-6">
-          {orders.map((order: any) => (
-            <div key={order.id} className="border rounded-lg p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Commande du {new Date(order.createdAt).toLocaleDateString("fr-FR")}
-                  </p>
-                  <p className="font-semibold">
-                    Total : {(order.totalCents / 100).toFixed(2)} €
-                  </p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  order.status === "PAID" 
-                    ? "bg-green-100 text-green-800" 
-                    : "bg-yellow-100 text-yellow-800"
-                }`}>
-                  {order.status === "PAID" ? "Payée" : "En attente"}
-                </span>
-              </div>
+          {orders.map((order) => {
+            const items = order.items as any[];
 
-              {/* Détail des produits commandés */}
-              {order.items && order.items.length > 0 && (
-                <div className="border-t pt-4 mt-4">
-                  <p className="font-medium mb-2">Produits :</p>
-                  {order.items.map((item: any, index: number) => (
-                    <div key={index} className="flex justify-between text-sm text-gray-600">
-                      <span>{item.name} x {item.quantity}</span>
-                      <span>{((item.priceCents * item.quantity) / 100).toFixed(2)} €</span>
+            return (
+              <div
+                key={order.id}
+                className="border rounded-lg p-6 shadow-sm"
+              >
+                {/* HEADER */}
+                <div className="flex justify-between mb-4">
+                  <div>
+                    <p className="font-semibold">
+                      Commande #{order.id.slice(0, 8)}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(order.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-bold">
+                      {(order.totalCents / 100).toFixed(2)} €
+                    </p>
+                    <p
+                      className={`text-sm ${
+                        order.status === "PAID"
+                          ? "text-green-600"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {order.status}
+                    </p>
+                  </div>
+                </div>
+
+                {/* PRODUITS */}
+                <div className="space-y-2">
+                  {items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between text-sm"
+                    >
+                      <span>
+                        {item.name} x{item.quantity}
+                      </span>
+
+                      <span>
+                        {(item.priceCents / 100).toFixed(2)} €
+                      </span>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
