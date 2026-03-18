@@ -1,9 +1,18 @@
+import React from "react";
 import { prisma } from "../../../lib/prisma";
+import { getCurrentUser } from "../../../lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return null;
+  }
+
   const orders = await prisma.order.findMany({
+    where: { userId: user.id },
     orderBy: { createdAt: "desc" },
   });
 
@@ -16,14 +25,17 @@ export default async function OrdersPage() {
       ) : (
         <div className="space-y-6">
           {orders.map((order) => {
-            const items = order.items as any[];
+            const items = order.items as {
+              name: string;
+              quantity: number;
+              priceCents: number;
+            }[];
 
             return (
               <div
                 key={order.id}
                 className="border rounded-lg p-6 shadow-sm"
               >
-                {/* HEADER */}
                 <div className="flex justify-between mb-4">
                   <div>
                     <p className="font-semibold">
@@ -50,7 +62,6 @@ export default async function OrdersPage() {
                   </div>
                 </div>
 
-                {/* PRODUITS */}
                 <div className="space-y-2">
                   {items.map((item, index) => (
                     <div

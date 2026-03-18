@@ -1,79 +1,81 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/account";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
-    if (result?.error) {
-      setError("Email ou mot de passe incorrect");
-    } else {
-      router.push("/account");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data?.error || "Erreur de connexion.");
+        return;
+      }
+
+      window.location.href = redirectTo;
+    } catch (err) {
+      console.error(err);
+      setError("Erreur réseau.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto py-16 max-w-md">
-      <h1 className="text-3xl font-bold mb-8">Connexion</h1>
+    <div className="container py-10">
+      <div style={{ maxWidth: "500px", margin: "0 auto" }}>
+        <h1 className="text-3xl font-bold mb-6">Connexion</h1>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">Email</label>
+        <form onSubmit={handleLogin} style={{ display: "grid", gap: "16px" }}>
           <input
             type="email"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2"
+            style={{ padding: "12px", border: "1px solid #ddd", borderRadius: "10px" }}
             required
           />
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Mot de passe</label>
           <input
             type="password"
+            placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2"
+            style={{ padding: "12px", border: "1px solid #ddd", borderRadius: "10px" }}
             required
           />
-        </div>
 
-        <button
-          type="submit"
-          className="btn-primary w-full py-3"
-        >
-          Se connecter
-        </button>
-      </form>
+          {error ? <p style={{ color: "#dc2626" }}>{error}</p> : null}
 
-      <p className="mt-6 text-center text-gray-600">
-        Pas encore de compte ?{" "}
-        <Link href="/register" className="text-amber-600 hover:underline">
-          S'inscrire
-        </Link>
-      </p>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Connexion..." : "Se connecter"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
