@@ -3,43 +3,29 @@
 import { useCart } from "../lib/cart-store";
 import { useToast } from "./ui/toast";
 
-type Props = {
-  product: {
-    id: string;
-    name: string;
-    priceCents: number;
-    imageUrl?: string;
-  };
-};
-
-export default function AddToCart({ product }: Props) {
+export default function AddToCart({ product }: any) {
   const { addToCart } = useCart();
   const { showToast } = useToast();
 
   const handleAdd = () => {
     addToCart({
-      ...product,
+      id: product.id,
+      name: product.name,
+      priceCents: product.priceCents,
+      imageUrl: product.imageUrl,
       quantity: 1,
     });
 
-    showToast(`${product.name} ajouté au panier 🛒`, "success");
+    // 🔥 FEEDBACK VISUEL
+    showToast("Produit ajouté au panier 🛒", "success");
+
+    console.log("✅ Ajout panier:", product);
   };
 
   return (
     <button
-      type="button"
       onClick={handleAdd}
-      style={{
-        width: "100%",
-        background: "#111111",
-        color: "white",
-        padding: "14px 18px",
-        borderRadius: "14px",
-        border: "none",
-        cursor: "pointer",
-        fontWeight: 700,
-        fontSize: "15px",
-      }}
+      className="bg-amber-700 text-white px-5 py-3 rounded-lg hover:bg-amber-800"
     >
       Ajouter au panier
     </button>

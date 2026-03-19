@@ -1,68 +1,60 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getCurrentUser } from "../../../lib/auth";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
-
-type CheckoutItem = {
-  id: string;
-  name: string;
-  priceCents: number;
-  imageUrl?: string;
-  quantity: number;
-};
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const items: CheckoutItem[] = body?.items ?? [];
-    const currentUser = await getCurrentUser();
+    const items = body.items;
 
-    if (!Array.isArray(items) || items.length === 0) {
+    console.log("🛒 CART:", JSON.stringify(items, null, 2));
+
+    if (!items || items.length === 0) {
       return NextResponse.json(
         { error: "Panier vide" },
         { status: 400 }
       );
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+    const line_items = items.map((item: any) => {
+      if (!item.priceCents || item.priceCents <= 0) {
+        throw new Error("Produit invalide");
+      }
 
-    const customerEmail =
-      currentUser?.email || "msanourdine@hotmail.com";
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: customerEmail,
-
-      line_items: items.map((item) => ({
+      return {
         price_data: {
           currency: "eur",
           product_data: {
-            name: item.name,
+            name: item.name || "Produit",
+            images: [
+              item.imageUrl && item.imageUrl.startsWith("/images/")
+                ? `${process.env.NEXT_PUBLIC_URL}${item.imageUrl}`
+                : "https://via.placeholder.com/300",
+            ],
           },
           unit_amount: item.priceCents,
         },
-        quantity: item.quantity,
-      })),
+        quantity: item.quantity || 1,
+      };
+    });
 
-      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/cart`,
-
-      metadata: {
-        source: "vanille-shop",
-        userId: currentUser?.id || "",
-      },
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items,
+      mode: "payment",
+      success_url: `${process.env.NEXT_PUBLIC_URL}/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/cart`,
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error("❌ Stripe error:", error);
+
+  } catch (error: any) {
+    console.error("❌ STRIPE ERROR:", error.message);
 
     return NextResponse.json(
-      { error: "Erreur Stripe" },
-      { status: 500 }
+      { error: "Erreur création session Stripe" },
+      { status: 400 }
     );
   }
 }
