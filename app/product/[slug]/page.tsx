@@ -30,77 +30,154 @@ export default async function ProductPage({
   if (!product) {
     return (
       <div className="container py-10">
-        <h1>Produit introuvable</h1>
+        <div
+          style={{
+            border: "1px dashed #d6d3d1",
+            borderRadius: "18px",
+            padding: "40px",
+            textAlign: "center",
+            background: "#fafaf9",
+          }}
+        >
+          <h1 style={{ fontSize: "30px", fontWeight: 800, marginBottom: "10px" }}>
+            Produit introuvable
+          </h1>
+          <p style={{ color: "#6b7280" }}>
+            Le produit demandé n’est plus disponible ou n’existe pas.
+          </p>
+        </div>
       </div>
     );
   }
 
-  // Simulation (tu brancheras plus tard avec ta DB)
-  const fakeStock = Math.floor(Math.random() * 8) + 3;
-  const isLowStock = fakeStock <= 5;
+  const fakeStock = 4;
 
   return (
     <div className="max-w-7xl mx-auto py-20 px-6">
       <div className="grid md:grid-cols-2 gap-16 items-start">
-
-        {/* IMAGE */}
         <div>
-          <div className="relative">
+          <div style={{ position: "relative" }}>
             <img
               src={product.imageUrl || "/images/placeholder.jpg"}
               alt={product.name}
-              className="rounded-2xl shadow-lg w-full"
+              style={{
+                width: "100%",
+                borderRadius: "24px",
+                display: "block",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.10)",
+                background: "#fff",
+              }}
             />
 
-            {/* BADGES */}
-            <div className="absolute top-4 left-4 flex gap-2">
-              <span className="bg-amber-700 text-white text-xs px-3 py-1 rounded-full">
+            <div
+              style={{
+                position: "absolute",
+                top: "18px",
+                left: "18px",
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  background: "#a16207",
+                  color: "white",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "7px 12px",
+                  borderRadius: "999px",
+                }}
+              >
                 Premium
               </span>
 
-              <span className="bg-black text-white text-xs px-3 py-1 rounded-full">
+              <span
+                style={{
+                  background: "#111111",
+                  color: "white",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "7px 12px",
+                  borderRadius: "999px",
+                }}
+              >
                 Best Seller
               </span>
             </div>
           </div>
         </div>
 
-        {/* CONTENU */}
         <div>
-
-          <p className="text-xs tracking-[3px] uppercase text-amber-700 mb-3">
+          <p
+            style={{
+              fontSize: "12px",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              color: "#a16207",
+              marginBottom: "12px",
+              fontWeight: 700,
+            }}
+          >
             Vanille Or
           </p>
 
-          <h1 className="text-4xl font-bold mb-4">
+          <h1
+            style={{
+              fontSize: "44px",
+              fontWeight: 800,
+              lineHeight: 1.1,
+              marginBottom: "14px",
+            }}
+          >
             {product.name}
           </h1>
 
-          {/* ⭐ AVIS */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-amber-500">★★★★★</span>
-            <span className="text-sm text-gray-500">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "18px",
+            }}
+          >
+            <span style={{ color: "#d97706" }}>★★★★★</span>
+            <span style={{ color: "#6b7280", fontSize: "14px" }}>
               (42 avis clients)
             </span>
           </div>
 
-          <p className="text-gray-600 mb-6 leading-relaxed">
+          <p
+            style={{
+              color: "#4b5563",
+              marginBottom: "24px",
+              lineHeight: 1.8,
+              fontSize: "16px",
+            }}
+          >
             {product.description}
           </p>
 
-          <p className="text-3xl font-bold mb-4">
+          <p style={{ fontSize: "34px", fontWeight: 800, marginBottom: "16px" }}>
             {(product.priceCents / 100).toFixed(2)} €
           </p>
 
-          {/* 🚨 URGENCE */}
-          {isLowStock && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
-              ⚠️ Plus que <strong>{fakeStock}</strong> en stock
-            </div>
-          )}
+          <div
+            style={{
+              marginBottom: "24px",
+              background: "#fff1f2",
+              color: "#b91c1c",
+              border: "1px solid #fecdd3",
+              padding: "14px 16px",
+              borderRadius: "14px",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            ⚠️ Plus que {fakeStock} en stock
+          </div>
 
-          {/* CTA */}
-          <div className="mb-6">
+          <div style={{ marginBottom: "24px" }}>
             <AddToCart
               product={{
                 id: product.id,
@@ -111,26 +188,37 @@ export default async function ProductPage({
             />
           </div>
 
-          {/* RASSURANCE */}
-          <div className="space-y-3 text-sm text-gray-600 mb-8">
-            <p>✔ Livraison rapide 48h</p>
-            <p>✔ Satisfait ou remboursé</p>
-            <p>✔ Qualité premium garantie</p>
-          </div>
-
-          {/* STORYTELLING */}
-          <div className="bg-[#fffdf9] border border-[#ece7df] rounded-xl p-6">
-            <h3 className="font-semibold mb-2">
-              Pourquoi choisir Vanille Or ?
-            </h3>
-
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Une sélection rigoureuse de gousses de vanille haut de gamme,
-              choisies pour leur intensité aromatique exceptionnelle.
-              Idéale pour sublimer toutes vos recettes.
+          <div style={{ marginBottom: "28px", display: "grid", gap: "10px" }}>
+            <p style={{ color: "#6b7280", fontSize: "14px" }}>
+              ✔ Livraison rapide en France & Europe
+            </p>
+            <p style={{ color: "#6b7280", fontSize: "14px" }}>
+              ✔ Produit sélectionné avec exigence
+            </p>
+            <p style={{ color: "#6b7280", fontSize: "14px" }}>
+              ✔ Qualité premium garantie
             </p>
           </div>
 
+          <div
+            style={{
+              background: "#fffdf9",
+              border: "1px solid #ece7df",
+              borderRadius: "18px",
+              padding: "22px",
+            }}
+          >
+            <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "10px" }}>
+              Pourquoi choisir Vanille Or ?
+            </h3>
+
+            <p style={{ color: "#6b7280", lineHeight: 1.8, fontSize: "14px" }}>
+              Notre vanille est sélectionnée pour son intensité aromatique, sa
+              finesse et son élégance. Chaque gousse est choisie pour offrir une
+              expérience haut de gamme aussi bien aux passionnés qu’aux
+              professionnels.
+            </p>
+          </div>
         </div>
       </div>
     </div>

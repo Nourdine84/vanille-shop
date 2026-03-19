@@ -21,68 +21,120 @@ export default async function ProductsPage() {
 
   return (
     <div className="max-w-7xl mx-auto py-20 px-6">
-      {/* HEADER */}
-      <div className="text-center mb-16">
-        <p className="text-xs tracking-[3px] uppercase text-amber-700 mb-3">
+      <div style={{ textAlign: "center", marginBottom: "60px" }}>
+        <p
+          style={{
+            fontSize: "12px",
+            letterSpacing: "3px",
+            textTransform: "uppercase",
+            color: "#a16207",
+            marginBottom: "12px",
+            fontWeight: 700,
+          }}
+        >
           Vanille Or
         </p>
 
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
+        <h1 style={{ fontSize: "46px", fontWeight: 800, marginBottom: "14px" }}>
           Nos produits
         </h1>
 
-        <p className="text-gray-500 max-w-xl mx-auto">
-          Découvrez une sélection de vanille premium, soigneusement choisie
-          pour sublimer vos créations culinaires.
+        <p
+          style={{
+            color: "#6b7280",
+            maxWidth: "680px",
+            margin: "0 auto",
+            lineHeight: 1.8,
+          }}
+        >
+          Découvrez une sélection de vanille premium pensée pour celles et ceux
+          qui recherchent un produit raffiné, intense et soigneusement choisi.
         </p>
       </div>
 
-      {/* GRID */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {products.map((product: any) => (
-          <div
-            key={product.id}
-            className="group border border-[#ece7df] rounded-2xl p-5 bg-white hover:shadow-xl transition duration-300"
-          >
-            {/* IMAGE */}
-            <div className="overflow-hidden rounded-xl mb-5">
-              <img
-                src={product.imageUrl || "/images/placeholder.jpg"}
-                alt={product.name}
-                className="w-full h-[260px] object-cover group-hover:scale-105 transition duration-500"
-              />
-            </div>
-
-            {/* CONTENT */}
-            <h2 className="text-xl font-semibold mb-2">
-              {product.name}
-            </h2>
-
-            <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-              {product.description}
-            </p>
-
-            <p className="text-lg font-bold mb-5">
-              {formatPrice(product.priceCents)}
-            </p>
-
-            {/* CTA */}
-            <Link
-              href={`/product/${product.slug}`}
-              className="block text-center bg-amber-700 text-white py-3 rounded-xl font-medium hover:bg-amber-800 transition"
-            >
-              Voir le produit
-            </Link>
-          </div>
-        ))}
-      </div>
-
-      {/* EMPTY STATE */}
-      {products.length === 0 && (
-        <div className="text-center mt-20">
-          <p className="text-gray-500">
+      {products.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "50px",
+            border: "1px dashed #d6d3d1",
+            borderRadius: "18px",
+            background: "#fafaf9",
+          }}
+        >
+          <p style={{ color: "#6b7280" }}>
             Aucun produit disponible pour le moment.
           </p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {products.map((product: any) => (
+            <div
+              key={product.id}
+              style={{
+                border: "1px solid #ece7df",
+                borderRadius: "22px",
+                padding: "18px",
+                background: "#ffffff",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <div
+                style={{
+                  overflow: "hidden",
+                  borderRadius: "16px",
+                  marginBottom: "18px",
+                }}
+              >
+                <img
+                  src={product.imageUrl || "/images/placeholder.jpg"}
+                  alt={product.name}
+                  style={{
+                    width: "100%",
+                    height: "270px",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              </div>
+
+              <h2 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "10px" }}>
+                {product.name}
+              </h2>
+
+              <p
+                style={{
+                  color: "#6b7280",
+                  marginBottom: "18px",
+                  lineHeight: 1.7,
+                  minHeight: "72px",
+                }}
+              >
+                {product.description}
+              </p>
+
+              <p style={{ fontSize: "20px", fontWeight: 800, marginBottom: "18px" }}>
+                {formatPrice(product.priceCents)}
+              </p>
+
+              <Link
+                href={`/product/${product.slug}`}
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  background: "#a16207",
+                  color: "white",
+                  padding: "12px 16px",
+                  borderRadius: "14px",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Voir le produit
+              </Link>
+            </div>
+          ))}
         </div>
       )}
     </div>

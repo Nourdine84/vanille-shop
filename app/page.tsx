@@ -3,35 +3,72 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <div>
-
-      {/* HERO */}
-      <section className="max-w-7xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-12 items-center">
-        
+      <section className="max-w-7xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-14 items-center">
         <div>
-          <p className="text-xs tracking-[3px] uppercase text-amber-700 mb-4">
+          <p
+            style={{
+              fontSize: "12px",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              color: "#a16207",
+              marginBottom: "16px",
+              fontWeight: 700,
+            }}
+          >
             Vanille premium
           </p>
 
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
+          <h1
+            style={{
+              fontSize: "clamp(40px, 6vw, 66px)",
+              lineHeight: 1.05,
+              fontWeight: 800,
+              marginBottom: "20px",
+            }}
+          >
             L’excellence de la vanille de Madagascar
           </h1>
 
-          <p className="text-gray-600 text-lg mb-8">
-            Une vanille soigneusement sélectionnée pour révéler toute la richesse
-            de vos recettes. Arômes intenses, qualité supérieure, expérience unique.
+          <p
+            style={{
+              color: "#4b5563",
+              fontSize: "18px",
+              lineHeight: 1.8,
+              marginBottom: "32px",
+              maxWidth: "580px",
+            }}
+          >
+            Une sélection raffinée de vanille haut de gamme, pensée pour offrir
+            un parfum intense, une qualité irréprochable et une expérience
+            premium à chaque utilisation.
           </p>
 
-          <div className="flex gap-4">
+          <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
             <Link
               href="/products"
-              className="bg-amber-700 text-white px-6 py-4 rounded-xl font-medium hover:bg-amber-800 transition"
+              style={{
+                background: "#111111",
+                color: "white",
+                padding: "14px 22px",
+                borderRadius: "14px",
+                textDecoration: "none",
+                fontWeight: 600,
+              }}
             >
               Découvrir nos produits
             </Link>
 
             <Link
               href="/products"
-              className="border border-gray-300 px-6 py-4 rounded-xl font-medium hover:bg-gray-100 transition"
+              style={{
+                border: "1px solid #d6d3d1",
+                color: "#111111",
+                padding: "14px 22px",
+                borderRadius: "14px",
+                textDecoration: "none",
+                fontWeight: 600,
+                background: "white",
+              }}
             >
               Voir la collection
             </Link>
@@ -39,103 +76,144 @@ export default function HomePage() {
         </div>
 
         <div>
-          <img
-            src="/images/hero-vanille.jpg"
-            alt="Vanille premium"
-            className="rounded-2xl shadow-lg"
-          />
+          <div
+            style={{
+              borderRadius: "24px",
+              overflow: "hidden",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.10)",
+              background: "#f8f5ef",
+            }}
+          >
+            <img
+              src="/images/hero-vanille.jpg"
+              alt="Vanille premium"
+              style={{
+                width: "100%",
+                display: "block",
+                objectFit: "cover",
+                minHeight: "420px",
+              }}
+            />
+          </div>
         </div>
       </section>
 
-      {/* USP */}
-      <section className="bg-[#fffdf9] py-20 px-6">
+      <section style={{ background: "#fffdf9", padding: "80px 24px" }}>
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-10 text-center">
-          
           <div>
-            <h3 className="font-semibold text-lg mb-2">
+            <h3 style={{ fontWeight: 700, fontSize: "20px", marginBottom: "10px" }}>
               🌿 Origine Madagascar
             </h3>
-            <p className="text-gray-600 text-sm">
-              Une vanille reconnue mondialement pour sa qualité exceptionnelle.
+            <p style={{ color: "#6b7280", lineHeight: 1.7 }}>
+              Une provenance reconnue pour la richesse aromatique et la qualité
+              exceptionnelle de ses gousses.
             </p>
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-2">
+            <h3 style={{ fontWeight: 700, fontSize: "20px", marginBottom: "10px" }}>
               ⭐ Qualité premium
             </h3>
-            <p className="text-gray-600 text-sm">
-              Sélection rigoureuse pour garantir un produit haut de gamme.
+            <p style={{ color: "#6b7280", lineHeight: 1.7 }}>
+              Des produits sélectionnés avec exigence pour répondre aux attentes
+              des passionnés comme des professionnels.
             </p>
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-2">
+            <h3 style={{ fontWeight: 700, fontSize: "20px", marginBottom: "10px" }}>
               🚚 Livraison rapide
             </h3>
-            <p className="text-gray-600 text-sm">
-              Expédition rapide en France et en Europe.
+            <p style={{ color: "#6b7280", lineHeight: 1.7 }}>
+              Une expédition rapide et soignée pour la France et l’Europe.
             </p>
           </div>
-
         </div>
       </section>
 
-      {/* CTA PRODUITS */}
-      <section className="max-w-6xl mx-auto py-20 px-6 text-center">
-        
-        <h2 className="text-3xl font-bold mb-6">
-          Sublimez vos créations
+      <section className="max-w-6xl mx-auto py-24 px-6 text-center">
+        <h2 style={{ fontSize: "36px", fontWeight: 800, marginBottom: "18px" }}>
+          Sublimez toutes vos créations
         </h2>
 
-        <p className="text-gray-600 mb-10 max-w-xl mx-auto">
-          Que vous soyez professionnel ou passionné, notre vanille s’adapte à toutes
-          vos envies culinaires.
+        <p
+          style={{
+            color: "#6b7280",
+            maxWidth: "700px",
+            margin: "0 auto 36px",
+            lineHeight: 1.8,
+          }}
+        >
+          Pâtisserie, cuisine fine, desserts, infusions ou cadeaux gourmands :
+          notre vanille accompagne toutes les envies avec élégance.
         </p>
 
         <Link
           href="/products"
-          className="bg-black text-white px-8 py-4 rounded-xl font-medium hover:opacity-90 transition"
+          style={{
+            background: "#a16207",
+            color: "white",
+            padding: "14px 24px",
+            borderRadius: "14px",
+            textDecoration: "none",
+            fontWeight: 600,
+          }}
         >
           Accéder à la boutique
         </Link>
       </section>
 
-      {/* PREUVE SOCIALE */}
-      <section className="bg-gray-50 py-20 px-6">
+      <section style={{ background: "#f9fafb", padding: "80px 24px" }}>
         <div className="max-w-5xl mx-auto text-center">
-          
-          <h2 className="text-3xl font-bold mb-10">
+          <h2 style={{ fontSize: "34px", fontWeight: 800, marginBottom: "36px" }}>
             Ils nous font confiance
           </h2>
 
           <div className="grid md:grid-cols-3 gap-8">
-            
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <p className="text-sm text-gray-600 mb-4">
-                “Une qualité incroyable, le parfum est juste exceptionnel.”
+            <div
+              style={{
+                background: "white",
+                padding: "24px",
+                borderRadius: "18px",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+              }}
+            >
+              <p style={{ color: "#4b5563", marginBottom: "14px", lineHeight: 1.7 }}>
+                “Une qualité incroyable, le parfum est puissant et très raffiné.”
               </p>
-              <p className="font-semibold">Pâtissier</p>
+              <p style={{ fontWeight: 700 }}>Pâtissier</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <p className="text-sm text-gray-600 mb-4">
-                “Produit premium, rien à voir avec ce qu’on trouve ailleurs.”
+            <div
+              style={{
+                background: "white",
+                padding: "24px",
+                borderRadius: "18px",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+              }}
+            >
+              <p style={{ color: "#4b5563", marginBottom: "14px", lineHeight: 1.7 }}>
+                “Un produit premium qui se distingue immédiatement à l’ouverture.”
               </p>
-              <p className="font-semibold">Client particulier</p>
+              <p style={{ fontWeight: 700 }}>Client particulier</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <p className="text-sm text-gray-600 mb-4">
-                “Parfait pour mes desserts, je recommande à 100%.”
+            <div
+              style={{
+                background: "white",
+                padding: "24px",
+                borderRadius: "18px",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+              }}
+            >
+              <p style={{ color: "#4b5563", marginBottom: "14px", lineHeight: 1.7 }}>
+                “Parfait pour mes desserts, c’est devenu une référence.”
               </p>
-              <p className="font-semibold">Chef</p>
+              <p style={{ fontWeight: 700 }}>Chef</p>
             </div>
-
           </div>
         </div>
       </section>
-
     </div>
   );
 }

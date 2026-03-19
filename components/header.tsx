@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -36,7 +37,6 @@ export default function Header() {
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", { method: "POST" });
-
       showToast("Déconnecté avec succès 👋", "info");
 
       setTimeout(() => {
@@ -51,14 +51,15 @@ export default function Header() {
   return (
     <header
       style={{
-        borderBottom: "1px solid #ece7df",
-        background: "#fffdf9",
+        borderBottom: "1px solid #eee7db",
+        background:
+          "linear-gradient(to bottom, rgba(255,253,249,0.96), rgba(255,255,255,0.96))",
         padding: "18px 0",
-        marginBottom: "24px",
+        marginBottom: "20px",
         position: "sticky",
         top: 0,
         zIndex: 50,
-        backdropFilter: "blur(8px)",
+        backdropFilter: "blur(10px)",
       }}
     >
       <div
@@ -75,7 +76,7 @@ export default function Header() {
           href="/"
           style={{
             fontWeight: 800,
-            fontSize: "22px",
+            fontSize: "24px",
             letterSpacing: "1px",
             color: "#111111",
             textDecoration: "none",
@@ -92,6 +93,10 @@ export default function Header() {
             flexWrap: "wrap",
           }}
         >
+          <Link href="/" style={{ textDecoration: "none", color: "#111" }}>
+            Accueil
+          </Link>
+
           <Link href="/products" style={{ textDecoration: "none", color: "#111" }}>
             Produits
           </Link>
@@ -106,7 +111,7 @@ export default function Header() {
                 style={{
                   fontSize: "14px",
                   color: "#6b7280",
-                  background: "#f3f4f6",
+                  background: "#f7f4ee",
                   padding: "8px 12px",
                   borderRadius: "999px",
                 }}
@@ -128,10 +133,13 @@ export default function Header() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="btn-secondary"
                 style={{
-                  background: "transparent",
+                  border: "1px solid #d6d3d1",
+                  background: "white",
+                  padding: "10px 14px",
+                  borderRadius: "12px",
                   cursor: "pointer",
+                  fontWeight: 500,
                 }}
               >
                 Déconnexion
@@ -143,7 +151,17 @@ export default function Header() {
                 Connexion
               </Link>
 
-              <Link href="/register" className="btn-primary">
+              <Link
+                href="/register"
+                style={{
+                  background: "#111",
+                  color: "white",
+                  padding: "10px 14px",
+                  borderRadius: "12px",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
                 Inscription
               </Link>
             </>
