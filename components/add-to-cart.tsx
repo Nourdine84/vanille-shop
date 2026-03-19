@@ -1,6 +1,7 @@
 "use client";
 
 import { useCart } from "../lib/cart-store";
+import { useToast } from "./ui/toast";
 
 type Props = {
   product: {
@@ -13,20 +14,34 @@ type Props = {
 
 export default function AddToCart({ product }: Props) {
   const { addToCart } = useCart();
+  const { showToast } = useToast();
 
   const handleAdd = () => {
     addToCart({
       ...product,
       quantity: 1,
     });
+
+    showToast(`${product.name} ajouté au panier 🛒`, "success");
   };
 
   return (
     <button
+      type="button"
       onClick={handleAdd}
-      className="bg-amber-700 text-white px-6 py-3 rounded-xl hover:bg-amber-800 transition"
+      style={{
+        width: "100%",
+        background: "#111111",
+        color: "white",
+        padding: "14px 18px",
+        borderRadius: "14px",
+        border: "none",
+        cursor: "pointer",
+        fontWeight: 700,
+        fontSize: "15px",
+      }}
     >
       Ajouter au panier
     </button>
   );
-} 
+}
