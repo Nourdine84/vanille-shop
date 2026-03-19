@@ -1,16 +1,10 @@
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-// ✅ TEMPORAIRE : désactive NextAuth pour passer le build
-export async function GET() {
-  return NextResponse.json({
-    message: "Auth temporairement désactivée",
-  });
-}
+const handler = NextAuth({
+  providers: [],
+});
 
-export async function POST() {
-  return NextResponse.json({
-    message: "Auth temporairement désactivée",
-  });
-}
+export { handler as GET, handler as POST };
