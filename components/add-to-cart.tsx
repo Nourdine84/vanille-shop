@@ -16,10 +16,7 @@ export default function AddToCart({ product }: any) {
       quantity: 1,
     });
 
-    // 🔥 FEEDBACK VISUEL
-    showToast("Produit ajouté au panier 🛒", "success");
-
-    console.log("✅ Ajout panier:", product);
+    showToast(`${product.name} ajouté au panier 🛒`, "success");
   };
 
   return (

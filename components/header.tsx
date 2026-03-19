@@ -105,6 +105,8 @@ export default function Header() {
             Panier
           </Link>
 
+          <Link href="/about">À propos</Link>
+
           {user ? (
             <>
               <span

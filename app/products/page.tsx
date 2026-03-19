@@ -21,6 +21,7 @@ export default async function ProductsPage() {
 
   return (
     <div className="max-w-7xl mx-auto py-20 px-6">
+      {/* HEADER */}
       <div style={{ textAlign: "center", marginBottom: "60px" }}>
         <p
           style={{
@@ -47,11 +48,12 @@ export default async function ProductsPage() {
             lineHeight: 1.8,
           }}
         >
-          Découvrez une sélection de vanille premium pensée pour celles et ceux
-          qui recherchent un produit raffiné, intense et soigneusement choisi.
+          Découvrez une sélection de produits premium soigneusement choisis
+          pour sublimer vos créations.
         </p>
       </div>
 
+      {/* EMPTY STATE */}
       {products.length === 0 ? (
         <div
           style={{
@@ -68,73 +70,99 @@ export default async function ProductsPage() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {products.map((product: any) => (
-            <div
-              key={product.id}
-              style={{
-                border: "1px solid #ece7df",
-                borderRadius: "22px",
-                padding: "18px",
-                background: "#ffffff",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
-                transition: "transform 0.2s ease",
-              }}
-            >
+          {products.map((product: any) => {
+            // 🔒 SECURITÉ IMAGE
+            const imageSrc =
+              product.imageUrl &&
+              product.imageUrl.startsWith("/images/")
+                ? product.imageUrl
+                : "/images/product-vanille.jpg";
+
+            return (
               <div
+                key={product.id}
                 style={{
-                  overflow: "hidden",
-                  borderRadius: "16px",
-                  marginBottom: "18px",
+                  border: "1px solid #ece7df",
+                  borderRadius: "22px",
+                  padding: "18px",
+                  background: "#ffffff",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
+                  transition: "transform 0.2s ease",
                 }}
               >
-                <img
-                  src={product.imageUrl || "/images/placeholder.jpg"}
-                  alt={product.name}
+                {/* IMAGE */}
+                <div
                   style={{
-                    width: "100%",
-                    height: "270px",
-                    objectFit: "cover",
-                    display: "block",
+                    overflow: "hidden",
+                    borderRadius: "16px",
+                    marginBottom: "18px",
                   }}
-                />
+                >
+                  <img
+                    src={imageSrc}
+                    alt={product.name || "Produit Vanille Or"}
+                    style={{
+                      width: "100%",
+                      height: "270px",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </div>
+
+                {/* NOM */}
+                <h2
+                  style={{
+                    fontSize: "22px",
+                    fontWeight: 700,
+                    marginBottom: "10px",
+                  }}
+                >
+                  {product.name}
+                </h2>
+
+                {/* DESCRIPTION */}
+                <p
+                  style={{
+                    color: "#6b7280",
+                    marginBottom: "18px",
+                    lineHeight: 1.7,
+                    minHeight: "72px",
+                  }}
+                >
+                  {product.description || "Produit premium Vanille Or"}
+                </p>
+
+                {/* PRIX */}
+                <p
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: 800,
+                    marginBottom: "18px",
+                  }}
+                >
+                  {formatPrice(product.priceCents || 0)}
+                </p>
+
+                {/* CTA */}
+                <Link
+                  href={`/product/${product.slug}`}
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    background: "#a16207",
+                    color: "white",
+                    padding: "12px 16px",
+                    borderRadius: "14px",
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Voir le produit
+                </Link>
               </div>
-
-              <h2 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "10px" }}>
-                {product.name}
-              </h2>
-
-              <p
-                style={{
-                  color: "#6b7280",
-                  marginBottom: "18px",
-                  lineHeight: 1.7,
-                  minHeight: "72px",
-                }}
-              >
-                {product.description}
-              </p>
-
-              <p style={{ fontSize: "20px", fontWeight: 800, marginBottom: "18px" }}>
-                {formatPrice(product.priceCents)}
-              </p>
-
-              <Link
-                href={`/product/${product.slug}`}
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  background: "#a16207",
-                  color: "white",
-                  padding: "12px 16px",
-                  borderRadius: "14px",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Voir le produit
-              </Link>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

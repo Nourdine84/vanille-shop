@@ -11,7 +11,7 @@ async function main() {
         description: "Gousses de vanille Bourbon de Madagascar.",
         priceCents: 14900,
         currency: "EUR",
-        imageUrl: "/images/vanille1.jpg",
+        imageUrl: "/images/product-vanille.jpg", // ✅ CORRIGÉ
         stock: 100,
       },
       {
@@ -20,7 +20,7 @@ async function main() {
         description: "Qualité exceptionnelle pour pâtisserie haut de gamme.",
         priceCents: 12900,
         currency: "EUR",
-        imageUrl: "/images/vanille2.jpg",
+        imageUrl: "/images/product-vanille.jpg", // ✅ CORRIGÉ
         stock: 50,
       },
     ],
