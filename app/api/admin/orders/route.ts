@@ -1,19 +1,9 @@
-
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../lib/prisma";
 
+// ✅ TEMPORAIRE pour éviter crash
 export async function GET() {
-  try {
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ orders });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Erreur récupération commandes" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({
+    orders: [],
+    message: "Admin orders en construction",
+  });
 }
