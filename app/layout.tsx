@@ -1,6 +1,6 @@
 import "./globals.css";
 import HeaderWrapper from "../components/header-wrapper";
-import { ToastProvider } from "../components/ui/toast";
+import Providers from "../components/providers";
 
 export default function RootLayout({
   children,
@@ -10,10 +10,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <ToastProvider>
+        <Providers>
           <HeaderWrapper />
           {children}
-        </ToastProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -30,133 +30,107 @@ export default async function ProductPage({
   if (!product) {
     return (
       <div className="container py-10">
-        <div
-          style={{
-            border: "1px dashed #d1d5db",
-            borderRadius: "16px",
-            padding: "40px",
-            textAlign: "center",
-            background: "#fafafa",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "28px",
-              fontWeight: 700,
-              marginBottom: "10px",
-            }}
-          >
-            Produit introuvable
-          </h1>
-
-          <p style={{ color: "#6b7280" }}>
-            Le produit demandé n’existe pas ou n’est plus disponible.
-          </p>
-        </div>
+        <h1>Produit introuvable</h1>
       </div>
     );
   }
 
+  // Simulation (tu brancheras plus tard avec ta DB)
+  const fakeStock = Math.floor(Math.random() * 8) + 3;
+  const isLowStock = fakeStock <= 5;
+
   return (
-    <div className="container py-10">
-      <div
-        style={{
-          display: "grid",
-          gap: "48px",
-          gridTemplateColumns: "1fr 1fr",
-          alignItems: "start",
-        }}
-      >
+    <div className="max-w-7xl mx-auto py-20 px-6">
+      <div className="grid md:grid-cols-2 gap-16 items-start">
+
+        {/* IMAGE */}
         <div>
-          <img
-            src={product.imageUrl || "/images/placeholder.jpg"}
-            alt={product.name}
-            style={{
-              width: "100%",
-              borderRadius: "20px",
-              display: "block",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-              background: "#fff",
-            }}
-          />
+          <div className="relative">
+            <img
+              src={product.imageUrl || "/images/placeholder.jpg"}
+              alt={product.name}
+              className="rounded-2xl shadow-lg w-full"
+            />
+
+            {/* BADGES */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              <span className="bg-amber-700 text-white text-xs px-3 py-1 rounded-full">
+                Premium
+              </span>
+
+              <span className="bg-black text-white text-xs px-3 py-1 rounded-full">
+                Best Seller
+              </span>
+            </div>
+          </div>
         </div>
 
+        {/* CONTENU */}
         <div>
-          <p
-            style={{
-              fontSize: "12px",
-              fontWeight: 700,
-              letterSpacing: "1.5px",
-              textTransform: "uppercase",
-              color: "#a16207",
-              marginBottom: "12px",
-            }}
-          >
-            Vanille premium
+
+          <p className="text-xs tracking-[3px] uppercase text-amber-700 mb-3">
+            Vanille Or
           </p>
 
-          <h1
-            style={{
-              fontSize: "40px",
-              fontWeight: 700,
-              lineHeight: 1.1,
-              marginBottom: "18px",
-            }}
-          >
+          <h1 className="text-4xl font-bold mb-4">
             {product.name}
           </h1>
 
-          <p
-            style={{
-              color: "#4b5563",
-              marginBottom: "28px",
-              fontSize: "16px",
-              lineHeight: 1.7,
-            }}
-          >
+          {/* ⭐ AVIS */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-amber-500">★★★★★</span>
+            <span className="text-sm text-gray-500">
+              (42 avis clients)
+            </span>
+          </div>
+
+          <p className="text-gray-600 mb-6 leading-relaxed">
             {product.description}
           </p>
 
-          <p
-            style={{
-              fontSize: "32px",
-              fontWeight: 700,
-              marginBottom: "24px",
-            }}
-          >
+          <p className="text-3xl font-bold mb-4">
             {(product.priceCents / 100).toFixed(2)} €
           </p>
 
-          <div
-            style={{
-              padding: "18px",
-              border: "1px solid #ece7df",
-              borderRadius: "16px",
-              background: "#fffdf9",
-              marginBottom: "20px",
-            }}
-          >
-            <p
-              style={{
-                margin: 0,
-                color: "#6b7280",
-                fontSize: "14px",
-                lineHeight: 1.6,
+          {/* 🚨 URGENCE */}
+          {isLowStock && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+              ⚠️ Plus que <strong>{fakeStock}</strong> en stock
+            </div>
+          )}
+
+          {/* CTA */}
+          <div className="mb-6">
+            <AddToCart
+              product={{
+                id: product.id,
+                name: product.name,
+                priceCents: product.priceCents,
+                imageUrl: product.imageUrl,
               }}
-            >
-              Une vanille sélectionnée pour son parfum intense, son aspect premium
-              et sa qualité idéale pour les recettes raffinées.
+            />
+          </div>
+
+          {/* RASSURANCE */}
+          <div className="space-y-3 text-sm text-gray-600 mb-8">
+            <p>✔ Livraison rapide 48h</p>
+            <p>✔ Satisfait ou remboursé</p>
+            <p>✔ Qualité premium garantie</p>
+          </div>
+
+          {/* STORYTELLING */}
+          <div className="bg-[#fffdf9] border border-[#ece7df] rounded-xl p-6">
+            <h3 className="font-semibold mb-2">
+              Pourquoi choisir Vanille Or ?
+            </h3>
+
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Une sélection rigoureuse de gousses de vanille haut de gamme,
+              choisies pour leur intensité aromatique exceptionnelle.
+              Idéale pour sublimer toutes vos recettes.
             </p>
           </div>
 
-          <AddToCart
-            product={{
-              id: product.id,
-              name: product.name,
-              priceCents: product.priceCents,
-              imageUrl: product.imageUrl,
-            }}
-          />
         </div>
       </div>
     </div>

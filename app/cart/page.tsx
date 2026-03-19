@@ -1,129 +1,144 @@
 "use client";
 
-import React, { useState } from "react";
-import { useCartStore } from "../../lib/cart-store";
-import { useToast } from "../../components/ui/toast";
+import { useCart } from "../../lib/cart-store";
+import Link from "next/link";
 
 export default function CartPage() {
-  const { cart, removeFromCart } = useCartStore();
-  const { showToast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { cart, removeFromCart, addToCart } = useCart();
 
   const total = cart.reduce(
-    (sum, item) => sum + item.priceCents * item.quantity,
+    (acc, item) => acc + item.priceCents * item.quantity,
     0
   );
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) {
-      showToast("Votre panier est vide 🛒", "error");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ items: cart }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        showToast("Erreur lors du paiement", "error");
-        return;
-      }
-
-      showToast("Redirection vers le paiement...", "info");
-
-      window.location.href = data.url;
-    } catch (err) {
-      console.error(err);
-      showToast("Erreur réseau", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const formatPrice = (price: number) =>
+    (price / 100).toFixed(2).replace(".", ",") + " €";
 
   return (
-    <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-6">Votre panier</h1>
+    <div className="max-w-6xl mx-auto py-20 px-6">
+
+      {/* HEADER */}
+      <div className="mb-12">
+        <h1 className="text-4xl font-bold mb-2">Votre panier</h1>
+        <p className="text-gray-500">
+          Vérifiez votre sélection avant de passer commande.
+        </p>
+      </div>
 
       {cart.length === 0 ? (
-        <div
-          style={{
-            padding: "40px",
-            border: "1px dashed #ccc",
-            borderRadius: "12px",
-            textAlign: "center",
-          }}
-        >
-          <p style={{ marginBottom: "10px" }}>
-            Votre panier est vide 🛒
+        <div className="text-center py-20">
+          <p className="text-gray-500 mb-6">
+            Votre panier est vide.
           </p>
-          <p style={{ color: "#6b7280" }}>
-            Ajoutez des produits pour commencer
-          </p>
+
+          <Link
+            href="/products"
+            className="bg-black text-white px-6 py-3 rounded-xl"
+          >
+            Voir les produits
+          </Link>
         </div>
       ) : (
-        <>
-          <div style={{ display: "grid", gap: "20px" }}>
+        <div className="grid md:grid-cols-3 gap-10">
+
+          {/* LISTE PRODUITS */}
+          <div className="md:col-span-2 space-y-6">
+
             {cart.map((item) => (
               <div
                 key={item.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  border: "1px solid #eee",
-                  padding: "16px",
-                  borderRadius: "12px",
-                }}
+                className="flex gap-6 border border-[#ece7df] rounded-xl p-4 bg-white"
               >
-                <div>
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {item.quantity} x {(item.priceCents / 100).toFixed(2)} €
+                {/* IMAGE */}
+                <img
+                  src={item.imageUrl || "/images/placeholder.jpg"}
+                  alt={item.name}
+                  className="w-24 h-24 object-cover rounded-lg"
+                />
+
+                {/* INFOS */}
+                <div className="flex-1">
+                  <h2 className="font-semibold">{item.name}</h2>
+
+                  <p className="text-sm text-gray-500 mb-2">
+                    {formatPrice(item.priceCents)}
                   </p>
+
+                  {/* QUANTITÉ */}
+                  <div className="flex items-center gap-3">
+
+                    <button
+                      onClick={() =>
+                        removeFromCart(item.id)
+                      }
+                      className="px-3 py-1 border rounded"
+                    >
+                      −
+                    </button>
+
+                    <span>{item.quantity}</span>
+
+                    <button
+                      onClick={() =>
+                        addToCart({ ...item, quantity: 1 })
+                      }
+                      className="px-3 py-1 border rounded"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <p className="font-bold">
-                    {(item.priceCents * item.quantity / 100).toFixed(2)} €
+                {/* TOTAL ITEM */}
+                <div className="text-right">
+                  <p className="font-semibold">
+                    {formatPrice(item.priceCents * item.quantity)}
                   </p>
-
-                  <button
-                    onClick={() => {
-                      removeFromCart(item.id);
-                      showToast("Produit supprimé ❌", "info");
-                    }}
-                  >
-                    ❌
-                  </button>
                 </div>
               </div>
             ))}
+
           </div>
 
-          {/* TOTAL */}
-          <div style={{ marginTop: "30px", textAlign: "right" }}>
-            <p className="text-xl font-bold mb-4">
-              Total : {(total / 100).toFixed(2)} €
-            </p>
+          {/* RÉCAP */}
+          <div className="border border-[#ece7df] rounded-xl p-6 bg-[#fffdf9] h-fit">
 
-            <button
-              onClick={handleCheckout}
-              className="btn-primary"
-              disabled={loading}
+            <h2 className="text-lg font-semibold mb-6">
+              Résumé
+            </h2>
+
+            <div className="flex justify-between mb-4 text-sm">
+              <span>Sous-total</span>
+              <span>{formatPrice(total)}</span>
+            </div>
+
+            <div className="flex justify-between mb-6 text-sm">
+              <span>Livraison</span>
+              <span>Gratuite</span>
+            </div>
+
+            <div className="flex justify-between font-bold text-lg mb-6">
+              <span>Total</span>
+              <span>{formatPrice(total)}</span>
+            </div>
+
+            {/* CTA */}
+            <Link
+                href="/checkout"
+                className="block text-center bg-amber-700 text-white py-3 rounded-xl font-medium hover:bg-amber-800 transition"
             >
-              {loading ? "Chargement..." : "Payer maintenant"}
-            </button>
+              Passer au paiement
+            </Link>
+
+            {/* RASSURANCE */}
+            <div className="mt-6 text-xs text-gray-500 space-y-1">
+              <p>✔ Paiement sécurisé</p>
+              <p>✔ Livraison rapide</p>
+              <p>✔ Garantie qualité</p>
+            </div>
+
           </div>
-        </>
+        </div>
       )}
     </div>
   );

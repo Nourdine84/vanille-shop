@@ -1,27 +1,43 @@
 "use client";
 
 import { useEffect } from "react";
-import { useCartStore } from "../../lib/cart-store";
-import { useToast } from "../../components/ui/toast";
+import { useCart } from "../../lib/cart-store";
+import Link from "next/link";
 
 export default function SuccessPage() {
-  const clearCart = useCartStore((state) => state.clearCart);
-  const { showToast } = useToast();
+  const { clearCart } = useCart();
 
   useEffect(() => {
     clearCart();
-    showToast("Commande confirmée 🎉", "success");
   }, []);
 
   return (
-    <div className="container py-10 text-center">
-      <h1 className="text-3xl font-bold mb-4">
-        Merci pour votre commande 🙏
+    <div className="max-w-4xl mx-auto py-20 px-6 text-center">
+
+      <h1 className="text-4xl font-bold mb-6">
+        🎉 Paiement réussi !
       </h1>
 
-      <p className="text-gray-600">
-        Vous recevrez un email de confirmation.
+      <p className="text-gray-600 mb-10">
+        Merci pour votre commande. Vous recevrez un email de confirmation.
       </p>
+
+      <div className="flex justify-center gap-4">
+        <Link
+          href="/products"
+          className="bg-black text-white px-6 py-3 rounded-xl"
+        >
+          Continuer mes achats
+        </Link>
+
+        <Link
+          href="/account/orders"
+          className="border px-6 py-3 rounded-xl"
+        >
+          Voir mes commandes
+        </Link>
+      </div>
+
     </div>
   );
 }

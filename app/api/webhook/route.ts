@@ -1,83 +1,110 @@
-import { NextResponse } from "next/server";
-import { prisma } from "../../../lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { sendOrderEmail } from "../../../lib/email";
+import { Resend } from "resend";
 
-export async function POST(req: Request) {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+const resend = new Resend(process.env.RESEND_API_KEY!);
+
+export async function POST(req: NextRequest) {
+  const body = await req.text();
+  const sig = req.headers.get("stripe-signature");
+
+  if (!sig) {
+    console.error("❌ Signature Stripe manquante");
+    return new NextResponse("Signature manquante", { status: 400 });
+  }
+
+  let event: Stripe.Event;
+
   try {
-    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
-      throw new Error("Variables Stripe manquantes");
-    }
-
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-    const body = await req.text();
-    const signature = req.headers.get("stripe-signature");
-
-    if (!signature) {
-      throw new Error("Signature Stripe absente");
-    }
-
-    const event = stripe.webhooks.constructEvent(
+    event = stripe.webhooks.constructEvent(
       body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
     );
+  } catch (err) {
+    console.error("❌ Webhook signature error:", err);
+    return new NextResponse("Webhook Error", { status: 400 });
+  }
 
-    console.log("📦 Event:", event.type);
+  console.log("📦 Event:", event.type);
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
+  // 🎯 CHECKOUT VALIDÉ
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
 
-      console.log("✅ PAYMENT:", session.id);
-      console.log("📧 Email Stripe:", session.customer_details?.email);
-
-      const existing = await prisma.order.findUnique({
-        where: { stripeSessionId: session.id },
-      });
-
-      if (existing) {
-        console.log("⚠️ Déjà traité");
-        return NextResponse.json({ received: true });
-      }
-
+    try {
+      // 🔹 récupérer les produits du checkout
       const lineItems = await stripe.checkout.sessions.listLineItems(
         session.id
       );
 
-      const items = lineItems.data.map((item) => ({
-        name: item.description,
-        quantity: item.quantity,
-        priceCents: item.amount_subtotal,
-      }));
+      console.log("📧 Tentative envoi email à:", process.env.EMAIL_TEST);
 
-      const userId = session.metadata?.userId || null;
+      await resend.emails.send({
+        from: "Vanille Or <onboarding@resend.dev>",
+        to: process.env.EMAIL_TEST || "msanourdine@hotmail.com",
+        subject: "✨ Confirmation de votre commande - Vanille Or",
 
-      await prisma.order.create({
-        data: {
-          userId,
-          stripeSessionId: session.id,
-          stripePaymentId: session.payment_intent as string,
-          totalCents: session.amount_total || 0,
-          currency: session.currency || "EUR",
-          status: "PAID",
-          items,
-        },
+        html: `
+          <div style="font-family: Arial, sans-serif; background:#f9fafb; padding:40px;">
+            
+            <div style="max-width:600px; margin:0 auto; background:white; padding:30px; border-radius:12px;">
+
+              <h1 style="text-align:center; margin-bottom:10px;">
+                Vanille Or
+              </h1>
+
+              <h2 style="text-align:center; margin-bottom:20px;">
+                Merci pour votre commande ✨
+              </h2>
+
+              <p style="text-align:center; color:#555;">
+                Votre paiement a bien été confirmé.
+              </p>
+
+              <hr style="margin:30px 0;" />
+
+              <h3>Détails de votre commande :</h3>
+
+              <ul style="padding-left:20px;">
+                ${lineItems.data
+                  .map(
+                    (item) => `
+                    <li>
+                      ${item.description || "Produit"} x ${
+                      item.quantity || 1
+                    }
+                    </li>
+                  `
+                  )
+                  .join("")}
+              </ul>
+
+              <p style="margin-top:20px;">
+                <strong>Total :</strong> ${(
+                  (session.amount_total || 0) / 100
+                ).toFixed(2)} €
+              </p>
+
+              <hr style="margin:30px 0;" />
+
+              <p style="text-align:center; font-size:14px; color:#777;">
+                Livraison rapide • Qualité premium • Vanille d'exception
+              </p>
+
+            </div>
+
+          </div>
+        `,
       });
 
-      const customerEmail =
-        session.customer_details?.email || "msanourdine@hotmail.com";
-
-      await sendOrderEmail({
-        to: customerEmail,
-        items,
-        totalCents: session.amount_total || 0,
-      });
+      console.log("✅ Email envoyé avec succès");
+    } catch (err) {
+      console.error("❌ Erreur envoi email:", err);
     }
-
-    return NextResponse.json({ received: true });
-  } catch (error) {
-    console.error("❌ WEBHOOK ERROR:", error);
-    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
+
+  return NextResponse.json({ received: true });
 }

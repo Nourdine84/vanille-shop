@@ -1,7 +1,6 @@
 "use client";
 
-import { useCartStore } from "../lib/cart-store";
-import { useToast } from "./ui/toast";
+import { useCart } from "../lib/cart-store";
 
 type Props = {
   product: {
@@ -13,26 +12,21 @@ type Props = {
 };
 
 export default function AddToCart({ product }: Props) {
-  const addToCart = useCartStore((state) => state.addToCart);
-  const { showToast } = useToast();
+  const { addToCart } = useCart();
 
-  const handleClick = () => {
-    try {
-      addToCart({
-        ...product,
-        quantity: 1,
-      });
-
-      showToast("Produit ajouté au panier 🛒", "success");
-    } catch (err) {
-      console.error(err);
-      showToast("Erreur lors de l'ajout", "error");
-    }
+  const handleAdd = () => {
+    addToCart({
+      ...product,
+      quantity: 1,
+    });
   };
 
   return (
-    <button onClick={handleClick} className="btn-primary w-full">
+    <button
+      onClick={handleAdd}
+      className="bg-amber-700 text-white px-6 py-3 rounded-xl hover:bg-amber-800 transition"
+    >
       Ajouter au panier
     </button>
   );
-}
+} 
