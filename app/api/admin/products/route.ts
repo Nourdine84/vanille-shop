@@ -1,12 +1,12 @@
 import { prisma } from "../../../../lib/prisma";
 import { NextResponse } from "next/server";
 
-// ✅ GET (obligatoire pour sécuriser build)
+export const dynamic = "force-dynamic"; // 🔥 IMPORTANT
+
 export async function GET() {
   return NextResponse.json({ message: "Admin products API OK" });
 }
 
-// ✅ POST (création produit)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -26,7 +26,6 @@ export async function POST(req: Request) {
     return NextResponse.json(product);
   } catch (error) {
     console.error(error);
-
     return NextResponse.json(
       { error: "Erreur création produit" },
       { status: 500 }
