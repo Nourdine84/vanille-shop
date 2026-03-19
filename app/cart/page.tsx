@@ -1,142 +1,159 @@
 "use client";
 
-import { useCart } from "../../lib/cart-store";
 import Link from "next/link";
+import { useCart } from "../../lib/cart-store";
 
 export default function CartPage() {
-  const { cart, removeFromCart, addToCart } = useCart();
+  const { cart, removeFromCart, clearCart } = useCart();
 
   const total = cart.reduce(
     (acc, item) => acc + item.priceCents * item.quantity,
     0
   );
 
-  const formatPrice = (price: number) =>
-    (price / 100).toFixed(2).replace(".", ",") + " €";
-
   return (
     <div className="max-w-6xl mx-auto py-20 px-6">
-
-      {/* HEADER */}
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold mb-2">Votre panier</h1>
-        <p className="text-gray-500">
-          Vérifiez votre sélection avant de passer commande.
-        </p>
-      </div>
+      <h1 style={{ fontSize: "40px", fontWeight: 800, marginBottom: "40px" }}>
+        Votre panier
+      </h1>
 
       {cart.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 mb-6">
-            Votre panier est vide.
+        <div
+          style={{
+            textAlign: "center",
+            padding: "60px",
+            border: "1px dashed #d6d3d1",
+            borderRadius: "18px",
+            background: "#fafaf9",
+          }}
+        >
+          <p style={{ color: "#6b7280", marginBottom: "20px" }}>
+            Votre panier est vide
           </p>
 
           <Link
             href="/products"
-            className="bg-black text-white px-6 py-3 rounded-xl"
+            style={{
+              background: "#111",
+              color: "white",
+              padding: "12px 18px",
+              borderRadius: "12px",
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
           >
-            Voir les produits
+            Découvrir les produits
           </Link>
         </div>
       ) : (
         <div className="grid md:grid-cols-3 gap-10">
-
           {/* LISTE PRODUITS */}
-          <div className="md:col-span-2 space-y-6">
-
+          <div className="md:col-span-2 flex flex-col gap-6">
             {cart.map((item) => (
               <div
                 key={item.id}
-                className="flex gap-6 border border-[#ece7df] rounded-xl p-4 bg-white"
+                style={{
+                  display: "flex",
+                  gap: "16px",
+                  border: "1px solid #ece7df",
+                  borderRadius: "18px",
+                  padding: "16px",
+                  background: "white",
+                }}
               >
-                {/* IMAGE */}
                 <img
                   src={item.imageUrl || "/images/placeholder.jpg"}
                   alt={item.name}
-                  className="w-24 h-24 object-cover rounded-lg"
+                  style={{
+                    width: "100px",
+                    height: "100px",
+                    objectFit: "cover",
+                    borderRadius: "12px",
+                  }}
                 />
 
-                {/* INFOS */}
-                <div className="flex-1">
-                  <h2 className="font-semibold">{item.name}</h2>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontWeight: 700 }}>{item.name}</h3>
 
-                  <p className="text-sm text-gray-500 mb-2">
-                    {formatPrice(item.priceCents)}
+                  <p style={{ color: "#6b7280", fontSize: "14px" }}>
+                    Quantité : {item.quantity}
                   </p>
 
-                  {/* QUANTITÉ */}
-                  <div className="flex items-center gap-3">
-
-                    <button
-                      onClick={() =>
-                        removeFromCart(item.id)
-                      }
-                      className="px-3 py-1 border rounded"
-                    >
-                      −
-                    </button>
-
-                    <span>{item.quantity}</span>
-
-                    <button
-                      onClick={() =>
-                        addToCart({ ...item, quantity: 1 })
-                      }
-                      className="px-3 py-1 border rounded"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* TOTAL ITEM */}
-                <div className="text-right">
-                  <p className="font-semibold">
-                    {formatPrice(item.priceCents * item.quantity)}
+                  <p style={{ fontWeight: 700, marginTop: "6px" }}>
+                    {(item.priceCents / 100).toFixed(2)} €
                   </p>
                 </div>
+
+                <button
+                  onClick={() => removeFromCart(item.id)}
+                  style={{
+                    border: "none",
+                    background: "#fee2e2",
+                    color: "#b91c1c",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Supprimer
+                </button>
               </div>
             ))}
-
           </div>
 
           {/* RÉCAP */}
-          <div className="border border-[#ece7df] rounded-xl p-6 bg-[#fffdf9] h-fit">
-
-            <h2 className="text-lg font-semibold mb-6">
+          <div
+            style={{
+              border: "1px solid #ece7df",
+              borderRadius: "18px",
+              padding: "24px",
+              background: "#fffdf9",
+              height: "fit-content",
+            }}
+          >
+            <h2 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "20px" }}>
               Résumé
             </h2>
 
-            <div className="flex justify-between mb-4 text-sm">
-              <span>Sous-total</span>
-              <span>{formatPrice(total)}</span>
+            <div style={{ marginBottom: "20px" }}>
+              <p style={{ color: "#6b7280" }}>
+                Total :
+              </p>
+              <p style={{ fontSize: "28px", fontWeight: 800 }}>
+                {(total / 100).toFixed(2)} €
+              </p>
             </div>
 
-            <div className="flex justify-between mb-6 text-sm">
-              <span>Livraison</span>
-              <span>Gratuite</span>
-            </div>
-
-            <div className="flex justify-between font-bold text-lg mb-6">
-              <span>Total</span>
-              <span>{formatPrice(total)}</span>
-            </div>
-
-            {/* CTA */}
             <Link
-                href="/checkout"
-                className="block text-center bg-amber-700 text-white py-3 rounded-xl font-medium hover:bg-amber-800 transition"
+              href="/checkout"
+              style={{
+                display: "block",
+                textAlign: "center",
+                background: "#111",
+                color: "white",
+                padding: "14px",
+                borderRadius: "14px",
+                textDecoration: "none",
+                fontWeight: 600,
+                marginBottom: "12px",
+              }}
             >
               Passer au paiement
             </Link>
 
-            {/* RASSURANCE */}
-            <div className="mt-6 text-xs text-gray-500 space-y-1">
-              <p>✔ Paiement sécurisé</p>
-              <p>✔ Livraison rapide</p>
-              <p>✔ Garantie qualité</p>
-            </div>
-
+            <button
+              onClick={clearCart}
+              style={{
+                width: "100%",
+                border: "1px solid #d6d3d1",
+                padding: "12px",
+                borderRadius: "14px",
+                background: "white",
+                cursor: "pointer",
+              }}
+            >
+              Vider le panier
+            </button>
           </div>
         </div>
       )}
