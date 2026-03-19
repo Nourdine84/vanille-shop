@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { clearUserSession } from "../../../lib/auth";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST() {
-  clearUserSession();
-
-  return NextResponse.json({
-    success: true,
-  });
+  return NextResponse.json({ success: true });
 }
