@@ -1,28 +1,28 @@
 "use client";
 
-import { useCart } from "../lib/cart-store";
-import { useToast } from "./ui/toast";
+import { useCartStore } from "../lib/cart-store";
 
 export default function AddToCart({ product }: any) {
-  const { addToCart } = useCart();
-  const { showToast } = useToast();
-
-  const handleAdd = () => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      priceCents: product.priceCents,
-      imageUrl: product.imageUrl,
-      quantity: 1,
-    });
-
-    showToast(`${product.name} ajouté au panier 🛒`, "success");
-  };
+  const addToCart = useCartStore((state) => state.addToCart);
 
   return (
     <button
-      onClick={handleAdd}
-      className="bg-amber-700 text-white px-5 py-3 rounded-lg hover:bg-amber-800"
+      onClick={() =>
+        addToCart({
+          id: product.id,
+          name: product.name,
+          priceCents: product.priceCents,
+          quantity: 1,
+        })
+      }
+      style={{
+        background: "#a16207",
+        color: "white",
+        padding: "12px 20px",
+        borderRadius: "10px",
+        border: "none",
+        cursor: "pointer",
+      }}
     >
       Ajouter au panier
     </button>

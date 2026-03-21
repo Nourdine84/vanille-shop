@@ -1,14 +1,14 @@
 "use client";
 
-import { CartProvider } from "../lib/cart-store";
-import { ToastProvider } from "./ui/toast";
+import { useEffect } from "react";
+import { useCartStore } from "../lib/cart-store";
 
-export default function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <CartProvider>
-      <ToastProvider>
-        {children}
-      </ToastProvider>
-    </CartProvider>
-  );
+export default function Providers({ children }: any) {
+  const loadCart = useCartStore((state) => state.loadCart);
+
+  useEffect(() => {
+    loadCart();
+  }, []);
+
+  return children;
 }

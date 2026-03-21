@@ -1,61 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
 
 export default function SuccessPage() {
-  useEffect(() => {
-    // clean du panier après paiement
-    localStorage.removeItem("cart");
-  }, []);
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-      <div className="max-w-xl w-full bg-white p-10 rounded-2xl shadow-md text-center">
+    <div className="min-h-screen flex items-center justify-center px-6 py-20 bg-[#faf7f2]">
+      
+      <div className="max-w-xl w-full bg-white rounded-3xl shadow-lg p-10 text-center">
         
-        {/* ICON SUCCESS */}
-        <div className="mb-6">
-          <div className="w-16 h-16 mx-auto bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl">
-            ✓
-          </div>
-        </div>
+        {/* ICON */}
+        <div className="text-5xl mb-6">🎉</div>
 
         {/* TITLE */}
         <h1 className="text-3xl font-bold mb-4">
-          Paiement confirmé 🎉
+          Merci pour votre commande
         </h1>
 
-        {/* MESSAGE */}
-        <p className="text-gray-600 mb-6">
-          Merci pour votre commande chez <strong>Vanille Or</strong>.
-          <br />
-          Votre commande est en cours de préparation.
+        {/* TEXT */}
+        <p className="text-gray-600 mb-6 leading-relaxed">
+          Votre paiement a été confirmé avec succès.  
+          Nous préparons votre commande avec soin afin de vous offrir une
+          expérience à la hauteur de Vanille’Or.
         </p>
 
-        {/* INFO */}
-        <div className="bg-gray-100 p-4 rounded-lg mb-6 text-sm text-gray-700">
-          📦 Livraison estimée : <strong>3 à 5 jours ouvrés</strong>
+        {/* TRUST */}
+        <div className="bg-[#faf7f2] rounded-xl p-4 mb-6 text-sm text-gray-700">
+          ✔ Préparation rapide  
           <br />
-          📧 Un email de confirmation vous a été envoyé
+          ✔ Expédition sous 48h  
+          <br />
+          ✔ Qualité premium garantie
         </div>
 
         {/* CTA */}
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/products"
-            className="bg-amber-700 text-white py-3 rounded-lg font-medium hover:bg-amber-800 transition"
-          >
-            Continuer mes achats
-          </Link>
+        <Link
+          href="/products"
+          className="block bg-[#a16207] hover:bg-[#854d0e] text-white py-4 rounded-xl font-semibold transition"
+        >
+          Continuer mes achats
+        </Link>
 
-          <Link
-            href="/account/orders"
-            className="border border-gray-300 py-3 rounded-lg font-medium hover:bg-gray-100 transition"
-          >
-            Voir mes commandes
-          </Link>
-        </div>
+        {/* BRAND */}
+        <p className="mt-6 text-xs text-gray-400">
+          Vanille’Or — L’alliance entre authenticité et excellence
+        </p>
       </div>
+
     </div>
   );
 }

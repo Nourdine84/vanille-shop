@@ -2,56 +2,61 @@
 
 import { createContext, useContext, useState } from "react";
 
-type ToastType = "success" | "error" | "info";
+const ToastContext = createContext<any>(null);
 
-type Toast = {
-  message: string;
-  type: ToastType;
-};
+export function ToastProvider({ children }: any) {
+  const [message, setMessage] = useState("");
 
-type ToastContextType = {
-  showToast: (message: string, type?: ToastType) => void;
-};
-
-const ToastContext = createContext<ToastContextType | null>(null);
-
-export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toast, setToast] = useState<Toast | null>(null);
-
-  const showToast = (message: string, type: ToastType = "info") => {
-    setToast({ message, type });
+  function showToast(msg: string) {
+    setMessage(msg);
 
     setTimeout(() => {
-      setToast(null);
-    }, 3000);
-  };
+      setMessage("");
+    }, 2000);
+  }
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
-      {/* UI TOAST */}
-      {toast && (
+      {message && (
         <div
-          className={`fixed bottom-6 right-6 px-5 py-3 rounded-lg shadow-lg text-white transition
-          ${toast.type === "success" ? "bg-green-600" : ""}
-          ${toast.type === "error" ? "bg-red-600" : ""}
-          ${toast.type === "info" ? "bg-gray-800" : ""}
-          `}
+          style={{
+            position: "fixed",
+            bottom: "30px",
+            right: "30px",
+            background: "#111",
+            color: "white",
+            padding: "16px 22px",
+            borderRadius: "14px",
+            boxShadow: "0 15px 40px rgba(0,0,0,0.3)",
+            fontSize: "14px",
+            zIndex: 9999,
+            animation: "slideUp 0.3s ease",
+          }}
         >
-          {toast.message}
+          {message}
         </div>
       )}
+
+      {/* ANIMATION CSS */}
+      <style jsx>{`
+        @keyframes slideUp {
+          from {
+            transform: translateY(30px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
+
     </ToastContext.Provider>
   );
 }
 
 export function useToast() {
-  const context = useContext(ToastContext);
-
-  if (!context) {
-    throw new Error("useToast must be used within ToastProvider");
-  }
-
-  return context;
+  return useContext(ToastContext);
 }

@@ -1,226 +1,193 @@
-import React from "react";
-import AddToCart from "../../../components/add-to-cart";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Head from "next/head";
+import { motion } from "framer-motion";
+import { useCartStore } from "../../../lib/cart-store";
+import { useToast } from "../../../components/ui/toast";
+import { useUIStore } from "../../../lib/ui-store";
 
 type Product = {
   id: string;
-  slug: string;
   name: string;
   description: string;
   priceCents: number;
   imageUrl: string;
 };
 
-async function getProduct(slug: string): Promise<Product | null> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_URL}/api/products/${slug}`,
-    { cache: "no-store" }
-  );
-
-  if (!res.ok) return null;
-  return res.json();
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-export default async function ProductPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const product = await getProduct(params.slug);
+export default function ProductPage() {
+  const { slug } = useParams();
+  const { showToast } = useToast();
+  const addToCart = useCartStore((state) => state.addToCart);
+  const openCart = useUIStore((state) => state.openCart);
 
-  if (!product) {
-    return (
-      <div className="container py-10">
-        <div
-          style={{
-            border: "1px dashed #d6d3d1",
-            borderRadius: "18px",
-            padding: "40px",
-            textAlign: "center",
-            background: "#fafaf9",
-          }}
-        >
-          <h1 style={{ fontSize: "30px", fontWeight: 800, marginBottom: "10px" }}>
-            Produit introuvable
-          </h1>
-          <p style={{ color: "#6b7280" }}>
-            Le produit demandé n’est plus disponible ou n’existe pas.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const [product, setProduct] = useState<Product | null>(null);
 
-  const fakeStock = 4;
+  useEffect(() => {
+    fetch(`/api/products/${slug}`)
+      .then((res) => res.json())
+      .then((data) => setProduct(data));
+  }, [slug]);
+
+  if (!product) return <div style={{ padding: 40 }}>Chargement...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto py-20 px-6">
-      <div className="grid md:grid-cols-2 gap-16 items-start">
-        <div>
-          <div style={{ position: "relative" }}>
-            <img
-              src={product.imageUrl || "/images/placeholder.jpg"}
-              alt={product.name}
-              style={{
-                width: "100%",
-                borderRadius: "24px",
-                display: "block",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.10)",
-                background: "#fff",
-              }}
-            />
+    <>
+      {/* ✅ SEO */}
+      <Head>
+        <title>{product.name} | Vanille de Madagascar Premium</title>
+        <meta name="description" content={product.description} />
+        <meta
+          name="keywords"
+          content="vanille Madagascar, gousse vanille, vanille premium, acheter vanille"
+        />
+        <meta property="og:title" content={product.name} />
+        <meta property="og:description" content={product.description} />
+        <meta property="og:image" content={product.imageUrl} />
+      </Head>
 
-            <div
-              style={{
-                position: "absolute",
-                top: "18px",
-                left: "18px",
-                display: "flex",
-                gap: "8px",
-                flexWrap: "wrap",
-              }}
-            >
-              <span
-                style={{
-                  background: "#a16207",
-                  color: "white",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  padding: "7px 12px",
-                  borderRadius: "999px",
-                }}
-              >
-                Premium
-              </span>
+      <div>
 
-              <span
-                style={{
-                  background: "#111111",
-                  color: "white",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  padding: "7px 12px",
-                  borderRadius: "999px",
-                }}
-              >
-                Best Seller
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <p
+        {/* HERO */}
+        <section style={{ height: "90vh", position: "relative" }}>
+          <motion.img
+            src={product.imageUrl || "/images/product-vanille.jpg"}
+            alt={`${product.name} vanille Madagascar premium`}
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1 }}
             style={{
-              fontSize: "12px",
-              letterSpacing: "3px",
-              textTransform: "uppercase",
-              color: "#a16207",
-              marginBottom: "12px",
-              fontWeight: 700,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              filter: "brightness(0.7)",
+            }}
+          />
+
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            style={{
+              position: "absolute",
+              bottom: "60px",
+              left: "60px",
+              color: "white",
             }}
           >
-            Vanille Or
+            <h1 style={{ fontSize: "48px" }}>{product.name}</h1>
+            <p style={{ fontSize: "18px" }}>
+              Vanille premium de Madagascar
+            </p>
+          </motion.div>
+        </section>
+
+        {/* STORY */}
+        <motion.section
+          initial={{ opacity: 0, y: 60 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          style={{
+            maxWidth: "800px",
+            margin: "100px auto",
+            textAlign: "center",
+            padding: "0 20px",
+          }}
+        >
+          <p style={{ fontSize: "18px", lineHeight: 1.8 }}>
+            Issue d’un savoir-faire unique, notre vanille est cultivée à Madagascar
+            dans le respect des traditions. Chaque gousse est sélectionnée avec
+            exigence pour offrir une intensité aromatique exceptionnelle.
           </p>
+        </motion.section>
 
-          <h1
+        {/* IMAGE */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          style={{ padding: "40px" }}
+        >
+          <motion.img
+            src="/images/tube-gouss.jpg"
+            alt="Gousses de vanille premium"
+            whileHover={{ scale: 1.05 }}
             style={{
-              fontSize: "44px",
-              fontWeight: 800,
-              lineHeight: 1.1,
-              marginBottom: "14px",
+              width: "100%",
+              borderRadius: "20px",
             }}
-          >
-            {product.name}
-          </h1>
+          />
+        </motion.section>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "18px",
-            }}
-          >
-            <span style={{ color: "#d97706" }}>★★★★★</span>
-            <span style={{ color: "#6b7280", fontSize: "14px" }}>
-              (42 avis clients)
-            </span>
-          </div>
-
-          <p
-            style={{
-              color: "#4b5563",
-              marginBottom: "24px",
-              lineHeight: 1.8,
-              fontSize: "16px",
-            }}
-          >
-            {product.description}
+        {/* QUALITÉ */}
+        <motion.section
+          initial={{ opacity: 0, y: 60 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          style={{
+            background: "#faf7f2",
+            padding: "80px 20px",
+            textAlign: "center",
+          }}
+        >
+          <h2 style={{ marginBottom: "20px" }}>Une qualité incomparable</h2>
+          <p>
+            ✔ Gousses charnues <br />
+            ✔ Arômes intenses <br />
+            ✔ Origine Madagascar
           </p>
+        </motion.section>
 
-          <p style={{ fontSize: "34px", fontWeight: 800, marginBottom: "16px" }}>
-            {(product.priceCents / 100).toFixed(2)} €
-          </p>
+        {/* CTA */}
+        <motion.section
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          style={{
+            maxWidth: "600px",
+            margin: "100px auto",
+            textAlign: "center",
+          }}
+        >
+          <h2 style={{ marginBottom: "20px" }}>
+            {formatPrice(product.priceCents)}
+          </h2>
 
-          <div
-            style={{
-              marginBottom: "24px",
-              background: "#fff1f2",
-              color: "#b91c1c",
-              border: "1px solid #fecdd3",
-              padding: "14px 16px",
-              borderRadius: "14px",
-              fontSize: "14px",
-              fontWeight: 600,
-            }}
-          >
-            ⚠️ Plus que {fakeStock} en stock
-          </div>
-
-          <div style={{ marginBottom: "24px" }}>
-            <AddToCart
-              product={{
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => {
+              addToCart({
                 id: product.id,
                 name: product.name,
                 priceCents: product.priceCents,
-                imageUrl: product.imageUrl,
-              }}
-            />
-          </div>
+                quantity: 1,
+              });
 
-          <div style={{ marginBottom: "28px", display: "grid", gap: "10px" }}>
-            <p style={{ color: "#6b7280", fontSize: "14px" }}>
-              ✔ Livraison rapide en France & Europe
-            </p>
-            <p style={{ color: "#6b7280", fontSize: "14px" }}>
-              ✔ Produit sélectionné avec exigence
-            </p>
-            <p style={{ color: "#6b7280", fontSize: "14px" }}>
-              ✔ Qualité premium garantie
-            </p>
-          </div>
+              showToast("Ajouté au panier 🛒");
 
-          <div
+              setTimeout(() => openCart(), 200);
+            }}
             style={{
-              background: "#fffdf9",
-              border: "1px solid #ece7df",
-              borderRadius: "18px",
-              padding: "22px",
+              background: "#a16207",
+              color: "white",
+              padding: "16px 24px",
+              borderRadius: "12px",
+              fontSize: "18px",
+              border: "none",
+              cursor: "pointer",
             }}
           >
-            <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "10px" }}>
-              Pourquoi choisir Vanille Or ?
-            </h3>
+            Ajouter au panier
+          </motion.button>
+        </motion.section>
 
-            <p style={{ color: "#6b7280", lineHeight: 1.8, fontSize: "14px" }}>
-              Notre vanille est sélectionnée pour son intensité aromatique, sa
-              finesse et son élégance. Chaque gousse est choisie pour offrir une
-              expérience haut de gamme aussi bien aux passionnés qu’aux
-              professionnels.
-            </p>
-          </div>
-        </div>
       </div>
-    </div>
+    </>
   );
 }

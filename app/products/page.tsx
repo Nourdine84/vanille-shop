@@ -1,170 +1,232 @@
+"use client";
+
 import Link from "next/link";
-
-async function getProducts() {
-  const res = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Erreur chargement produits");
-  }
-
-  return res.json();
-}
+import { useEffect, useState } from "react";
+import Head from "next/head";
+import { useCartStore } from "../../lib/cart-store";
+import { useToast } from "../../components/ui/toast";
+import { useUIStore } from "../../lib/ui-store";
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-export default async function ProductsPage() {
-  const products = await getProducts();
+export default function ProductsPage() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+
+  const addToCart = useCartStore((state) => state.addToCart);
+  const { showToast } = useToast();
+  const openCart = useUIStore((state) => state.openCart);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => {
+        setProducts(data);
+
+        const q: any = {};
+        data.forEach((p: any) => (q[p.id] = 1));
+        setQuantities(q);
+      });
+  }, []);
+
+  const increase = (id: string) => {
+    setQuantities((prev) => ({ ...prev, [id]: prev[id] + 1 }));
+  };
+
+  const decrease = (id: string) => {
+    setQuantities((prev) => ({
+      ...prev,
+      [id]: Math.max(1, prev[id] - 1),
+    }));
+  };
 
   return (
-    <div className="max-w-7xl mx-auto py-20 px-6">
-      {/* HEADER */}
-      <div style={{ textAlign: "center", marginBottom: "60px" }}>
-        <p
-          style={{
-            fontSize: "12px",
-            letterSpacing: "3px",
-            textTransform: "uppercase",
-            color: "#a16207",
-            marginBottom: "12px",
-            fontWeight: 700,
-          }}
-        >
-          Vanille Or
-        </p>
+    <>
+      {/* ✅ SEO */}
+      <Head>
+        <title>Nos produits | Vanille de Madagascar Premium</title>
+        <meta
+          name="description"
+          content="Achetez de la vanille premium de Madagascar. Gousses de qualité exceptionnelle pour pâtisserie et gastronomie."
+        />
+        <meta
+          name="keywords"
+          content="vanille Madagascar, gousse vanille, vanille premium, acheter vanille, vanille pâtisserie"
+        />
+      </Head>
 
-        <h1 style={{ fontSize: "46px", fontWeight: 800, marginBottom: "14px" }}>
-          Nos produits
-        </h1>
+      <div className="max-w-7xl mx-auto py-20 px-6">
 
-        <p
-          style={{
-            color: "#6b7280",
-            maxWidth: "680px",
-            margin: "0 auto",
-            lineHeight: 1.8,
-          }}
-        >
-          Découvrez une sélection de produits premium soigneusement choisis
-          pour sublimer vos créations.
-        </p>
-      </div>
-
-      {/* EMPTY STATE */}
-      {products.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "50px",
-            border: "1px dashed #d6d3d1",
-            borderRadius: "18px",
-            background: "#fafaf9",
-          }}
-        >
-          <p style={{ color: "#6b7280" }}>
-            Aucun produit disponible pour le moment.
-          </p>
+        {/* HEADER */}
+        <div style={{ textAlign: "center", marginBottom: "60px" }}>
+          <h1 style={{ fontSize: "42px", fontWeight: 800 }}>
+            Nos produits
+          </h1>
         </div>
-      ) : (
+
+        {/* GRID */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {products.map((product: any) => {
-            // 🔒 SECURITÉ IMAGE
-            const imageSrc =
-              product.imageUrl &&
-              product.imageUrl.startsWith("/images/")
-                ? product.imageUrl
-                : "/images/product-vanille.jpg";
 
-            return (
-              <div
-                key={product.id}
-                style={{
-                  border: "1px solid #ece7df",
-                  borderRadius: "22px",
-                  padding: "18px",
-                  background: "#ffffff",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
-                  transition: "transform 0.2s ease",
-                }}
-              >
-                {/* IMAGE */}
-                <div
-                  style={{
-                    overflow: "hidden",
-                    borderRadius: "16px",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <img
-                    src={imageSrc}
-                    alt={product.name || "Produit Vanille Or"}
-                    style={{
-                      width: "100%",
-                      height: "270px",
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                  />
+          {products.map((product, index) => (
+
+            <div
+              key={product.id}
+              style={{
+                position: "relative",
+                borderRadius: "22px",
+                padding: "18px",
+                background: "#ffffff",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+                transition: "all 0.25s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-6px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+
+              {/* BADGE */}
+              {index === 0 && (
+                <div style={{
+                  position: "absolute",
+                  background: "#a16207",
+                  color: "white",
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  top: "15px",
+                  left: "15px",
+                }}>
+                  ⭐ Best seller
                 </div>
+              )}
 
-                {/* NOM */}
-                <h2
+              {/* IMAGE */}
+              <div style={{ overflow: "hidden", borderRadius: "16px" }}>
+                <img
+                  src={product.imageUrl || "/images/product-vanille.jpg"}
+                  alt={`${product.name} vanille Madagascar premium`}
                   style={{
-                    fontSize: "22px",
-                    fontWeight: 700,
-                    marginBottom: "10px",
+                    width: "100%",
+                    height: "260px",
+                    objectFit: "cover",
+                    marginBottom: "14px",
+                    transition: "transform 0.3s ease",
                   }}
-                >
-                  {product.name}
-                </h2>
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                />
+              </div>
 
-                {/* DESCRIPTION */}
-                <p
-                  style={{
-                    color: "#6b7280",
-                    marginBottom: "18px",
-                    lineHeight: 1.7,
-                    minHeight: "72px",
-                  }}
-                >
-                  {product.description || "Produit premium Vanille Or"}
+              {/* NAME */}
+              <h2 style={{ fontSize: "20px", fontWeight: 700 }}>
+                {product.name}
+              </h2>
+
+              {/* DESC */}
+              <p style={{ color: "#6b7280", margin: "10px 0" }}>
+                {product.description}
+              </p>
+
+              {/* PRICE */}
+              <p style={{ fontWeight: "bold", marginBottom: "10px" }}>
+                {formatPrice(product.priceCents)}
+              </p>
+
+              {/* STOCK WARNING */}
+              {product.stock < 20 && (
+                <p style={{ color: "#dc2626", fontSize: "12px", marginBottom: "10px" }}>
+                  ⚠️ Stock limité
                 </p>
+              )}
 
-                {/* PRIX */}
-                <p
+              {/* QUANTITY */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "12px",
+                border: "1px solid #eee",
+                borderRadius: "10px",
+                padding: "6px 10px"
+              }}>
+                <button onClick={() => decrease(product.id)}>-</button>
+                <span>{quantities[product.id]}</span>
+                <button onClick={() => increase(product.id)}>+</button>
+              </div>
+
+              {/* ACTIONS */}
+              <div style={{ display: "flex", gap: "10px" }}>
+
+                <button
+                  onClick={(e) => {
+                    const btn = e.currentTarget;
+
+                    btn.style.transform = "scale(0.95)";
+                    setTimeout(() => {
+                      btn.style.transform = "scale(1)";
+                    }, 120);
+
+                    addToCart({
+                      id: product.id,
+                      name: product.name,
+                      priceCents: product.priceCents,
+                      quantity: quantities[product.id],
+                    });
+
+                    showToast("Ajouté au panier 🛒");
+
+                    setTimeout(() => {
+                      openCart();
+                    }, 200);
+                  }}
                   style={{
-                    fontSize: "20px",
-                    fontWeight: 800,
-                    marginBottom: "18px",
+                    flex: 1,
+                    background: "#a16207",
+                    color: "white",
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "transform 0.1s ease",
+                    fontWeight: "600",
                   }}
                 >
-                  {formatPrice(product.priceCents || 0)}
-                </p>
+                  Ajouter
+                </button>
 
-                {/* CTA */}
                 <Link
                   href={`/product/${product.slug}`}
                   style={{
-                    display: "block",
+                    flex: 1,
                     textAlign: "center",
-                    background: "#a16207",
-                    color: "white",
-                    padding: "12px 16px",
-                    borderRadius: "14px",
+                    background: "#f3f4f6",
+                    padding: "12px",
+                    borderRadius: "10px",
                     textDecoration: "none",
-                    fontWeight: 600,
+                    color: "#111",
+                    fontWeight: "600",
                   }}
                 >
-                  Voir le produit
+                  Voir
                 </Link>
+
               </div>
-            );
-          })}
+
+            </div>
+
+          ))}
+
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
