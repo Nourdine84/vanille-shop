@@ -96,13 +96,116 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* SEO TEXT */}
-      <section style={{
-        maxWidth: "900px",
-        margin: "40px auto",
+      {/* UNIVERS */}
+<section style={{ padding: "60px 20px", textAlign: "center" }}>
+  <h2 style={{ marginBottom: "40px" }}>Nos univers</h2>
+
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+      gap: "20px",
+      maxWidth: "900px",
+      margin: "0 auto",
+    }}
+  >
+
+    {/* VANILLE */}
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "16px",
+        padding: "16px",
         textAlign: "center",
-        padding: "0 20px"
-      }}>
+        boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+      }}
+    >
+      <img
+        src="/images/vanille.jpg"
+        alt="Vanille premium"
+        style={{
+          width: "100%",
+          height: "160px",
+          objectFit: "cover",
+          borderRadius: "12px",
+          marginBottom: "10px",
+        }}
+      />
+
+      <h3>Vanille</h3>
+
+      <p style={{ fontSize: "14px", color: "#666" }}>
+        Gousses, poudre, caviar
+      </p>
+
+      <Link
+        href="/products"
+        style={{
+          display: "inline-block",
+          marginTop: "10px",
+          color: "#a16207",
+          fontWeight: "600",
+          textDecoration: "none",
+        }}
+      >
+        Voir →
+      </Link>
+    </div>
+
+    {/* ÉPICES */}
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "16px",
+        padding: "16px",
+        textAlign: "center",
+        boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+      }}
+    >
+      <img
+        src="/images/epices.jpg"
+        alt="Épices premium"
+        style={{
+          width: "100%",
+          height: "160px",
+          objectFit: "cover",
+          borderRadius: "12px",
+          marginBottom: "10px",
+        }}
+      />
+
+      <h3>Épices</h3>
+
+      <p style={{ fontSize: "14px", color: "#666" }}>
+        Cannelle, cacao, poivre, girofle
+      </p>
+
+      <Link
+        href="/products"
+        style={{
+          display: "inline-block",
+          marginTop: "10px",
+          color: "#a16207",
+          fontWeight: "600",
+          textDecoration: "none",
+        }}
+      >
+        Voir →
+      </Link>
+    </div>
+
+  </div>
+</section>
+
+      {/* SEO TEXT */}
+      <section
+        style={{
+          maxWidth: "900px",
+          margin: "40px auto",
+          textAlign: "center",
+          padding: "0 20px",
+        }}
+      >
         <h2>Vanille de Madagascar Premium</h2>
         <p style={{ color: "#666" }}>
           Découvrez une vanille de Madagascar haut de gamme, idéale pour la pâtisserie
