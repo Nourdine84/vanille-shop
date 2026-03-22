@@ -226,6 +226,10 @@ export default async function HomePage() {
           Découvrez une vanille de Madagascar haut de gamme, idéale pour la pâtisserie
           et la gastronomie. Gousses sélectionnées avec exigence pour une qualité exceptionnelle.
         </p>
+        <div style={{ textAlign: "center", marginTop: "20px" }}>
+          <Link href="/vanille-madagascar">Vanille Madagascar</Link> |{" "}
+          <Link href="/acheter-vanille">Acheter vanille</Link>
+        </div>
       </section>
 
       {/* PRODUITS */}
