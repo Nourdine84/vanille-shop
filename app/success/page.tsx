@@ -1,51 +1,122 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useCartStore } from "../../lib/cart-store";
 
 export default function SuccessPage() {
+  const clearCart = useCartStore((state) => state.clearCart);
+
+  useEffect(() => {
+    clearCart(); // 🔥 reset propre
+  }, [clearCart]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-20 bg-[#faf7f2]">
-      
-      <div className="max-w-xl w-full bg-white rounded-3xl shadow-lg p-10 text-center">
-        
+    <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
+
+      <div
+        style={{
+          maxWidth: "900px",
+          margin: "0 auto",
+          padding: "80px 20px",
+          textAlign: "center",
+        }}
+      >
+
         {/* ICON */}
-        <div className="text-5xl mb-6">🎉</div>
+        <div style={{ fontSize: "60px", marginBottom: "10px" }}>
+          🎉
+        </div>
 
         {/* TITLE */}
-        <h1 className="text-3xl font-bold mb-4">
-          Merci pour votre commande
+        <h1 style={{ fontSize: "32px", marginBottom: "10px" }}>
+          Paiement confirmé
         </h1>
 
-        {/* TEXT */}
-        <p className="text-gray-600 mb-6 leading-relaxed">
-          Votre paiement a été confirmé avec succès.  
-          Nous préparons votre commande avec soin afin de vous offrir une
-          expérience à la hauteur de Vanille’Or.
+        {/* SUBTEXT */}
+        <p style={{ color: "#666", fontSize: "16px" }}>
+          Merci pour votre commande chez Vanille’Or
         </p>
 
+        <p style={{ marginTop: "8px", color: "#666" }}>
+          Votre colis est en cours de préparation.
+        </p>
+
+        {/* CARD */}
+        <div
+          style={{
+            marginTop: "40px",
+            background: "white",
+            padding: "30px",
+            borderRadius: "16px",
+            boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+          }}
+        >
+          <h3>Suivi de votre commande</h3>
+
+          <p style={{ marginTop: "10px", color: "#666" }}>
+            📦 Préparation en cours <br />
+            🚚 Expédition sous 24-48h <br />
+            📧 Email de confirmation envoyé
+          </p>
+        </div>
+
         {/* TRUST */}
-        <div className="bg-[#faf7f2] rounded-xl p-4 mb-6 text-sm text-gray-700">
-          ✔ Préparation rapide  
-          <br />
-          ✔ Expédition sous 48h  
-          <br />
-          ✔ Qualité premium garantie
+        <div style={{ marginTop: "30px", color: "#666", fontSize: "14px" }}>
+          ✔ Paiement sécurisé validé <br />
+          ✔ Produits premium sélectionnés <br />
+          ✔ Origine Madagascar garantie
         </div>
 
         {/* CTA */}
-        <Link
-          href="/products"
-          className="block bg-[#a16207] hover:bg-[#854d0e] text-white py-4 rounded-xl font-semibold transition"
+        <div style={{ marginTop: "40px" }}>
+          <Link
+            href="/products"
+            style={{
+              display: "inline-block",
+              background: "#a16207",
+              color: "white",
+              padding: "14px 24px",
+              borderRadius: "10px",
+              textDecoration: "none",
+              fontWeight: "600",
+              marginBottom: "10px",
+            }}
+          >
+            Continuer mes achats
+          </Link>
+
+          <br />
+
+          <Link
+            href="/"
+            style={{
+              display: "inline-block",
+              marginTop: "10px",
+              color: "#a16207",
+              textDecoration: "none",
+              fontWeight: "600",
+            }}
+          >
+            Retour à l’accueil
+          </Link>
+        </div>
+
+        {/* BRAND STORY */}
+        <div
+          style={{
+            marginTop: "60px",
+            fontSize: "14px",
+            color: "#888",
+            maxWidth: "600px",
+            marginInline: "auto",
+          }}
         >
-          Continuer mes achats
-        </Link>
+          Chez Vanille’Or, chaque produit est sélectionné avec exigence pour offrir
+          une qualité exceptionnelle aux passionnés et professionnels.
+        </div>
 
-        {/* BRAND */}
-        <p className="mt-6 text-xs text-gray-400">
-          Vanille’Or — L’alliance entre authenticité et excellence
-        </p>
       </div>
-
     </div>
   );
 }

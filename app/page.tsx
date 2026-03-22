@@ -1,13 +1,19 @@
+
 import Link from "next/link";
 
 async function getProducts() {
-  const res = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
-  });
+  try {
+    const res = await fetch("http://localhost:3001/api/products", {
+      cache: "no-store",
+    });
 
-  if (!res.ok) return [];
+    if (!res.ok) return [];
 
-  return res.json();
+    return res.json();
+  } catch (error) {
+    console.error("Erreur fetch produits:", error);
+    return [];
+  }
 }
 
 export default async function HomePage() {
@@ -17,73 +23,73 @@ export default async function HomePage() {
     <div>
 
       {/* HERO */}
-<section
-  style={{
-    height: "80vh",
-    position: "relative",
-  }}
->
-  <img
-    src="/images/hero-vanille.jpg"
-    alt="Vanille Madagascar premium"
-    style={{
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      filter: "brightness(0.6)",
-    }}
-  />
+      <section
+        style={{
+          height: "80vh",
+          position: "relative",
+        }}
+      >
+        <img
+          src="/images/hero-vanille.jpg"
+          alt="Vanille Madagascar premium"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            filter: "brightness(0.6)",
+          }}
+        />
 
-  <div
-    style={{
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      textAlign: "center",
-      color: "white",
-      width: "90%",
-      maxWidth: "700px",
-      padding: "0 10px",
-    }}
-  >
-    <h1
-      style={{
-        fontSize: "clamp(28px, 6vw, 42px)",
-        lineHeight: 1.2,
-        marginBottom: "12px",
-      }}
-    >
-      L’excellence de la vanille de Madagascar
-    </h1>
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            textAlign: "center",
+            color: "white",
+            width: "90%",
+            maxWidth: "700px",
+            padding: "0 10px",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "clamp(28px, 6vw, 42px)",
+              lineHeight: 1.2,
+              marginBottom: "12px",
+            }}
+          >
+            L’excellence de la vanille de Madagascar
+          </h1>
 
-    <p
-      style={{
-        fontSize: "clamp(14px, 3.5vw, 18px)",
-        marginBottom: "20px",
-        lineHeight: 1.5,
-      }}
-    >
-      Une qualité premium sélectionnée pour sublimer vos pâtisseries et créations.
-    </p>
+          <p
+            style={{
+              fontSize: "clamp(14px, 3.5vw, 18px)",
+              marginBottom: "20px",
+              lineHeight: 1.5,
+            }}
+          >
+            Une qualité premium sélectionnée pour sublimer vos pâtisseries et créations.
+          </p>
 
-    <Link
-      href="/products"
-      style={{
-        display: "inline-block",
-        background: "#a16207",
-        padding: "12px 20px",
-        borderRadius: "10px",
-        color: "white",
-        textDecoration: "none",
-        fontWeight: "600",
-        fontSize: "clamp(14px, 3vw, 16px)",
-      }}
-    >
-      Découvrir nos produits
-    </Link>
-  </div>
-</section>
+          <Link
+            href="/products"
+            style={{
+              display: "inline-block",
+              background: "#a16207",
+              padding: "12px 20px",
+              borderRadius: "10px",
+              color: "white",
+              textDecoration: "none",
+              fontWeight: "600",
+            }}
+          >
+            Découvrir nos produits
+          </Link>
+        </div>
+      </section>
+
       {/* USP BAR */}
       <section
         style={{
@@ -93,6 +99,8 @@ export default async function HomePage() {
           borderBottom: "1px solid #eee",
           textAlign: "center",
           fontSize: "14px",
+          flexWrap: "wrap",
+          gap: "10px",
         }}
       >
         <div>
@@ -112,105 +120,43 @@ export default async function HomePage() {
       </section>
 
       {/* UNIVERS */}
-<section style={{ padding: "60px 20px", textAlign: "center" }}>
-  <h2 style={{ marginBottom: "40px" }}>Nos univers</h2>
+      <section style={{ padding: "60px 20px", textAlign: "center" }}>
+        <h2 style={{ marginBottom: "40px" }}>Nos univers</h2>
 
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-      gap: "20px",
-      maxWidth: "900px",
-      margin: "0 auto",
-    }}
-  >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "20px",
+            maxWidth: "900px",
+            margin: "0 auto",
+          }}
+        >
+          {/* VANILLE */}
+          <div style={cardStyle}>
+            <img src="/images/vanille.jpg" alt="Vanille premium" style={imgStyle} />
+            <h3>Vanille</h3>
+            <p style={descStyle}>Gousses, poudre, caviar</p>
 
-    {/* VANILLE */}
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: "16px",
-        padding: "16px",
-        textAlign: "center",
-        boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-      }}
-    >
-      <img
-        src="/images/vanille.jpg"
-        alt="Vanille premium"
-        style={{
-          width: "100%",
-          height: "160px",
-          objectFit: "cover",
-          borderRadius: "12px",
-          marginBottom: "10px",
-        }}
-      />
+            <Link href="/products" style={linkStyle}>
+              Voir →
+            </Link>
+          </div>
 
-      <h3>Vanille</h3>
+          {/* ÉPICES */}
+          <div style={cardStyle}>
+            <img src="/images/epices.jpg" alt="Épices premium" style={imgStyle} />
+            <h3>Épices</h3>
+            <p style={descStyle}>
+              Cannelle, cacao, poivre, girofle
+            </p>
 
-      <p style={{ fontSize: "14px", color: "#666" }}>
-        Gousses, poudre, caviar
-      </p>
-
-      <Link
-        href="/vanille"
-        style={{
-          display: "inline-block",
-          marginTop: "10px",
-          color: "#a16207",
-          fontWeight: "600",
-          textDecoration: "none",
-        }}
-      >
-        Voir →
-      </Link>
-    </div>
-
-    {/* ÉPICES */}
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: "16px",
-        padding: "16px",
-        textAlign: "center",
-        boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-      }}
-    >
-      <img
-        src="/images/epices.jpg"
-        alt="Épices premium"
-        style={{
-          width: "100%",
-          height: "160px",
-          objectFit: "cover",
-          borderRadius: "12px",
-          marginBottom: "10px",
-        }}
-      />
-
-      <h3>Épices</h3>
-
-      <p style={{ fontSize: "14px", color: "#666" }}>
-        Cannelle, cacao, poivre, girofle
-      </p>
-
-      <Link
-        href="/epices"
-        style={{
-          display: "inline-block",
-          marginTop: "10px",
-          color: "#a16207",
-          fontWeight: "600",
-          textDecoration: "none",
-        }}
-      >
-        Voir →
-      </Link>
-    </div>
-
-  </div>
-</section>
+            <Link href="/products" style={linkStyle}>
+              Voir →
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* SEO TEXT */}
       <section
@@ -222,17 +168,17 @@ export default async function HomePage() {
         }}
       >
         <h2>Vanille de Madagascar Premium</h2>
+
         <p style={{ color: "#666" }}>
           Découvrez une vanille de Madagascar haut de gamme, idéale pour la pâtisserie
           et la gastronomie. Gousses sélectionnées avec exigence pour une qualité exceptionnelle.
         </p>
-        <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <Link href="/vanille-madagascar">Vanille Madagascar</Link> |{" "}
-          <Link href="/acheter-vanille">Acheter vanille</Link> |{" "}
-          <Link href="/vanille-patisserie">Vanille pâtisserie</Link>
-          <Link href="/vanille-madagascar">Vanille Madagascar premium</Link>
+
+        <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
+          <Link href="/products">Vanille Madagascar</Link> •{" "}
+          <Link href="/products">Acheter vanille</Link> •{" "}
+          <Link href="/products">Vanille pâtisserie</Link>
         </div>
-        
       </section>
 
       {/* PRODUITS */}
@@ -241,54 +187,20 @@ export default async function HomePage() {
           Nos produits
         </h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "30px",
-            maxWidth: "1000px",
-            margin: "0 auto",
-          }}
-        >
+        <div style={gridStyle}>
           {products.map((product: any) => (
-            <div
-              key={product.id}
-              style={{
-                background: "#fff",
-                borderRadius: "16px",
-                padding: "16px",
-                textAlign: "center",
-                boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-              }}
-            >
+            <div key={product.id} style={cardStyle}>
               <img
                 src={product.imageUrl || "/images/product-vanille.jpg"}
                 alt={`${product.name} vanille Madagascar premium`}
-                style={{
-                  width: "100%",
-                  height: "180px",
-                  objectFit: "cover",
-                  borderRadius: "12px",
-                  marginBottom: "12px",
-                }}
+                style={imgStyle}
               />
 
               <h3>{product.name}</h3>
 
-              <p style={{ fontSize: "14px", color: "#666" }}>
-                {product.description}
-              </p>
+              <p style={descStyle}>{product.description}</p>
 
-              <Link
-                href={`/product/${product.slug}`}
-                style={{
-                  display: "inline-block",
-                  marginTop: "10px",
-                  color: "#a16207",
-                  fontWeight: "600",
-                  textDecoration: "none",
-                }}
-              >
+              <Link href={`/product/${product.slug}`} style={linkStyle}>
                 Voir →
               </Link>
             </div>
@@ -297,45 +209,81 @@ export default async function HomePage() {
       </section>
 
       {/* CTA */}
-      <section
-        style={{
-          background: "#a16207",
-          color: "white",
-          padding: "40px 20px",
-          textAlign: "center",
-        }}
-      >
+      <section style={ctaStyle}>
         <h2 style={{ marginBottom: "20px" }}>
           Sublimez vos créations dès aujourd’hui
         </h2>
 
-        <Link
-          href="/products"
-          style={{
-            background: "white",
-            color: "#a16207",
-            padding: "12px 20px",
-            borderRadius: "10px",
-            textDecoration: "none",
-            fontWeight: "600",
-          }}
-        >
+        <Link href="/products" style={ctaBtn}>
           Commander maintenant
         </Link>
       </section>
 
       {/* FOOTER */}
-      <footer
-        style={{
-          textAlign: "center",
-          padding: "20px",
-          fontSize: "14px",
-          color: "#666",
-        }}
-      >
+      <footer style={footerStyle}>
         © {new Date().getFullYear()} Vanille’Or — Développé par AKM.Consulting
       </footer>
-
     </div>
   );
 }
+
+/* 🔥 STYLES RÉUTILISABLES */
+const cardStyle = {
+  background: "#fff",
+  borderRadius: "16px",
+  padding: "16px",
+  textAlign: "center" as const,
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+};
+
+const imgStyle = {
+  width: "100%",
+  height: "180px",
+  objectFit: "cover" as const,
+  borderRadius: "12px",
+  marginBottom: "12px",
+};
+
+const descStyle = {
+  fontSize: "14px",
+  color: "#666",
+};
+
+const linkStyle = {
+  display: "inline-block",
+  marginTop: "10px",
+  color: "#a16207",
+  fontWeight: "600",
+  textDecoration: "none",
+};
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+  gap: "30px",
+  maxWidth: "1000px",
+  margin: "0 auto",
+};
+
+const ctaStyle = {
+  background: "#a16207",
+  color: "white",
+  padding: "40px 20px",
+  textAlign: "center" as const,
+};
+
+const ctaBtn = {
+  background: "white",
+  color: "#a16207",
+  padding: "12px 20px",
+  borderRadius: "10px",
+  textDecoration: "none",
+  fontWeight: "600",
+};
+
+const footerStyle = {
+  textAlign: "center" as const,
+  padding: "20px",
+  fontSize: "14px",
+  color: "#666",
+};

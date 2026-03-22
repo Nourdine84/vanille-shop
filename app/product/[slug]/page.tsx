@@ -59,7 +59,6 @@ export default function ProductPage() {
       </Head>
 
       <div>
-
         {/* HERO */}
         <section style={{ height: "90vh", position: "relative" }}>
           <motion.img
@@ -77,16 +76,18 @@ export default function ProductPage() {
           />
 
           {/* BADGE */}
-          <div style={{
-            position: "absolute",
-            top: "20px",
-            left: "20px",
-            background: "#a16207",
-            color: "white",
-            padding: "6px 12px",
-            borderRadius: "20px",
-            fontSize: "12px"
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "20px",
+              background: "#a16207",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "20px",
+              fontSize: "12px",
+            }}
+          >
             ⭐ Best seller
           </div>
 
@@ -107,7 +108,14 @@ export default function ProductPage() {
         </section>
 
         {/* STORY */}
-        <motion.section style={{ maxWidth: "800px", margin: "100px auto", textAlign: "center" }}>
+        <motion.section
+          style={{
+            maxWidth: "800px",
+            margin: "100px auto",
+            textAlign: "center",
+            padding: "0 20px",
+          }}
+        >
           <p>
             Issue d’un savoir-faire unique, notre vanille est cultivée à Madagascar
             dans le respect des traditions.
@@ -115,7 +123,13 @@ export default function ProductPage() {
         </motion.section>
 
         {/* AVIS */}
-        <motion.section style={{ maxWidth: "900px", margin: "80px auto" }}>
+        <motion.section
+          style={{
+            maxWidth: "900px",
+            margin: "80px auto",
+            padding: "0 20px",
+          }}
+        >
           <h2 style={{ textAlign: "center" }}>Avis clients</h2>
 
           <p style={{ textAlign: "center", marginBottom: "20px", color: "#666" }}>
@@ -126,14 +140,17 @@ export default function ProductPage() {
             {[
               "Qualité incroyable !",
               "Parfait pour pâtisserie",
-              "Excellente vanille"
+              "Excellente vanille",
             ].map((text, i) => (
-              <div key={i} style={{
-                background: "#fff",
-                padding: "20px",
-                borderRadius: "16px",
-                boxShadow: "0 5px 20px rgba(0,0,0,0.05)"
-              }}>
+              <div
+                key={i}
+                style={{
+                  background: "#fff",
+                  padding: "20px",
+                  borderRadius: "16px",
+                  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+                }}
+              >
                 ⭐⭐⭐⭐⭐
                 <p style={{ fontStyle: "italic" }}>{text}</p>
               </div>
@@ -142,10 +159,20 @@ export default function ProductPage() {
         </motion.section>
 
         {/* CTA */}
-        <motion.section style={{ textAlign: "center", margin: "80px auto" }}>
+        <motion.section
+          style={{
+            textAlign: "center",
+            margin: "80px auto",
+            padding: "0 20px",
+            maxWidth: "700px",
+          }}
+        >
           <h2>{formatPrice(product.priceCents)}</h2>
 
           <p style={{ color: "red" }}>⚠️ Stock limité</p>
+          <p style={{ color: "#666", marginTop: "8px" }}>
+            ✔ Qualité premium • ✔ Livraison rapide • ✔ Origine Madagascar
+          </p>
 
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -156,10 +183,11 @@ export default function ProductPage() {
                 name: product.name,
                 priceCents: product.priceCents,
                 quantity: 1,
+                imageUrl: product.imageUrl,
               });
 
               showToast("Ajouté au panier 🛒");
-              setTimeout(() => openCart(), 200);
+              setTimeout(() => openCart(), 150);
             }}
             style={{
               background: "#a16207",
@@ -167,12 +195,17 @@ export default function ProductPage() {
               padding: "16px",
               borderRadius: "12px",
               marginTop: "20px",
+              border: "none",
+              cursor: "pointer",
+              width: "100%",
+              maxWidth: "320px",
+              fontSize: "16px",
+              fontWeight: "600",
             }}
           >
             Ajouter au panier 🛒
           </motion.button>
         </motion.section>
-
       </div>
     </>
   );

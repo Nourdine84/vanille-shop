@@ -16,7 +16,7 @@ export default function MiniCart({ open, onClose }: any) {
     0
   );
 
-  const freeShippingThreshold = 5000; // 50€
+  const freeShippingThreshold = 5000;
   const remaining = freeShippingThreshold - total;
 
   return (
@@ -29,6 +29,7 @@ export default function MiniCart({ open, onClose }: any) {
             position: "fixed",
             inset: 0,
             background: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(3px)",
             zIndex: 999,
           }}
         />
@@ -44,7 +45,7 @@ export default function MiniCart({ open, onClose }: any) {
           height: "100%",
           background: "white",
           boxShadow: "-10px 0 30px rgba(0,0,0,0.1)",
-          transition: "right 0.3s ease",
+          transition: "right 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
           zIndex: 1000,
           padding: "20px",
           display: "flex",
@@ -67,9 +68,9 @@ export default function MiniCart({ open, onClose }: any) {
                 alignItems: "center",
               }}
             >
-              {/* IMAGE */}
               <img
                 src={item.imageUrl || "/images/product-vanille.jpg"}
+                alt={item.name}
                 style={{
                   width: "60px",
                   height: "60px",
@@ -78,7 +79,6 @@ export default function MiniCart({ open, onClose }: any) {
                 }}
               />
 
-              {/* INFOS */}
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: "600" }}>{item.name}</p>
 
@@ -86,7 +86,6 @@ export default function MiniCart({ open, onClose }: any) {
                   {formatPrice(item.priceCents)}
                 </p>
 
-                {/* QUANTITY */}
                 <div
                   style={{
                     display: "flex",
@@ -106,6 +105,7 @@ export default function MiniCart({ open, onClose }: any) {
                       borderRadius: "6px",
                       border: "1px solid #ddd",
                       cursor: "pointer",
+                      background: "white",
                     }}
                   >
                     -
@@ -114,14 +114,13 @@ export default function MiniCart({ open, onClose }: any) {
                   <span>{item.quantity}</span>
 
                   <button
-                    onClick={() =>
-                      updateQuantity(item.id, item.quantity + 1)
-                    }
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
                     style={{
                       padding: "4px 8px",
                       borderRadius: "6px",
                       border: "1px solid #ddd",
                       cursor: "pointer",
+                      background: "white",
                     }}
                   >
                     +
@@ -129,7 +128,6 @@ export default function MiniCart({ open, onClose }: any) {
                 </div>
               </div>
 
-              {/* REMOVE */}
               <button
                 onClick={() => removeFromCart(item.id)}
                 style={{
@@ -155,9 +153,7 @@ export default function MiniCart({ open, onClose }: any) {
                 🚚 Plus que {formatPrice(remaining)} pour la livraison offerte
               </p>
             ) : (
-              <p style={{ color: "green" }}>
-                🎉 Livraison offerte activée !
-              </p>
+              <p style={{ color: "green" }}>🎉 Livraison offerte activée !</p>
             )}
           </div>
         )}

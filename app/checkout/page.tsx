@@ -1,84 +1,258 @@
 "use client";
 
 import { useState } from "react";
+import { useCartStore } from "../../lib/cart-store";
+
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+}
 
 export default function CheckoutPage() {
+  const cart = useCartStore((state) => state.cart);
   const [loading, setLoading] = useState(false);
 
-  const cartItems = [
-    {
-      name: "Vanille Bourbon Premium",
-      priceCents: 14900,
-      quantity: 1,
-    },
-  ];
+  const total = cart.reduce(
+    (acc, item) => acc + item.priceCents * item.quantity,
+    0
+  );
 
-  async function handleCheckout() {
-    setLoading(true);
+  const freeShippingThreshold = 5000;
+  const remaining = freeShippingThreshold - total;
 
-    const res = await fetch("/api/create-checkout-session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ cart: cartItems }),
-    });
-
-    const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert("Erreur lors du paiement");
+  const handleCheckout = async () => {
+    if (!cart.length) {
+      alert("Votre panier est vide");
+      return;
     }
 
-    setLoading(false);
-  }
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cart }),
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Erreur paiement");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur serveur");
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-3xl mx-auto py-20 px-6">
-      
-      {/* HEADER */}
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold mb-2">
-          Finaliser votre commande
-        </h1>
-        <p className="text-gray-500">
-          Une expérience premium, du producteur à votre cuisine.
-        </p>
-      </div>
+    <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
 
-      {/* PRODUIT */}
-      <div className="border rounded-2xl p-6 mb-6 bg-white shadow-sm">
-        <h2 className="font-semibold text-lg mb-2">
-          Vanille Bourbon Premium
-        </h2>
-        <p className="text-gray-500 mb-4">
-          Gousses sélectionnées à Madagascar
-        </p>
-        <p className="font-bold text-xl">149,00 €</p>
-      </div>
-
-      {/* GARANTIES */}
-      <div className="bg-[#faf7f2] p-6 rounded-2xl mb-6">
-        <p className="mb-2">✔ Livraison rapide en France</p>
-        <p className="mb-2">✔ Produit 100% naturel</p>
-        <p className="mb-2">✔ Qualité premium sélectionnée</p>
-      </div>
-
-      {/* BOUTON */}
-      <button
-        onClick={handleCheckout}
-        disabled={loading}
-        className="w-full bg-[#a16207] hover:bg-[#854d0e] text-white py-4 rounded-xl text-lg font-semibold transition"
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: "40px 20px",
+        }}
       >
-        {loading ? "Redirection..." : "Payer maintenant"}
-      </button>
+        <h1 style={{ marginBottom: "40px", textAlign: "center" }}>
+          Finalisation de votre commande
+        </h1>
 
-      {/* TRUST */}
-      <p className="text-center text-sm text-gray-400 mt-4">
-        Paiement sécurisé via Stripe 🔒
-      </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 400px",
+            gap: "40px",
+          }}
+        >
+          {/* COLONNE GAUCHE */}
+          <div>
+
+            {/* LISTE PRODUITS */}
+            <div
+              style={{
+                background: "white",
+                padding: "20px",
+                borderRadius: "16px",
+                boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+              }}
+            >
+              <h2 style={{ marginBottom: "20px" }}>Votre panier</h2>
+
+              {cart.length === 0 && (
+                <p>Votre panier est vide</p>
+              )}
+
+              {cart.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: "flex",
+                    gap: "15px",
+                    marginBottom: "20px",
+                    alignItems: "center",
+                  }}
+                >
+                  <img
+                    src={item.imageUrl || "/images/product-vanille.jpg"}
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      objectFit: "cover",
+                      borderRadius: "10px",
+                    }}
+                  />
+
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: "600" }}>{item.name}</p>
+
+                    <p style={{ fontSize: "14px", color: "#666" }}>
+                      Quantité : {item.quantity}
+                    </p>
+
+                    <p style={{ fontWeight: "600" }}>
+                      {formatPrice(item.priceCents * item.quantity)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* TRUST BLOCK */}
+            <div
+              style={{
+                marginTop: "20px",
+                background: "white",
+                padding: "20px",
+                borderRadius: "16px",
+                boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+              }}
+            >
+              <h3>Pourquoi choisir Vanille’Or ?</h3>
+
+              <p style={{ marginTop: "10px", color: "#666" }}>
+                ✔ Vanille premium de Madagascar <br />
+                ✔ Sélection artisanale <br />
+                ✔ Livraison rapide et sécurisée
+              </p>
+            </div>
+          </div>
+
+          {/* COLONNE DROITE */}
+          <div>
+
+            <div
+              style={{
+                background: "white",
+                padding: "25px",
+                borderRadius: "16px",
+                boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+                position: "sticky",
+                top: "20px",
+              }}
+            >
+              <h2 style={{ marginBottom: "20px" }}>
+                Résumé
+              </h2>
+
+              {/* LIVRAISON */}
+              <div style={{ fontSize: "14px", marginBottom: "15px" }}>
+                {remaining > 0 ? (
+                  <p style={{ color: "#a16207" }}>
+                    🚚 Plus que {formatPrice(remaining)} pour la livraison offerte
+                  </p>
+                ) : (
+                  <p style={{ color: "green" }}>
+                    🎉 Livraison offerte
+                  </p>
+                )}
+              </div>
+
+              {/* TOTAL */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "10px",
+                }}
+              >
+                <span>Sous-total</span>
+                <span>{formatPrice(total)}</span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "20px",
+                }}
+              >
+                <span>Livraison</span>
+                <span>
+                  {total >= freeShippingThreshold
+                    ? "Offerte"
+                    : "Calculée au paiement"}
+                </span>
+              </div>
+
+              <hr />
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: "15px",
+                  fontWeight: "600",
+                  fontSize: "18px",
+                }}
+              >
+                <span>Total</span>
+                <span>{formatPrice(total)}</span>
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={handleCheckout}
+                disabled={loading}
+                style={{
+                  marginTop: "25px",
+                  width: "100%",
+                  background: loading ? "#999" : "#a16207",
+                  color: "white",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "none",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontWeight: "600",
+                  fontSize: "16px",
+                }}
+              >
+                {loading ? "Redirection..." : "Payer en sécurité 🔒"}
+              </button>
+
+              {/* TRUST */}
+              <p
+                style={{
+                  marginTop: "15px",
+                  fontSize: "12px",
+                  color: "#666",
+                  textAlign: "center",
+                }}
+              >
+                Paiement sécurisé • Stripe • Données protégées
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }

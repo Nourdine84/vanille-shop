@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -17,18 +18,73 @@ export default function Header() {
         style={{
           display: "flex",
           justifyContent: "space-between",
+          alignItems: "center",
           padding: "20px",
           borderBottom: "1px solid #eee",
         }}
       >
-        <Link href="/">Vanille’Or</Link>
+        <Link
+          href="/"
+          style={{
+            textDecoration: "none",
+            color: "#111",
+            fontWeight: "700",
+            fontSize: "20px",
+          }}
+        >
+          Vanille’Or
+        </Link>
 
-        <div style={{ display: "flex", gap: "20px" }}>
-          <Link href="/products">Produits</Link>
-          <Link href="/about">À propos</Link>
+        <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+          <Link
+            href="/products"
+            style={{ textDecoration: "none", color: "#111" }}
+          >
+            Produits
+          </Link>
 
-          <button onClick={openCart}>
-            🛒 ({totalItems})
+          <Link
+            href="/about"
+            style={{ textDecoration: "none", color: "#111" }}
+          >
+            À propos
+          </Link>
+
+          <button
+            onClick={openCart}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              position: "relative",
+              fontSize: "20px",
+            }}
+          >
+            <div style={{ position: "relative" }}>
+              🛒
+              {totalItems > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-8px",
+                    right: "-12px",
+                    background: "#a16207",
+                    color: "white",
+                    fontSize: "12px",
+                    minWidth: "20px",
+                    height: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "999px",
+                    padding: "0 6px",
+                    fontWeight: "700",
+                  }}
+                >
+                  {totalItems}
+                </span>
+              )}
+            </div>
           </button>
         </div>
       </header>
