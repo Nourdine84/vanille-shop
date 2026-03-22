@@ -154,7 +154,7 @@ export default async function HomePage() {
       </p>
 
       <Link
-        href="/products"
+        href="/vanille"
         style={{
           display: "inline-block",
           marginTop: "10px",
@@ -196,7 +196,7 @@ export default async function HomePage() {
       </p>
 
       <Link
-        href="/products"
+        href="/epices"
         style={{
           display: "inline-block",
           marginTop: "10px",
