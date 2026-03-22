@@ -228,7 +228,8 @@ export default async function HomePage() {
         </p>
         <div style={{ textAlign: "center", marginTop: "20px" }}>
           <Link href="/vanille-madagascar">Vanille Madagascar</Link> |{" "}
-          <Link href="/acheter-vanille">Acheter vanille</Link>
+          <Link href="/acheter-vanille">Acheter vanille</Link> |{" "}
+          <Link href="/vanille-patisserie">Vanille pâtisserie</Link>
         </div>
       </section>
 
