@@ -230,7 +230,9 @@ export default async function HomePage() {
           <Link href="/vanille-madagascar">Vanille Madagascar</Link> |{" "}
           <Link href="/acheter-vanille">Acheter vanille</Link> |{" "}
           <Link href="/vanille-patisserie">Vanille pâtisserie</Link>
+          <Link href="/vanille-madagascar">Vanille Madagascar premium</Link>
         </div>
+        
       </section>
 
       {/* PRODUITS */}
