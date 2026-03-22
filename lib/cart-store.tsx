@@ -1,56 +1,50 @@
-"use client";
 
 import { create } from "zustand";
 
-export type CartItem = {
+type CartItem = {
   id: string;
   name: string;
   priceCents: number;
   quantity: number;
+  imageUrl?: string;
 };
 
 type CartStore = {
   cart: CartItem[];
-  loadCart: () => void;
   addToCart: (item: CartItem) => void;
+  updateQuantity: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
 };
 
-export const useCartStore = create<CartStore>((set, get) => ({
+export const useCartStore = create<CartStore>((set) => ({
   cart: [],
 
-  loadCart: () => {
-    if (typeof window === "undefined") return;
+  addToCart: (item) =>
+    set((state) => {
+      const existing = state.cart.find((i) => i.id === item.id);
 
-    const stored = localStorage.getItem("cart");
-    if (stored) {
-      set({ cart: JSON.parse(stored) });
-    }
-  },
+      if (existing) {
+        return {
+          cart: state.cart.map((i) =>
+            i.id === item.id
+              ? { ...i, quantity: i.quantity + item.quantity }
+              : i
+          ),
+        };
+      }
 
-  addToCart: (item) => {
-    const cart = get().cart;
-    const existing = cart.find((i) => i.id === item.id);
+      return { cart: [...state.cart, item] };
+    }),
 
-    let updatedCart;
+  updateQuantity: (id, quantity) =>
+    set((state) => ({
+      cart: state.cart.map((item) =>
+        item.id === id ? { ...item, quantity } : item
+      ),
+    })),
 
-    if (existing) {
-      updatedCart = cart.map((i) =>
-        i.id === item.id
-          ? { ...i, quantity: i.quantity + item.quantity }
-          : i
-      );
-    } else {
-      updatedCart = [...cart, item];
-    }
-
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
-    set({ cart: updatedCart });
-  },
-
-  removeFromCart: (id) => {
-    const updatedCart = get().cart.filter((i) => i.id !== id);
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
-    set({ cart: updatedCart });
-  },
+  removeFromCart: (id) =>
+    set((state) => ({
+      cart: state.cart.filter((item) => item.id !== id),
+    })),
 }));

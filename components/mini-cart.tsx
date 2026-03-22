@@ -9,6 +9,7 @@ function formatPrice(priceCents: number) {
 export default function MiniCart({ open, onClose }: any) {
   const cart = useCartStore((state) => state.cart);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
 
   const total = cart.reduce(
     (acc, item) => acc + item.priceCents * item.quantity,
@@ -53,10 +54,78 @@ export default function MiniCart({ open, onClose }: any) {
           {cart.length === 0 && <p>Panier vide</p>}
 
           {cart.map((item) => (
-            <div key={item.id} style={{ marginBottom: "15px" }}>
-              <p>{item.name}</p>
-              <p>{formatPrice(item.priceCents)}</p>
+            <div
+              key={item.id}
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginBottom: "20px",
+                alignItems: "center",
+              }}
+            >
+              {/* IMAGE */}
+              <img
+                src={item.imageUrl || "/images/product-vanille.jpg"}
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  objectFit: "cover",
+                  borderRadius: "8px",
+                }}
+              />
 
+              {/* INFOS */}
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: "600" }}>{item.name}</p>
+
+                <p style={{ fontSize: "14px", color: "#666" }}>
+                  {formatPrice(item.priceCents)}
+                </p>
+
+                {/* QUANTITY CONTROL */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginTop: "6px",
+                  }}
+                >
+                  <button
+                    onClick={() =>
+                      item.quantity > 1
+                        ? updateQuantity(item.id, item.quantity - 1)
+                        : removeFromCart(item.id)
+                    }
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ddd",
+                      cursor: "pointer",
+                    }}
+                  >
+                    -
+                  </button>
+
+                  <span>{item.quantity}</span>
+
+                  <button
+                    onClick={() =>
+                      updateQuantity(item.id, item.quantity + 1)
+                    }
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ddd",
+                      cursor: "pointer",
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* REMOVE */}
               <button
                 onClick={() => removeFromCart(item.id)}
                 style={{
@@ -68,12 +137,13 @@ export default function MiniCart({ open, onClose }: any) {
                   cursor: "pointer",
                 }}
               >
-                Supprimer
+                ✕
               </button>
             </div>
           ))}
         </div>
 
+        {/* TOTAL + CTA */}
         <div style={{ marginTop: "20px" }}>
           <strong>Total : {formatPrice(total)}</strong>
 
@@ -88,9 +158,10 @@ export default function MiniCart({ open, onClose }: any) {
               borderRadius: "10px",
               border: "none",
               cursor: "pointer",
+              fontWeight: "600",
             }}
           >
-            Payer
+            Payer 🔒
           </button>
         </div>
       </div>

@@ -1,14 +1,4 @@
-"use client";
 
-import { useEffect } from "react";
-import { useCartStore } from "../lib/cart-store";
-
-export default function Providers({ children }: any) {
-  const loadCart = useCartStore((state) => state.loadCart);
-
-  useEffect(() => {
-    loadCart();
-  }, []);
-
+export default function Providers({ children }: { children: React.ReactNode }) {
   return children;
 }
