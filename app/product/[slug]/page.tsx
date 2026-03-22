@@ -21,24 +21,44 @@ function formatPrice(priceCents: number) {
 }
 
 export default function ProductPage() {
-  const { slug } = useParams();
+  const params = useParams();
+  const slug = params?.slug as string;
+
   const { showToast } = useToast();
   const addToCart = useCartStore((state) => state.addToCart);
   const openCart = useUIStore((state) => state.openCart);
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!slug) return;
+
     fetch(`/api/products/${slug}`)
-      .then((res) => res.json())
-      .then((data) => setProduct(data));
+      .then((res) => {
+        if (!res.ok) throw new Error("API error");
+        return res.json();
+      })
+      .then((data) => {
+        setProduct(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [slug]);
 
-  if (!product) return <div style={{ padding: 40 }}>Chargement...</div>;
+  if (loading) {
+    return <div style={{ padding: 40 }}>Chargement...</div>;
+  }
+
+  if (!product) {
+    return <div style={{ padding: 40 }}>Produit introuvable</div>;
+  }
 
   return (
     <>
-      {/* ✅ SEO */}
+      {/* SEO */}
       <Head>
         <title>{product.name} | Vanille de Madagascar Premium</title>
         <meta name="description" content={product.description} />

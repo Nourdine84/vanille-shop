@@ -17,58 +17,73 @@ export default async function HomePage() {
     <div>
 
       {/* HERO */}
-      <section
-        style={{
-          height: "80vh",
-          position: "relative",
-        }}
-      >
-        <img
-          src="/images/hero-vanille.jpg"
-          alt="Vanille Madagascar premium"
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: "brightness(0.6)",
-          }}
-        />
+<section
+  style={{
+    height: "80vh",
+    position: "relative",
+  }}
+>
+  <img
+    src="/images/hero-vanille.jpg"
+    alt="Vanille Madagascar premium"
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      filter: "brightness(0.6)",
+    }}
+  />
 
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            textAlign: "center",
-            color: "white",
-            maxWidth: "600px",
-          }}
-        >
-          <h1 style={{ fontSize: "36px", marginBottom: "10px" }}>
-            L’excellence de la vanille de Madagascar
-          </h1>
+  <div
+    style={{
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      textAlign: "center",
+      color: "white",
+      width: "90%",
+      maxWidth: "700px",
+      padding: "0 10px",
+    }}
+  >
+    <h1
+      style={{
+        fontSize: "clamp(28px, 6vw, 42px)",
+        lineHeight: 1.2,
+        marginBottom: "12px",
+      }}
+    >
+      L’excellence de la vanille de Madagascar
+    </h1>
 
-          <p style={{ marginBottom: "20px" }}>
-            Une qualité premium sélectionnée pour sublimer vos pâtisseries et créations.
-          </p>
+    <p
+      style={{
+        fontSize: "clamp(14px, 3.5vw, 18px)",
+        marginBottom: "20px",
+        lineHeight: 1.5,
+      }}
+    >
+      Une qualité premium sélectionnée pour sublimer vos pâtisseries et créations.
+    </p>
 
-          <Link
-            href="/products"
-            style={{
-              background: "#a16207",
-              padding: "12px 20px",
-              borderRadius: "10px",
-              color: "white",
-              textDecoration: "none",
-              fontWeight: "600",
-            }}
-          >
-            Découvrir nos produits
-          </Link>
-        </div>
-      </section>
-
+    <Link
+      href="/products"
+      style={{
+        display: "inline-block",
+        background: "#a16207",
+        padding: "12px 20px",
+        borderRadius: "10px",
+        color: "white",
+        textDecoration: "none",
+        fontWeight: "600",
+        fontSize: "clamp(14px, 3vw, 16px)",
+      }}
+    >
+      Découvrir nos produits
+    </Link>
+  </div>
+</section>
       {/* USP BAR */}
       <section
         style={{
