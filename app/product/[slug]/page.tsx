@@ -48,27 +48,14 @@ export default function ProductPage() {
       });
   }, [slug]);
 
-  if (loading) {
-    return <div style={{ padding: 40 }}>Chargement...</div>;
-  }
-
-  if (!product) {
-    return <div style={{ padding: 40 }}>Produit introuvable</div>;
-  }
+  if (loading) return <div style={{ padding: 40 }}>Chargement...</div>;
+  if (!product) return <div style={{ padding: 40 }}>Produit introuvable</div>;
 
   return (
     <>
-      {/* SEO */}
       <Head>
         <title>{product.name} | Vanille de Madagascar Premium</title>
         <meta name="description" content={product.description} />
-        <meta
-          name="keywords"
-          content="vanille Madagascar, gousse vanille, vanille premium, acheter vanille"
-        />
-        <meta property="og:title" content={product.name} />
-        <meta property="og:description" content={product.description} />
-        <meta property="og:image" content={product.imageUrl} />
       </Head>
 
       <div>
@@ -77,7 +64,7 @@ export default function ProductPage() {
         <section style={{ height: "90vh", position: "relative" }}>
           <motion.img
             src={product.imageUrl || "/images/product-vanille.jpg"}
-            alt={`${product.name} vanille Madagascar premium`}
+            alt={product.name}
             initial={{ scale: 1.1, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1 }}
@@ -88,6 +75,20 @@ export default function ProductPage() {
               filter: "brightness(0.7)",
             }}
           />
+
+          {/* BADGE */}
+          <div style={{
+            position: "absolute",
+            top: "20px",
+            left: "20px",
+            background: "#a16207",
+            color: "white",
+            padding: "6px 12px",
+            borderRadius: "20px",
+            fontSize: "12px"
+          }}>
+            ⭐ Best seller
+          </div>
 
           <motion.div
             initial={{ y: 80, opacity: 0 }}
@@ -101,97 +102,51 @@ export default function ProductPage() {
             }}
           >
             <h1 style={{ fontSize: "48px" }}>{product.name}</h1>
-            <p style={{ fontSize: "18px" }}>
-              Vanille premium de Madagascar
-            </p>
+            <p>Vanille premium de Madagascar</p>
           </motion.div>
         </section>
 
         {/* STORY */}
-        <motion.section
-          initial={{ opacity: 0, y: 60 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          style={{
-            maxWidth: "800px",
-            margin: "100px auto",
-            textAlign: "center",
-            padding: "0 20px",
-          }}
-        >
-          <p style={{ fontSize: "18px", lineHeight: 1.8 }}>
-            Issue d’un savoir-faire unique, notre vanille est cultivée à Madagascar
-            dans le respect des traditions. Chaque gousse est sélectionnée avec
-            exigence pour offrir une intensité aromatique exceptionnelle.
-          </p>
-        </motion.section>
-
-        {/* IMAGE */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-          style={{ padding: "40px" }}
-        >
-          <motion.img
-            src="/images/tube-gouss.jpg"
-            alt="Gousses de vanille premium"
-            whileHover={{ scale: 1.05 }}
-            style={{
-              width: "100%",
-              borderRadius: "20px",
-            }}
-          />
-        </motion.section>
-
-        {/* QUALITÉ */}
-        <motion.section
-          initial={{ opacity: 0, y: 60 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          style={{
-            background: "#faf7f2",
-            padding: "80px 20px",
-            textAlign: "center",
-          }}
-        >
-          <h2 style={{ marginBottom: "20px" }}>Une qualité incomparable</h2>
+        <motion.section style={{ maxWidth: "800px", margin: "100px auto", textAlign: "center" }}>
           <p>
-            ✔ Gousses charnues <br />
-            ✔ Arômes intenses <br />
-            ✔ Origine Madagascar
+            Issue d’un savoir-faire unique, notre vanille est cultivée à Madagascar
+            dans le respect des traditions.
           </p>
         </motion.section>
 
-        {/* CTA + CONVERSION BOOST */}
-        <motion.section
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          style={{
-            maxWidth: "600px",
-            margin: "100px auto",
-            textAlign: "center",
-          }}
-        >
-          <h2 style={{ marginBottom: "20px" }}>
-            {formatPrice(product.priceCents)}
-          </h2>
+        {/* AVIS */}
+        <motion.section style={{ maxWidth: "900px", margin: "80px auto" }}>
+          <h2 style={{ textAlign: "center" }}>Avis clients</h2>
 
-          {/* 🔥 BOOST UX */}
-          <p style={{ color: "#dc2626", fontWeight: "600" }}>
-            ⚠️ Stock limité — forte demande
+          <p style={{ textAlign: "center", marginBottom: "20px", color: "#666" }}>
+            ⭐ 4.9/5 basé sur 120 avis
           </p>
 
-          <p style={{ color: "#666", marginTop: "8px" }}>
-            ⭐️ Déjà adopté par des passionnés de pâtisserie
-          </p>
+          <div style={{ display: "grid", gap: "20px" }}>
+            {[
+              "Qualité incroyable !",
+              "Parfait pour pâtisserie",
+              "Excellente vanille"
+            ].map((text, i) => (
+              <div key={i} style={{
+                background: "#fff",
+                padding: "20px",
+                borderRadius: "16px",
+                boxShadow: "0 5px 20px rgba(0,0,0,0.05)"
+              }}>
+                ⭐⭐⭐⭐⭐
+                <p style={{ fontStyle: "italic" }}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </motion.section>
 
-          <p style={{ color: "#666", marginTop: "8px" }}>
-            ✔ Qualité premium | ✔ Livraison rapide | ✔ Origine Madagascar
-          </p>
+        {/* CTA */}
+        <motion.section style={{ textAlign: "center", margin: "80px auto" }}>
+          <h2>{formatPrice(product.priceCents)}</h2>
 
-          {/* CTA */}
+          <p style={{ color: "red" }}>⚠️ Stock limité</p>
+
           <motion.button
             whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.05 }}
@@ -204,19 +159,13 @@ export default function ProductPage() {
               });
 
               showToast("Ajouté au panier 🛒");
-
               setTimeout(() => openCart(), 200);
             }}
             style={{
               background: "#a16207",
               color: "white",
-              padding: "16px 24px",
+              padding: "16px",
               borderRadius: "12px",
-              fontSize: "18px",
-              border: "none",
-              cursor: "pointer",
-              width: "100%",
-              maxWidth: "300px",
               marginTop: "20px",
             }}
           >
