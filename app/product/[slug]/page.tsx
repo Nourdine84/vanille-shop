@@ -163,7 +163,7 @@ export default function ProductPage() {
           </p>
         </motion.section>
 
-        {/* CTA */}
+        {/* CTA + CONVERSION BOOST */}
         <motion.section
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -178,6 +178,20 @@ export default function ProductPage() {
             {formatPrice(product.priceCents)}
           </h2>
 
+          {/* 🔥 BOOST UX */}
+          <p style={{ color: "#dc2626", fontWeight: "600" }}>
+            ⚠️ Stock limité — forte demande
+          </p>
+
+          <p style={{ color: "#666", marginTop: "8px" }}>
+            ⭐️ Déjà adopté par des passionnés de pâtisserie
+          </p>
+
+          <p style={{ color: "#666", marginTop: "8px" }}>
+            ✔ Qualité premium | ✔ Livraison rapide | ✔ Origine Madagascar
+          </p>
+
+          {/* CTA */}
           <motion.button
             whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.05 }}
@@ -201,9 +215,12 @@ export default function ProductPage() {
               fontSize: "18px",
               border: "none",
               cursor: "pointer",
+              width: "100%",
+              maxWidth: "300px",
+              marginTop: "20px",
             }}
           >
-            Ajouter au panier
+            Ajouter au panier 🛒
           </motion.button>
         </motion.section>
 
