@@ -16,6 +16,9 @@ export default function MiniCart({ open, onClose }: any) {
     0
   );
 
+  const freeShippingThreshold = 5000; // 50€
+  const remaining = freeShippingThreshold - total;
+
   return (
     <>
       {/* OVERLAY */}
@@ -50,6 +53,7 @@ export default function MiniCart({ open, onClose }: any) {
       >
         <h2 style={{ marginBottom: "20px" }}>Votre panier</h2>
 
+        {/* LISTE PRODUITS */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {cart.length === 0 && <p>Panier vide</p>}
 
@@ -82,7 +86,7 @@ export default function MiniCart({ open, onClose }: any) {
                   {formatPrice(item.priceCents)}
                 </p>
 
-                {/* QUANTITY CONTROL */}
+                {/* QUANTITY */}
                 <div
                   style={{
                     display: "flex",
@@ -143,15 +147,80 @@ export default function MiniCart({ open, onClose }: any) {
           ))}
         </div>
 
-        {/* TOTAL + CTA */}
-        <div style={{ marginTop: "20px" }}>
-          <strong>Total : {formatPrice(total)}</strong>
+        {/* LIVRAISON */}
+        {cart.length > 0 && (
+          <div style={{ marginBottom: "10px", fontSize: "14px" }}>
+            {remaining > 0 ? (
+              <p style={{ color: "#a16207" }}>
+                🚚 Plus que {formatPrice(remaining)} pour la livraison offerte
+              </p>
+            ) : (
+              <p style={{ color: "green" }}>
+                🎉 Livraison offerte activée !
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* RÉCAP COMMANDE */}
+        <div style={{ marginBottom: "15px", fontSize: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>Sous-total</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: "5px",
+            }}
+          >
+            <span>Livraison</span>
+            <span>
+              {total >= freeShippingThreshold
+                ? "Offerte"
+                : "Calculée à l’étape suivante"}
+            </span>
+          </div>
+
+          <hr style={{ margin: "10px 0" }} />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontWeight: "600",
+            }}
+          >
+            <span>Total</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+        </div>
+
+        {/* ACTIONS */}
+        <div>
+          <button
+            onClick={onClose}
+            style={{
+              width: "100%",
+              marginBottom: "10px",
+              background: "#f3f4f6",
+              color: "#111",
+              padding: "12px",
+              borderRadius: "10px",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: "600",
+            }}
+          >
+            Continuer mes achats
+          </button>
 
           <button
             onClick={() => (window.location.href = "/checkout")}
             style={{
               width: "100%",
-              marginTop: "10px",
               background: "#a16207",
               color: "white",
               padding: "14px",
@@ -161,8 +230,19 @@ export default function MiniCart({ open, onClose }: any) {
               fontWeight: "600",
             }}
           >
-            Payer 🔒
+            Passer au paiement 🔒
           </button>
+
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#666",
+              marginTop: "10px",
+              textAlign: "center",
+            }}
+          >
+            Paiement sécurisé • Livraison rapide
+          </p>
         </div>
       </div>
     </>
