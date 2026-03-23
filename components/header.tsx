@@ -1,13 +1,12 @@
-
 "use client";
 
 import Link from "next/link";
-import { useCartStore } from "../lib/cart-store";
+import { useCart } from "@/lib/cart-store";
 import MiniCart from "./mini-cart";
-import { useUIStore } from "../lib/ui-store";
+import { useUIStore } from "@/lib/ui-store";
 
 export default function Header() {
-  const cart = useCartStore((state) => state.cart);
+  const { cart } = useCart();
   const { isCartOpen, openCart, closeCart } = useUIStore();
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -19,76 +18,97 @@ export default function Header() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "20px",
+          padding: "20px 40px",
           borderBottom: "1px solid #eee",
+          background: "#fff",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
         }}
       >
+        {/* LOGO */}
         <Link
           href="/"
+          data-testid="logo"
           style={{
             textDecoration: "none",
             color: "#111",
-            fontWeight: "700",
-            fontSize: "20px",
+            fontWeight: 800,
+            fontSize: "22px",
+            letterSpacing: "0.5px",
           }}
         >
           Vanille’Or
         </Link>
 
-        <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+        {/* NAV */}
+        <nav style={{ display: "flex", gap: "30px", alignItems: "center" }}>
           <Link
             href="/products"
-            style={{ textDecoration: "none", color: "#111" }}
+            data-testid="nav-products"
+            style={{
+              textDecoration: "none",
+              color: "#111",
+              fontWeight: 500,
+            }}
           >
             Produits
           </Link>
 
           <Link
             href="/about"
-            style={{ textDecoration: "none", color: "#111" }}
+            data-testid="nav-about"
+            style={{
+              textDecoration: "none",
+              color: "#111",
+              fontWeight: 500,
+            }}
           >
             À propos
           </Link>
 
+          {/* CART */}
           <button
+            data-testid="cart-button"
             onClick={openCart}
             style={{
               background: "none",
               border: "none",
               cursor: "pointer",
               position: "relative",
-              fontSize: "20px",
+              fontSize: "22px",
             }}
           >
-            <div style={{ position: "relative" }}>
-              🛒
-              {totalItems > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "-8px",
-                    right: "-12px",
-                    background: "#a16207",
-                    color: "white",
-                    fontSize: "12px",
-                    minWidth: "20px",
-                    height: "20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: "999px",
-                    padding: "0 6px",
-                    fontWeight: "700",
-                  }}
-                >
-                  {totalItems}
-                </span>
-              )}
-            </div>
+            🛒
+
+            {totalItems > 0 && (
+              <span
+                data-testid="cart-count"
+                style={{
+                  position: "absolute",
+                  top: "-6px",
+                  right: "-10px",
+                  background: "#a16207",
+                  color: "white",
+                  fontSize: "11px",
+                  minWidth: "18px",
+                  height: "18px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "999px",
+                  padding: "0 5px",
+                  fontWeight: 700,
+                }}
+              >
+                {totalItems}
+              </span>
+            )}
           </button>
-        </div>
+        </nav>
       </header>
 
+      {/* MINI CART */}
       <MiniCart open={isCartOpen} onClose={closeCart} />
     </>
   );

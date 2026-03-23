@@ -1,12 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Blog Vanille | Conseils et recettes",
   description:
     "Découvrez nos conseils autour de la vanille, pâtisserie, recettes et qualité des produits.",
 };
 
-const articles = [
+type Article = {
+  slug: string;
+  title: string;
+};
+
+const articles: Article[] = [
   {
     slug: "utiliser-vanille-patisserie",
     title: "Comment utiliser la vanille en pâtisserie",
@@ -23,22 +29,38 @@ const articles = [
 
 export default function BlogPage() {
   return (
-    <div style={{ maxWidth: "900px", margin: "60px auto", padding: "20px" }}>
-      
+    <div
+      style={{
+        maxWidth: "900px",
+        margin: "60px auto",
+        padding: "20px",
+      }}
+    >
+      {/* TITLE */}
       <h1 style={{ marginBottom: "20px" }}>Blog Vanille’Or</h1>
 
       {/* INTRO SEO */}
-      <p style={{ color: "#666", marginBottom: "30px", lineHeight: 1.6 }}>
+      <p
+        style={{
+          color: "#666",
+          marginBottom: "30px",
+          lineHeight: 1.6,
+        }}
+      >
         Découvrez nos conseils pour utiliser la{" "}
-        <Link href="/vanille-madagascar">vanille de Madagascar premium</Link>, 
-        choisir les meilleures gousses et sublimer vos recettes.
+        <Link href="/vanille-madagascar">
+          vanille de Madagascar premium
+        </Link>
+        , choisir les meilleures gousses et sublimer vos recettes.
       </p>
 
       {/* ARTICLES */}
-      {articles.map((article) => (
-        <div key={article.slug} style={{ marginBottom: "20px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {articles.map((article) => (
           <Link
+            key={article.slug}
             href={`/blog/${article.slug}`}
+            data-testid="blog-link" // 🔥 QA
             style={{
               fontWeight: "600",
               color: "#a16207",
@@ -47,8 +69,8 @@ export default function BlogPage() {
           >
             {article.title}
           </Link>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* SEO LINKING */}
       <div style={{ marginTop: "40px", textAlign: "center" }}>
@@ -65,6 +87,7 @@ export default function BlogPage() {
       <div style={{ marginTop: "40px", textAlign: "center" }}>
         <Link
           href="/products"
+          data-testid="blog-cta"
           style={{
             background: "#a16207",
             color: "white",
@@ -77,7 +100,6 @@ export default function BlogPage() {
           Voir nos produits
         </Link>
       </div>
-
     </div>
   );
 }

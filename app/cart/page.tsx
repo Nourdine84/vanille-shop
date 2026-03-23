@@ -1,14 +1,13 @@
 "use client";
 
-import { useCartStore } from "../../lib/cart-store";
+import { useCart } from "@/lib/cart-store";
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 export default function CartPage() {
-  const cart = useCartStore((state) => state.cart);
-  const removeFromCart = useCartStore((state) => state.removeFromCart);
+  const { cart, removeFromCart } = useCart(); // ✅ FIX
 
   const total = cart.reduce(
     (acc, item) => acc + item.priceCents * item.quantity,
@@ -18,7 +17,7 @@ export default function CartPage() {
   if (cart.length === 0) {
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
-        <h2>Votre panier est vide</h2>
+        <h2 data-testid="empty-cart">Votre panier est vide</h2>
       </div>
     );
   }
@@ -32,6 +31,7 @@ export default function CartPage() {
       {cart.map((item) => (
         <div
           key={item.id}
+          data-testid="cart-item" // 🔥 QA
           style={{
             borderBottom: "1px solid #eee",
             paddingBottom: "20px",
@@ -45,6 +45,7 @@ export default function CartPage() {
           <p>{formatPrice(item.priceCents)}</p>
 
           <button
+            data-testid="remove-item" // 🔥 QA
             onClick={() => removeFromCart(item.id)}
             style={{
               marginTop: "10px",
@@ -61,11 +62,12 @@ export default function CartPage() {
         </div>
       ))}
 
-      <h2 style={{ marginTop: "30px" }}>
+      <h2 data-testid="cart-total" style={{ marginTop: "30px" }}>
         Total : {formatPrice(total)}
       </h2>
 
       <button
+        data-testid="checkout-button" // 🔥 QA
         style={{
           marginTop: "20px",
           width: "100%",

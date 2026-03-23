@@ -1,9 +1,11 @@
 import "./globals.css";
-import HeaderWrapper from "../components/header-wrapper";
-import Providers from "../components/providers";
-import { ToastProvider } from "../components/ui/toast";
+import HeaderWrapper from "@/components/header-wrapper";
+import { Providers } from "@/components/providers"; // ✅ FIX
+import { ToastProvider } from "@/components/ui/toast";
+import type { Metadata } from "next";
+import React from "react"; // ✅ FIX TS
 
-export const metadata = {
+export const metadata: Metadata = {
   title: {
     default: "Vanille’Or | Vanille de Madagascar Premium",
     template: "%s | Vanille’Or",
@@ -21,7 +23,7 @@ export const metadata = {
     title: "Vanille’Or | Vanille Premium",
     description:
       "Vanille de Madagascar haut de gamme pour particuliers et professionnels.",
-    url: "https://vanille-shop.vercel.app", // 🔥 adapte si besoin
+    url: "https://vanille-shop.vercel.app",
     siteName: "Vanille’Or",
     images: [
       {

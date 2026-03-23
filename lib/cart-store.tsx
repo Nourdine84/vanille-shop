@@ -1,64 +1,68 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+"use client";
 
-type CartItem = {
+import { createContext, useContext, useState, ReactNode } from "react";
+
+export type CartItem = {
   id: string;
   name: string;
   priceCents: number;
-  quantity: number;
   imageUrl?: string;
+  quantity: number;
 };
 
-type CartStore = {
+type CartContextType = {
   cart: CartItem[];
-
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void; // 🔥 ajout clé
 };
 
-export const useCartStore = create<CartStore>()(
-  persist(
-    (set) => ({
-      cart: [],
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
-      addToCart: (item) =>
-        set((state) => {
-          const existing = state.cart.find((i) => i.id === item.id);
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-          if (existing) {
-            return {
-              cart: state.cart.map((i) =>
-                i.id === item.id
-                  ? { ...i, quantity: i.quantity + item.quantity }
-                  : i
-              ),
-            };
-          }
+  function addToCart(item: CartItem) {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
 
-          return {
-            cart: [...state.cart, item],
-          };
-        }),
+      if (existing) {
+        return prev.map((i) =>
+          i.id === item.id
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
+        );
+      }
 
-      removeFromCart: (id) =>
-        set((state) => ({
-          cart: state.cart.filter((item) => item.id !== id),
-        })),
+      return [...prev, item];
+    });
+  }
 
-      updateQuantity: (id, quantity) =>
-        set((state) => ({
-          cart: state.cart.map((item) =>
-            item.id === id ? { ...item, quantity } : item
-          ),
-        })),
+  function removeFromCart(id: string) {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  }
 
-      // 💥 RESET PANIER (CRITIQUE)
-      clearCart: () => set({ cart: [] }),
-    }),
-    {
-      name: "cart-storage",
-    }
-  )
-);
+  function updateQuantity(id: string, quantity: number) {
+    setCart((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity } : item
+      )
+    );
+  }
+
+  return (
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity }}>
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export function useCart() {
+  const context = useContext(CartContext);
+
+  if (!context) {
+    throw new Error("useCart must be used within CartProvider");
+  }
+
+  return context;
+}

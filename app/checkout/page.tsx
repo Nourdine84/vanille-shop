@@ -1,18 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { useCartStore } from "../../lib/cart-store";
+import { useCart } from "@/lib/cart-store";
+
+type CartItem = {
+  id: string;
+  name: string;
+  priceCents: number;
+  quantity: number;
+  imageUrl?: string;
+};
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 export default function CheckoutPage() {
-  const cart = useCartStore((state) => state.cart);
+  const { cart } = useCart();
   const [loading, setLoading] = useState(false);
 
   const total = cart.reduce(
-    (acc, item) => acc + item.priceCents * item.quantity,
+    (acc: number, item: CartItem) =>
+      acc + item.priceCents * item.quantity,
     0
   );
 
@@ -36,24 +45,27 @@ export default function CheckoutPage() {
         body: JSON.stringify({ cart }),
       });
 
+      if (!res.ok) {
+        throw new Error("Erreur API");
+      }
+
       const data = await res.json();
 
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert("Erreur paiement");
-        setLoading(false);
+        throw new Error("Pas de redirection Stripe");
       }
     } catch (err) {
       console.error(err);
-      alert("Erreur serveur");
+      alert("Erreur lors du paiement");
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
-
       <div
         style={{
           maxWidth: "1100px",
@@ -72,10 +84,8 @@ export default function CheckoutPage() {
             gap: "40px",
           }}
         >
-          {/* COLONNE GAUCHE */}
+          {/* GAUCHE */}
           <div>
-
-            {/* LISTE PRODUITS */}
             <div
               style={{
                 background: "white",
@@ -86,11 +96,9 @@ export default function CheckoutPage() {
             >
               <h2 style={{ marginBottom: "20px" }}>Votre panier</h2>
 
-              {cart.length === 0 && (
-                <p>Votre panier est vide</p>
-              )}
+              {cart.length === 0 && <p>Votre panier est vide</p>}
 
-              {cart.map((item) => (
+              {cart.map((item: CartItem) => (
                 <div
                   key={item.id}
                   style={{
@@ -102,6 +110,7 @@ export default function CheckoutPage() {
                 >
                   <img
                     src={item.imageUrl || "/images/product-vanille.jpg"}
+                    alt={item.name}
                     style={{
                       width: "80px",
                       height: "80px",
@@ -125,7 +134,7 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            {/* TRUST BLOCK */}
+            {/* TRUST */}
             <div
               style={{
                 marginTop: "20px",
@@ -145,9 +154,8 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* COLONNE DROITE */}
+          {/* DROITE */}
           <div>
-
             <div
               style={{
                 background: "white",
@@ -158,9 +166,7 @@ export default function CheckoutPage() {
                 top: "20px",
               }}
             >
-              <h2 style={{ marginBottom: "20px" }}>
-                Résumé
-              </h2>
+              <h2 style={{ marginBottom: "20px" }}>Résumé</h2>
 
               {/* LIVRAISON */}
               <div style={{ fontSize: "14px", marginBottom: "15px" }}>
@@ -176,13 +182,7 @@ export default function CheckoutPage() {
               </div>
 
               {/* TOTAL */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "10px",
-                }}
-              >
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span>Sous-total</span>
                 <span>{formatPrice(total)}</span>
               </div>
@@ -237,7 +237,6 @@ export default function CheckoutPage() {
                 {loading ? "Redirection..." : "Payer en sécurité 🔒"}
               </button>
 
-              {/* TRUST */}
               <p
                 style={{
                   marginTop: "15px",
@@ -250,7 +249,6 @@ export default function CheckoutPage() {
               </p>
             </div>
           </div>
-
         </div>
       </div>
     </div>

@@ -1,61 +1,52 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { Resend } from "resend";
+import { sendOrderEmail } from "../../../lib/email";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const sig = headers().get("stripe-signature") as string;
+  const signature = req.headers.get("stripe-signature") as string;
 
   let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
       body,
-      sig,
+      signature,
       process.env.STRIPE_WEBHOOK_SECRET as string
     );
-  } catch (err: any) {
-    console.error("❌ Webhook signature error:", err.message);
-    return new NextResponse("Webhook Error", { status: 400 });
+  } catch (err) {
+    console.error("❌ Webhook signature error:", err);
+    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
 
-  // 🎯 Paiement validé
+  // 💰 PAIEMENT VALIDÉ
   if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
+    const session: any = event.data.object;
 
-    console.log("✅ Paiement réussi :", session.id);
+    console.log("💰 PAYMENT SUCCESS");
 
-    const customerEmail = session.customer_details?.email;
+    const email = session.customer_email;
 
-    try {
-      // 🔥 FIX TEMPORAIRE RESEND (IMPORTANT)
-      const result = await resend.emails.send({
-        from: "Vanille Or <onboarding@resend.dev>",
+    const cart = JSON.parse(session.metadata?.cart || "[]");
 
-        // 🔥 ON FORCE TON EMAIL POUR TEST
-        to: "msanourdine@hotmail.com",
+    const total = session.amount_total;
 
-        subject: "Confirmation de votre commande",
-        html: `
-          <h1>Merci pour votre commande 🎉</h1>
-          <p>Votre paiement a bien été confirmé.</p>
-          <p>Nous préparons votre commande avec soin.</p>
-          <br/>
-          <p><strong>Vanille Or</strong></p>
-        `,
+    if (email && cart.length > 0) {
+      await sendOrderEmail({
+        to: email,
+        items: cart,
+        totalCents: total,
       });
-
-      console.log("📨 RESEND RESULT:", result);
-      console.log("📧 Email client initial :", customerEmail);
-
-    } catch (error) {
-      console.error("❌ Email error:", error);
+    } else {
+      console.error("❌ EMAIL OU PANIER MANQUANT");
     }
   }
 
-  return new NextResponse("OK", { status: 200 });
+  return NextResponse.json({ received: true });
 }
+
