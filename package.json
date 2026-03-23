@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:lighthouse": "lhci autorun"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -28,6 +33,8 @@
     "stripe": "^20.4.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.58.2",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.19.37",

@@ -119,8 +119,8 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
                     -
                   </button>
 
-                  <span>{item.quantity}</span>
-
+                  <span data-testid="item-quantity">{item.quantity}</span>
+                  
                   <button
                     type="button"
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}

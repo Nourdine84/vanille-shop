@@ -19,7 +19,6 @@ export default defineConfig({
 
   use: {
     baseURL: "http://localhost:3001",
-    browserName: "chromium",
     headless: true,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
@@ -31,7 +30,21 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+      },
+    },
+    {
+      name: "iphone-13",
+      use: {
+        ...devices["iPhone 13"],
+      },
+    },
+    {
+      name: "pixel-7",
+      use: {
+        ...devices["Pixel 7"],
+      },
     },
   ],
 
