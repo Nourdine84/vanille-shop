@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-store";
 
 type CartItem = {
@@ -17,7 +17,19 @@ function formatPrice(priceCents: number) {
 
 export default function CheckoutPage() {
   const { cart } = useCart();
+
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // 🔥 FIX HYDRATATION + PERSIST
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ❗ IMPORTANT
+  if (!mounted) {
+    return null;
+  }
 
   const total = cart.reduce(
     (acc: number, item: CartItem) =>
@@ -183,7 +195,7 @@ export default function CheckoutPage() {
 
               {/* TOTAL */}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Sous-total</span>
+        <span>Sous-total</span>
                 <span>{formatPrice(total)}</span>
               </div>
 

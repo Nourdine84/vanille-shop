@@ -2,14 +2,22 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useCartStore } from "../../lib/cart-store";
 
 export default function SuccessPage() {
-  const clearCart = useCartStore((state) => state.clearCart);
 
   useEffect(() => {
-    clearCart(); // 🔥 reset propre
-  }, [clearCart]);
+    // 🔥 TRACKING PURCHASE
+    if (typeof window !== "undefined") {
+      (window as any).gtag?.("event", "purchase", {
+        currency: "EUR",
+        value: 0,
+      });
+    }
+
+    // 🔥 VIDER PANIER (source unique)
+    localStorage.removeItem("cart");
+
+  }, []);
 
   return (
     <div style={{ background: "#faf7f2", minHeight: "100vh" }}>

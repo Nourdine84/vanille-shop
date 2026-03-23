@@ -25,8 +25,10 @@ export default function ProductPage() {
   const slug = params?.slug as string;
 
   const { showToast } = useToast();
-  const { addToCart } = useCart(); // ✅ FIX ICI
-  const openCart = useUIStore((state) => state.openCart);
+  const { addToCart } = useCart();
+
+  // ✅ FIX UI STORE
+  const { openCart } = useUIStore();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,7 +114,7 @@ export default function ProductPage() {
           <p style={{ color: "red" }}>⚠️ Stock limité</p>
 
           <motion.button
-            data-testid="add-to-cart" // 🔥 QA
+            data-testid="add-to-cart"
             whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.05 }}
             onClick={() => {
@@ -121,7 +123,24 @@ export default function ProductPage() {
                 name: product.name,
                 priceCents: product.priceCents,
                 quantity: 1,
+                imageUrl: product.imageUrl,
               });
+
+              // 🔥 TRACKING SAFE (no TS error)
+              if (typeof window !== "undefined") {
+                (window as any).gtag?.("event", "add_to_cart", {
+                  currency: "EUR",
+                  value: product.priceCents / 100,
+                  items: [
+                    {
+                      item_id: product.id,
+                      item_name: product.name,
+                      price: product.priceCents / 100,
+                      quantity: 1,
+                    },
+                  ],
+                });
+              }
 
               showToast("Ajouté au panier 🛒");
               setTimeout(() => openCart(), 200);
