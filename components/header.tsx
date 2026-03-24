@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
 import MiniCart from "./mini-cart";
-import { useUIStore } from "@/lib/ui-store";
+import { useUIStore } from "@/components/ui-provider";
 
 export default function Header() {
   const { cart } = useCart();

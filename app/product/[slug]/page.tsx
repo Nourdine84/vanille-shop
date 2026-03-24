@@ -6,7 +6,7 @@ import Head from "next/head";
 import { motion } from "framer-motion";
 import { useCart } from "@/lib/cart-store";
 import { useToast } from "@/components/ui/toast";
-import { useUIStore } from "@/lib/ui-store";
+import { useUIStore } from "@/components/ui-provider";
 
 type Product = {
   id: string;

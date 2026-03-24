@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState } from "react";
 
 type UIContextType = {
   isCartOpen: boolean;
@@ -8,18 +8,13 @@ type UIContextType = {
   closeCart: () => void;
 };
 
-const UIContext = createContext<UIContextType | undefined>(undefined);
+const UIContext = createContext<UIContextType | null>(null);
 
-export function UIProvider({ children }: { children: ReactNode }) {
+export function UIProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  function openCart() {
-    setIsCartOpen(true);
-  }
-
-  function closeCart() {
-    setIsCartOpen(false);
-  }
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
 
   return (
     <UIContext.Provider value={{ isCartOpen, openCart, closeCart }}>

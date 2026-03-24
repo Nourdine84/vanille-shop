@@ -1,41 +1,13 @@
 import "./globals.css";
 import HeaderWrapper from "@/components/header-wrapper";
-import { Providers } from "@/components/providers"; // ✅ FIX
 import { ToastProvider } from "@/components/ui/toast";
+import { UIProvider } from "@/components/ui-provider";
 import type { Metadata } from "next";
-import React from "react"; // ✅ FIX TS
+import React from "react";
 
 export const metadata: Metadata = {
-  title: {
-    default: "Vanille’Or | Vanille de Madagascar Premium",
-    template: "%s | Vanille’Or",
-  },
-  description:
-    "Découvrez une vanille de Madagascar premium, sélectionnée avec exigence pour les passionnés et professionnels.",
-  keywords: [
-    "vanille Madagascar",
-    "gousse de vanille",
-    "vanille premium",
-    "acheter vanille",
-    "vanille pâtisserie",
-  ],
-  openGraph: {
-    title: "Vanille’Or | Vanille Premium",
-    description:
-      "Vanille de Madagascar haut de gamme pour particuliers et professionnels.",
-    url: "https://vanille-shop.vercel.app",
-    siteName: "Vanille’Or",
-    images: [
-      {
-        url: "/images/vanille-hero.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Vanille de Madagascar premium",
-      },
-    ],
-    locale: "fr_FR",
-    type: "website",
-  },
+  title: "Vanille’Or",
+  description: "Vanille premium de Madagascar",
 };
 
 export default function RootLayout({
@@ -46,12 +18,14 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <Providers>
+
+        <UIProvider>
           <ToastProvider>
             <HeaderWrapper />
             {children}
           </ToastProvider>
-        </Providers>
+        </UIProvider>
+
       </body>
     </html>
   );

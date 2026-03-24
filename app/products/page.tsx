@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store"; // ✅ FIX
 import { useToast } from "@/components/ui/toast";
-import { useUIStore } from "@/lib/ui-store";
+import { useUIStore } from "@/components/ui-provider";
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
