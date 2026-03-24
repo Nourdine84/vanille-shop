@@ -2,6 +2,8 @@ import "./globals.css";
 import HeaderWrapper from "@/components/header-wrapper";
 import { ToastProvider } from "@/components/ui/toast";
 import { UIProvider } from "@/components/ui-provider";
+import Analytics from "@/app/analytics";
+
 import type { Metadata } from "next";
 import React from "react";
 

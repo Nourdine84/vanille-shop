@@ -26,13 +26,12 @@ export default function ProductPage() {
 
   const { showToast } = useToast();
   const { addToCart } = useCart();
-
-  // ✅ FIX UI STORE
   const { openCart } = useUIStore();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 🔥 FETCH PRODUIT
   useEffect(() => {
     if (!slug) return;
 
@@ -49,6 +48,25 @@ export default function ProductPage() {
         setLoading(false);
       });
   }, [slug]);
+
+  // 🔥 TRACK VIEW ITEM (GA4)
+  useEffect(() => {
+    if (!product) return;
+
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "view_item", {
+        currency: "EUR",
+        value: product.priceCents / 100,
+        items: [
+          {
+            item_id: product.id,
+            item_name: product.name,
+            price: product.priceCents / 100,
+          },
+        ],
+      });
+    }
+  }, [product]);
 
   if (loading) return <div style={{ padding: 40 }}>Chargement...</div>;
   if (!product) return <div style={{ padding: 40 }}>Produit introuvable</div>;
@@ -78,16 +96,18 @@ export default function ProductPage() {
             }}
           />
 
-          <div style={{
-            position: "absolute",
-            top: "20px",
-            left: "20px",
-            background: "#a16207",
-            color: "white",
-            padding: "6px 12px",
-            borderRadius: "20px",
-            fontSize: "12px"
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "20px",
+              background: "#a16207",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "20px",
+              fontSize: "12px",
+            }}
+          >
             ⭐ Best seller
           </div>
 
@@ -123,12 +143,11 @@ export default function ProductPage() {
                 name: product.name,
                 priceCents: product.priceCents,
                 quantity: 1,
-                imageUrl: product.imageUrl,
               });
 
-              // 🔥 TRACKING SAFE (no TS error)
-              if (typeof window !== "undefined") {
-                (window as any).gtag?.("event", "add_to_cart", {
+              // 🔥 TRACK ADD TO CART
+              if (typeof window !== "undefined" && (window as any).gtag) {
+                (window as any).gtag("event", "add_to_cart", {
                   currency: "EUR",
                   value: product.priceCents / 100,
                   items: [

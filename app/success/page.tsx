@@ -2,26 +2,52 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useCart } from "@/lib/cart-store";
 
 export default function SuccessPage() {
+  const { clearCart } = useCart();
 
   useEffect(() => {
-    // 🔥 TRACKING PURCHASE
-    if (typeof window !== "undefined") {
-      (window as any).gtag?.("event", "purchase", {
+    let total = 0;
+    let items: any[] = [];
+
+    const stored = localStorage.getItem("cart");
+
+    if (stored) {
+      const cart = JSON.parse(stored);
+
+      total = cart.reduce(
+        (acc: number, item: any) =>
+          acc + item.priceCents * item.quantity,
+        0
+      );
+
+      items = cart.map((item: any) => ({
+        item_id: item.id,
+        item_name: item.name,
+        price: item.priceCents / 100,
+        quantity: item.quantity,
+      }));
+    }
+
+    // 🔥 TRACKING
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "purchase", {
         currency: "EUR",
-        value: 0,
+        value: total / 100,
+        items,
       });
     }
 
-    // 🔥 VIDER PANIER (source unique)
-    localStorage.removeItem("cart");
+    // 🔥 FIX CRITIQUE → async pour éviter freeze UI
+    setTimeout(() => {
+      clearCart();
+    }, 0);
 
-  }, []);
+  }, [clearCart]);
 
   return (
     <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
-
       <div
         style={{
           maxWidth: "900px",
@@ -30,18 +56,14 @@ export default function SuccessPage() {
           textAlign: "center",
         }}
       >
-
-        {/* ICON */}
         <div style={{ fontSize: "60px", marginBottom: "10px" }}>
           🎉
         </div>
 
-        {/* TITLE */}
         <h1 style={{ fontSize: "32px", marginBottom: "10px" }}>
           Paiement confirmé
         </h1>
 
-        {/* SUBTEXT */}
         <p style={{ color: "#666", fontSize: "16px" }}>
           Merci pour votre commande chez Vanille’Or
         </p>
@@ -50,7 +72,6 @@ export default function SuccessPage() {
           Votre colis est en cours de préparation.
         </p>
 
-        {/* CARD */}
         <div
           style={{
             marginTop: "40px",
@@ -69,14 +90,12 @@ export default function SuccessPage() {
           </p>
         </div>
 
-        {/* TRUST */}
         <div style={{ marginTop: "30px", color: "#666", fontSize: "14px" }}>
           ✔ Paiement sécurisé validé <br />
           ✔ Produits premium sélectionnés <br />
           ✔ Origine Madagascar garantie
         </div>
 
-        {/* CTA */}
         <div style={{ marginTop: "40px" }}>
           <Link
             href="/products"
@@ -110,7 +129,6 @@ export default function SuccessPage() {
           </Link>
         </div>
 
-        {/* BRAND STORY */}
         <div
           style={{
             marginTop: "60px",
@@ -123,7 +141,6 @@ export default function SuccessPage() {
           Chez Vanille’Or, chaque produit est sélectionné avec exigence pour offrir
           une qualité exceptionnelle aux passionnés et professionnels.
         </div>
-
       </div>
     </div>
   );
