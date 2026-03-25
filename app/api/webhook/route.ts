@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     console.log("💰 PAYMENT SUCCESS:", session.id);
 
     try {
-      // 🔥 récupérer produits Stripe
+      // 🔥 récupérer ligne items Stripe
       const lineItems = await stripe.checkout.sessions.listLineItems(
         session.id
       );
@@ -40,43 +40,64 @@ export async function POST(req: Request) {
       const items = lineItems.data.map((item) => ({
         name: item.description || "Produit",
         quantity: item.quantity || 1,
-        priceCents: item.amount_total || 0,
+        priceCents: item.amount_total || 0, // déjà total ligne
       }));
 
       const totalCents = items.reduce(
-        (acc, item) => acc + item.priceCents,
+        (acc: number, item) => acc + item.priceCents,
         0
       );
 
       const customerEmail =
-        session.customer_details?.email || "N/A";
+        session.customer_details?.email || null;
 
-      // 💾 SAVE EN BASE
-      await prisma.order.create({
-        data: {
-          status: "PAID",
+      // 🔥 UPDATE si existe / sinon CREATE
+      const existingOrder = await prisma.order.findFirst({
+        where: {
           stripeSessionId: session.id,
-          totalCents,
-          currency: "EUR",
-          email: customerEmail,
-          items: items,
         },
       });
 
-      console.log("💾 ORDER SAVED");
+      if (existingOrder) {
+        // UPDATE
+        await prisma.order.update({
+          where: { id: existingOrder.id },
+          data: {
+            status: "PAID",
+            email: customerEmail,
+          },
+        });
+
+        console.log("🔄 ORDER UPDATED");
+      } else {
+        // CREATE fallback
+        await prisma.order.create({
+          data: {
+            status: "PAID",
+            stripeSessionId: session.id,
+            totalCents,
+            currency: "EUR",
+            email: customerEmail,
+            items: items,
+          },
+        });
+
+        console.log("💾 ORDER CREATED (fallback)");
+      }
 
       // 📧 EMAIL CLIENT
-      if (customerEmail && customerEmail !== "N/A") {
+      if (customerEmail) {
         await sendOrderEmail({
           to: customerEmail,
           items,
           totalCents,
         });
+
+        console.log("📧 EMAIL SENT");
       }
 
-      console.log("📧 EMAIL SENT");
     } catch (error) {
-      console.error("❌ ORDER SAVE ERROR:", error);
+      console.error("❌ WEBHOOK PROCESS ERROR:", error);
     }
   }
 

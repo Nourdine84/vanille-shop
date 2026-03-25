@@ -12,7 +12,7 @@ function formatPrice(priceCents: number) {
 }
 
 export default function MiniCart({ open, onClose }: Props) {
-  const { cart, removeFromCart, updateQuantity } = useCart();
+  const { cart, removeFromCart, updateQuantity, addToCart } = useCart();
 
   const total = cart.reduce(
     (acc: number, item: any) =>
@@ -102,18 +102,49 @@ export default function MiniCart({ open, onClose }: Props) {
           ))}
         </div>
 
-        {/* SHIPPING */}
+        {/* 🔥 SHIPPING + URGENCE */}
         {cart.length > 0 && (
-          <div style={shipping}>
+          <div style={shippingBox}>
             {remaining > 0 ? (
-              <p style={{ color: "#a16207" }}>
-                🚚 Plus que {formatPrice(remaining)} pour livraison offerte
+              <p style={{ color: "#a16207", fontWeight: 500 }}>
+                🚚 Plus que <strong>{formatPrice(remaining)}</strong> pour livraison offerte
               </p>
             ) : (
-              <p style={{ color: "green" }}>
-                🎉 Livraison offerte
+              <p style={{ color: "green", fontWeight: 600 }}>
+                🎉 Livraison offerte activée
               </p>
             )}
+
+            <p style={urgency}>
+              🔥 Forte demande sur nos produits
+            </p>
+          </div>
+        )}
+
+        {/* 🔥 UPSELL */}
+        {total < 5000 && (
+          <div style={upsell}>
+            <p style={{ fontWeight: 600 }}>
+              💡 Complétez votre commande
+            </p>
+
+            <p style={{ fontSize: "13px", color: "#666" }}>
+              Ajoutez de la poudre de vanille premium
+            </p>
+
+            <button
+              onClick={() =>
+                addToCart({
+                  id: "upsell-vanille",
+                  name: "Poudre de vanille",
+                  priceCents: 500,
+                  quantity: 1,
+                })
+              }
+              style={upsellBtn}
+            >
+              Ajouter +5€
+            </button>
           </div>
         )}
 
@@ -132,7 +163,7 @@ export default function MiniCart({ open, onClose }: Props) {
           onClick={() => (window.location.href = "/checkout")}
           style={primaryBtn}
         >
-          Passer au paiement 🔒
+          🔒 Paiement sécurisé
         </button>
       </aside>
     </>
@@ -213,9 +244,32 @@ const removeBtn = {
   cursor: "pointer",
 };
 
-const shipping = {
+const shippingBox = {
   fontSize: "14px",
-  marginBottom: "10px",
+  marginBottom: "12px",
+};
+
+const urgency = {
+  color: "#dc2626",
+  fontSize: "13px",
+  marginTop: "5px",
+};
+
+const upsell = {
+  background: "#f9f6f1",
+  padding: "12px",
+  borderRadius: "10px",
+  marginBottom: "15px",
+};
+
+const upsellBtn = {
+  marginTop: "8px",
+  background: "#a16207",
+  color: "white",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: "8px",
+  cursor: "pointer",
 };
 
 const totalBox = {
@@ -228,11 +282,13 @@ const totalBox = {
 const primaryBtn = {
   background: "#a16207",
   color: "white",
-  padding: "14px",
-  borderRadius: "10px",
+  padding: "16px",
+  borderRadius: "12px",
   border: "none",
   cursor: "pointer",
-  fontWeight: 600,
+  fontWeight: 700,
+  fontSize: "16px",
+  boxShadow: "0 8px 20px rgba(161,98,7,0.3)",
 };
 
 const secondaryBtn = {
