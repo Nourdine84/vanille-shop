@@ -8,199 +8,332 @@ type OrderItem = {
   priceCents: number;
 };
 
-type AdminOrder = {
-  id: string;
-  email: string | null;
-  totalCents: number;
-  status: string;
-  createdAt: Date;
-  items: unknown;
+type SearchParams = {
+  status?: string;
+  q?: string;
 };
 
-export default async function AdminPage() {
-  const cookieStore = cookies();
-  const isAdmin = cookieStore.get("admin");
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
+  const isAdmin = cookies().get("admin");
 
   if (!isAdmin) {
     redirect("/admin/login");
   }
 
-  const ordersRaw = await prisma.order.findMany({
+  const statusFilter = searchParams?.status?.trim() || "";
+  const query = searchParams?.q?.trim() || "";
+
+  const orders = await prisma.order.findMany({
+    where: {
+      ...(statusFilter ? { status: statusFilter as any } : {}),
+      ...(query
+        ? {
+            email: {
+              contains: query,
+              mode: "insensitive",
+            },
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  const orders = ordersRaw as AdminOrder[];
-
   const totalRevenue = orders.reduce(
-    (acc: number, order: AdminOrder) => acc + order.totalCents,
+    (acc: number, order) => acc + order.totalCents,
     0
   );
 
   const totalOrders = orders.length;
   const avgCart = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-  const productMap: Record<string, number> = {};
-
-  orders.forEach((order: AdminOrder) => {
-    const items: OrderItem[] = Array.isArray(order.items)
-      ? (order.items as OrderItem[])
-      : [];
-
-    items.forEach((item: OrderItem) => {
-      if (!productMap[item.name]) {
-        productMap[item.name] = 0;
-      }
-      productMap[item.name] += item.quantity;
-    });
-  });
-
-  const topProducts = Object.entries(productMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const paidOrders = orders.filter((o) => o.status === "PAID").length;
+  const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
 
   return (
-    <div style={{ padding: "40px", background: "#faf7f2", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: "28px", marginBottom: "30px" }}>
-        📊 Dashboard Vanille’Or
-      </h1>
+    <div style={container}>
+      <h1 style={title}>📊 Dashboard Vanille’Or</h1>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "20px",
-          marginBottom: "40px",
-        }}
-      >
-        <div style={cardStyle}>
-          <h3>💰 Chiffre d’affaires</h3>
-          <p style={valueStyle}>{(totalRevenue / 100).toFixed(2)} €</p>
-        </div>
-
-        <div style={cardStyle}>
-          <h3>📦 Commandes</h3>
-          <p style={valueStyle}>{totalOrders}</p>
-        </div>
-
-        <div style={cardStyle}>
-          <h3>🛒 Panier moyen</h3>
-          <p style={valueStyle}>{(avgCart / 100).toFixed(2)} €</p>
-        </div>
+      <div style={grid4}>
+        <Card title="💰 CA" value={`${(totalRevenue / 100).toFixed(2)} €`} />
+        <Card title="📦 Commandes" value={String(totalOrders)} />
+        <Card title="🛒 Panier moyen" value={`${(avgCart / 100).toFixed(2)} €`} />
+        <Card title="✅ Payées / ⏳ En attente" value={`${paidOrders} / ${pendingOrders}`} />
       </div>
 
-      <div style={cardStyle}>
-        <h2>🏆 Top produits</h2>
+      <div style={filterBox}>
+        <form method="GET" style={filterForm}>
+          <input
+            type="text"
+            name="q"
+            placeholder="Rechercher par email"
+            defaultValue={query}
+            style={input}
+          />
 
-        {topProducts.length === 0 && <p>Aucune vente.</p>}
+          <select
+            name="status"
+            defaultValue={statusFilter}
+            style={select}
+          >
+            <option value="">Tous les statuts</option>
+            <option value="PENDING">PENDING</option>
+            <option value="PAID">PAID</option>
+            <option value="SHIPPED">SHIPPED</option>
+            <option value="DELIVERED">DELIVERED</option>
+            <option value="FAILED">FAILED</option>
+            <option value="CANCELED">CANCELED</option>
+          </select>
 
-        {topProducts.map(([name, qty]) => (
-          <p key={name}>
-            {name} — {qty} ventes
-          </p>
-        ))}
+          <button type="submit" style={primaryBtn}>
+            Filtrer
+          </button>
+        </form>
       </div>
 
-      <h2 style={{ marginTop: "40px" }}>📦 Commandes</h2>
+      <div style={table}>
+        <h2 style={{ marginBottom: "10px" }}>Commandes</h2>
 
-      {orders.map((order: AdminOrder) => {
-        const items: OrderItem[] = Array.isArray(order.items)
-          ? (order.items as OrderItem[])
-          : [];
-
-        return (
-          <div key={order.id} style={orderCard}>
-            <p>
-              <strong>Email :</strong> {order.email || "N/A"}
-            </p>
-
-            <p>
-              <strong>Total :</strong> {(order.totalCents / 100).toFixed(2)} €
-            </p>
-
-            <p>
-              <strong>Statut :</strong> {order.status}
-            </p>
-
-            <p style={{ fontSize: "12px", color: "#666" }}>
-              {new Date(order.createdAt).toLocaleString()}
-            </p>
-
-            <div style={{ marginTop: "10px" }}>
-              {items.map((item: OrderItem, i: number) => (
-                <p key={i}>
-                  {item.name} x{item.quantity}
-                </p>
-              ))}
-            </div>
-
-            <form
-              action="/api/admin/update-order"
-              method="POST"
-              style={{
-                marginTop: "16px",
-                display: "flex",
-                gap: "10px",
-                alignItems: "center",
-              }}
-            >
-              <input type="hidden" name="id" value={order.id} />
-
-              <select
-                name="status"
-                defaultValue={order.status}
-                style={{
-                  padding: "10px",
-                  borderRadius: "8px",
-                  border: "1px solid #ddd",
-                  background: "white",
-                }}
-              >
-                <option value="PENDING">PENDING</option>
-                <option value="PAID">PAID</option>
-                <option value="SHIPPED">SHIPPED</option>
-                <option value="DELIVERED">DELIVERED</option>
-                <option value="FAILED">FAILED</option>
-                <option value="CANCELED">CANCELED</option>
-              </select>
-
-              <button
-                type="submit"
-                style={{
-                  background: "#a16207",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "10px 14px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                }}
-              >
-                Mettre à jour
-              </button>
-            </form>
+        {orders.length === 0 ? (
+          <div style={emptyState}>
+            Aucune commande trouvée.
           </div>
-        );
-      })}
+        ) : (
+          orders.map((order) => {
+            const items = Array.isArray(order.items)
+              ? (order.items as unknown as OrderItem[])
+              : [];
+
+            return (
+              <div key={order.id} style={orderCard}>
+                <div style={rowTop}>
+                  <span>
+                    <strong>{order.email || "N/A"}</strong>
+                  </span>
+                  <Status status={String(order.status)} />
+                </div>
+
+                <div style={{ ...rowTop, marginTop: "8px" }}>
+                  <span style={amount}>
+                    {(order.totalCents / 100).toFixed(2)} €
+                  </span>
+                  <span style={date}>
+                    {new Date(order.createdAt).toLocaleString()}
+                  </span>
+                </div>
+
+                <div style={itemsBox}>
+                  {items.length === 0 ? (
+                    <p style={{ margin: 0, color: "#777" }}>
+                      Aucun détail produit disponible.
+                    </p>
+                  ) : (
+                    items.map((item, i) => (
+                      <p key={i} style={itemLine}>
+                        {item.name} x{item.quantity}
+                      </p>
+                    ))
+                  )}
+                </div>
+
+                <form
+                  action="/api/admin/update-order"
+                  method="POST"
+                  style={actionRow}
+                >
+                  <input type="hidden" name="id" value={order.id} />
+
+                  <select
+                    name="status"
+                    defaultValue={String(order.status)}
+                    style={select}
+                  >
+                    <option value="PENDING">PENDING</option>
+                    <option value="PAID">PAID</option>
+                    <option value="SHIPPED">SHIPPED</option>
+                    <option value="DELIVERED">DELIVERED</option>
+                    <option value="FAILED">FAILED</option>
+                    <option value="CANCELED">CANCELED</option>
+                  </select>
+
+                  <button type="submit" style={primaryBtn}>
+                    Mettre à jour
+                  </button>
+                </form>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
 
-const cardStyle: React.CSSProperties = {
+function Card({ title, value }: { title: string; value: string }) {
+  return (
+    <div style={card}>
+      <h3 style={cardTitle}>{title}</h3>
+      <p style={valueStyle}>{value}</p>
+    </div>
+  );
+}
+
+function Status({ status }: { status: string }) {
+  const bg =
+    status === "PAID"
+      ? "#16a34a"
+      : status === "PENDING"
+      ? "#f59e0b"
+      : status === "SHIPPED"
+      ? "#2563eb"
+      : status === "DELIVERED"
+      ? "#7c3aed"
+      : "#dc2626";
+
+  return (
+    <span
+      style={{
+        padding: "6px 10px",
+        borderRadius: "999px",
+        background: bg,
+        color: "white",
+        fontSize: "12px",
+        fontWeight: 700,
+      }}
+    >
+      {status}
+    </span>
+  );
+}
+
+const container = {
+  padding: "40px",
+  background: "#faf7f2",
+  minHeight: "100vh",
+};
+
+const title = {
+  fontSize: "28px",
+  marginBottom: "30px",
+};
+
+const grid4 = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, 1fr)",
+  gap: "20px",
+  marginBottom: "30px",
+};
+
+const card = {
   background: "white",
   padding: "20px",
   borderRadius: "12px",
   boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
 };
 
-const orderCard: React.CSSProperties = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  marginTop: "20px",
-  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+const cardTitle = {
+  margin: 0,
+  fontSize: "16px",
 };
 
-const valueStyle: React.CSSProperties = {
+const valueStyle = {
   fontSize: "22px",
-  fontWeight: "600",
+  fontWeight: 700,
+  marginTop: "10px",
+};
+
+const filterBox = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+  marginBottom: "25px",
+};
+
+const filterForm = {
+  display: "flex",
+  gap: "12px",
+  alignItems: "center",
+  flexWrap: "wrap" as const,
+};
+
+const input = {
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid #ddd",
+  minWidth: "260px",
+};
+
+const select = {
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid #ddd",
+  background: "white",
+};
+
+const primaryBtn = {
+  background: "#a16207",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  padding: "12px 16px",
+  cursor: "pointer",
+  fontWeight: 700,
+};
+
+const table = {
+  marginTop: "10px",
+};
+
+const orderCard = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+  marginTop: "15px",
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+};
+
+const rowTop = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const amount = {
+  fontWeight: 700,
+  color: "#a16207",
+};
+
+const date = {
+  fontSize: "12px",
+  color: "#777",
+};
+
+const itemsBox = {
+  marginTop: "14px",
+  paddingTop: "12px",
+  borderTop: "1px solid #eee",
+};
+
+const itemLine = {
+  margin: "4px 0",
+};
+
+const actionRow = {
+  marginTop: "16px",
+  display: "flex",
+  gap: "10px",
+  alignItems: "center",
+  flexWrap: "wrap" as const,
+};
+
+const emptyState = {
+  background: "white",
+  padding: "24px",
+  borderRadius: "12px",
+  color: "#777",
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
 };
