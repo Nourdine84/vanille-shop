@@ -1,289 +1,212 @@
+"use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
+import type { CSSProperties } from "react";
 
-async function getProducts() {
-  try {
-    const res = await fetch("/api/products", {
-      cache: "no-store",
-    });
-
-    if (!res.ok) return [];
-
-    return res.json();
-  } catch (error) {
-    console.error("Erreur fetch produits:", error);
-    return [];
-  }
-}
-
-export default async function HomePage() {
-  const products = await getProducts();
-
+export default function HomePage() {
   return (
-    <div>
-
+    <div style={{ background: "#faf7f2" }}>
+      
       {/* HERO */}
-      <section
-        style={{
-          height: "80vh",
-          position: "relative",
-        }}
-      >
-        <img
+      <section style={{ height: "90vh", position: "relative" }}>
+        <motion.img
           src="/images/hero-vanille.jpg"
-          alt="Vanille Madagascar premium"
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: "brightness(0.6)",
-          }}
+          alt="Vanille Madagascar"
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1 }}
+          style={heroImg}
         />
 
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            textAlign: "center",
-            color: "white",
-            width: "90%",
-            maxWidth: "700px",
-            padding: "0 10px",
-          }}
+        {/* overlay */}
+        <div style={overlay} />
+
+        {/* CONTENT */}
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          style={heroContent}
         >
-          <h1
-            style={{
-              fontSize: "clamp(28px, 6vw, 42px)",
-              lineHeight: 1.2,
-              marginBottom: "12px",
-            }}
-          >
-            L’excellence de la vanille de Madagascar
-          </h1>
+          <div style={heroBox}>
+            <h1 style={heroTitle}>Vanille’Or</h1>
 
-          <p
-            style={{
-              fontSize: "clamp(14px, 3.5vw, 18px)",
-              marginBottom: "20px",
-              lineHeight: 1.5,
-            }}
-          >
-            Une qualité premium sélectionnée pour sublimer vos pâtisseries et créations.
-          </p>
+            <p style={heroSubtitle}>
+              L’excellence de la vanille de Madagascar
+            </p>
 
-          <Link
-            href="/products"
-            style={{
-              display: "inline-block",
-              background: "#a16207",
-              padding: "12px 20px",
-              borderRadius: "10px",
-              color: "white",
-              textDecoration: "none",
-              fontWeight: "600",
-            }}
-          >
-            Découvrir nos produits
+            <Link href="/products" style={ctaPrimary}>
+              Découvrir nos produits
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* UNIVERS */}
+      <section style={section}>
+        <h2 style={sectionTitle}>Nos univers</h2>
+
+        <div style={grid}>
+          {/* VANILLE */}
+          <Link href="/collections/vanille" style={linkReset}>
+            <motion.div whileHover={{ scale: 1.03 }} style={card}>
+              <img src="/images/vanille.jpg" alt="Vanille" style={img} />
+              <h3>🌿 Vanille</h3>
+              <p>Gousses, poudre, caviar</p>
+            </motion.div>
+          </Link>
+
+          {/* EPICES */}
+          <Link href="/collections/epices" style={linkReset}>
+            <motion.div whileHover={{ scale: 1.03 }} style={card}>
+              <img src="/images/epices.jpg" alt="Epices" style={img} />
+              <h3>🌶️ Épices</h3>
+              <p>Cannelle, cacao, poivre, girofle</p>
+            </motion.div>
           </Link>
         </div>
       </section>
 
-      {/* USP BAR */}
-      <section
-        style={{
-          display: "flex",
-          justifyContent: "space-around",
-          padding: "20px",
-          borderBottom: "1px solid #eee",
-          textAlign: "center",
-          fontSize: "14px",
-          flexWrap: "wrap",
-          gap: "10px",
-        }}
-      >
-        <div>
-          🌿 <strong>Qualité Premium</strong>
-          <p>Vanille sélectionnée à Madagascar</p>
-        </div>
+      {/* B2B */}
+      <section style={{ ...section, background: "white" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
+          <h2>Offre professionnelle</h2>
 
-        <div>
-          🚚 <strong>Livraison rapide</strong>
-          <p>2-4 jours en France et Europe</p>
-        </div>
+          <p style={textMuted}>
+            Besoin de grandes quantités ? Nous proposons des offres adaptées aux professionnels.
+          </p>
 
-        <div>
-          🔒 <strong>Paiement sécurisé</strong>
-          <p>Transactions 100% sécurisées</p>
+          <Link href="/b2b" style={ctaPrimary}>
+            Demander un devis
+          </Link>
         </div>
       </section>
 
-      {/* UNIVERS */}
-      <section style={{ padding: "60px 20px", textAlign: "center" }}>
-        <h2 style={{ marginBottom: "40px" }}>Nos univers</h2>
+      {/* STORY */}
+      <section style={section}>
+        <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
+          <h2>Notre engagement</h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "20px",
-            maxWidth: "900px",
-            margin: "0 auto",
-          }}
-        >
-          {/* VANILLE */}
-          <div style={cardStyle}>
-            <img src="/images/vanille.jpg" alt="Vanille premium" style={imgStyle} />
-            <h3>Vanille</h3>
-            <p style={descStyle}>Gousses, poudre, caviar</p>
-
-            <Link href="/products" style={linkStyle}>
-              Voir →
-            </Link>
-          </div>
-
-          {/* ÉPICES */}
-          <div style={cardStyle}>
-            <img src="/images/epices.jpg" alt="Épices premium" style={imgStyle} />
-            <h3>Épices</h3>
-            <p style={descStyle}>
-              Cannelle, cacao, poivre, girofle
-            </p>
-
-            <Link href="/products" style={linkStyle}>
-              Voir →
-            </Link>
-          </div>
+          <p style={textMuted}>
+            Chez Vanille’Or, nous travaillons directement avec des producteurs à Madagascar
+            pour garantir une qualité exceptionnelle et une traçabilité complète.
+          </p>
         </div>
-      </section>
-
-      {/* SEO TEXT */}
-      <section
-        style={{
-          maxWidth: "900px",
-          margin: "40px auto",
-          textAlign: "center",
-          padding: "0 20px",
-        }}
-      >
-        <h2>Vanille de Madagascar Premium</h2>
-
-        <p style={{ color: "#666" }}>
-          Découvrez une vanille de Madagascar haut de gamme, idéale pour la pâtisserie
-          et la gastronomie. Gousses sélectionnées avec exigence pour une qualité exceptionnelle.
-        </p>
-
-        <div style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}>
-          <Link href="/products">Vanille Madagascar</Link> •{" "}
-          <Link href="/products">Acheter vanille</Link> •{" "}
-          <Link href="/products">Vanille pâtisserie</Link>
-        </div>
-      </section>
-
-      {/* PRODUITS */}
-      <section style={{ padding: "60px 20px" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "40px" }}>
-          Nos produits
-        </h2>
-
-        <div style={gridStyle}>
-          {products.map((product: any) => (
-            <div key={product.id} style={cardStyle}>
-              <img
-                src={product.imageUrl || "/images/product-vanille.jpg"}
-                alt={`${product.name} vanille Madagascar premium`}
-                style={imgStyle}
-              />
-
-              <h3>{product.name}</h3>
-
-              <p style={descStyle}>{product.description}</p>
-
-              <Link href={`/product/${product.slug}`} style={linkStyle}>
-                Voir →
-              </Link>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section style={ctaStyle}>
-        <h2 style={{ marginBottom: "20px" }}>
-          Sublimez vos créations dès aujourd’hui
-        </h2>
-
-        <Link href="/products" style={ctaBtn}>
-          Commander maintenant
-        </Link>
       </section>
 
       {/* FOOTER */}
-      <footer style={footerStyle}>
-        © {new Date().getFullYear()} Vanille’Or — Développé par AKM.Consulting
+      <footer style={footer}>
+        © {new Date().getFullYear()} Vanille’Or — Développé par{" "}
+        <span style={{ fontWeight: 600 }}>AKM.Consulting</span>
       </footer>
     </div>
   );
 }
 
-/* 🔥 STYLES RÉUTILISABLES */
-const cardStyle = {
-  background: "#fff",
-  borderRadius: "16px",
-  padding: "16px",
-  textAlign: "center" as const,
-  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-};
+/* ========================= */
+/* 🎨 STYLES */
+/* ========================= */
 
-const imgStyle = {
+const heroImg: CSSProperties = {
   width: "100%",
-  height: "180px",
-  objectFit: "cover" as const,
-  borderRadius: "12px",
-  marginBottom: "12px",
+  height: "100%",
+  objectFit: "cover",
+  filter: "brightness(0.6)",
 };
 
-const descStyle = {
-  fontSize: "14px",
-  color: "#666",
+const overlay: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.6))",
 };
 
-const linkStyle = {
-  display: "inline-block",
-  marginTop: "10px",
-  color: "#a16207",
-  fontWeight: "600",
-  textDecoration: "none",
+const heroContent: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "0 20px",
+  zIndex: 2,
 };
 
-const gridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-  gap: "30px",
-  maxWidth: "1000px",
+const heroBox: CSSProperties = {
+  textAlign: "center",
+  color: "white",
+  maxWidth: "700px",
+};
+
+const heroTitle: CSSProperties = {
+  fontSize: "52px",
+  marginBottom: "20px",
+  letterSpacing: "1px",
+};
+
+const heroSubtitle: CSSProperties = {
+  fontSize: "18px",
+  marginBottom: "30px",
+  opacity: 0.9,
+};
+
+const section: CSSProperties = {
+  padding: "70px 20px",
+  maxWidth: "1100px",
   margin: "0 auto",
 };
 
-const ctaStyle = {
+const sectionTitle: CSSProperties = {
+  textAlign: "center",
+  marginBottom: "40px",
+};
+
+const grid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: "20px",
+};
+
+const card: CSSProperties = {
+  background: "white",
+  borderRadius: "16px",
+  overflow: "hidden",
+  padding: "15px",
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+  cursor: "pointer",
+};
+
+const img: CSSProperties = {
+  width: "100%",
+  height: "200px",
+  objectFit: "cover",
+  borderRadius: "12px",
+  marginBottom: "10px",
+};
+
+const ctaPrimary: CSSProperties = {
   background: "#a16207",
   color: "white",
-  padding: "40px 20px",
-  textAlign: "center" as const,
-};
-
-const ctaBtn = {
-  background: "white",
-  color: "#a16207",
-  padding: "12px 20px",
-  borderRadius: "10px",
+  padding: "16px 28px",
+  borderRadius: "12px",
   textDecoration: "none",
   fontWeight: "600",
+  display: "inline-block",
 };
 
-const footerStyle = {
-  textAlign: "center" as const,
-  padding: "20px",
-  fontSize: "14px",
+const textMuted: CSSProperties = {
+  marginTop: "10px",
   color: "#666",
+};
+
+const footer: CSSProperties = {
+  textAlign: "center",
+  padding: "30px",
+  fontSize: "13px",
+  color: "#777",
+};
+
+const linkReset: CSSProperties = {
+  textDecoration: "none",
+  color: "inherit",
 };

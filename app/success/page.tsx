@@ -4,25 +4,36 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
 
+type StoredCartItem = {
+  id: string;
+  name: string;
+  priceCents: number;
+  quantity: number;
+};
+
 export default function SuccessPage() {
   const { clearCart } = useCart();
 
   useEffect(() => {
     let total = 0;
-    let items: any[] = [];
+    let items: Array<{
+      item_id: string;
+      item_name: string;
+      price: number;
+      quantity: number;
+    }> = [];
 
     const stored = localStorage.getItem("cart");
 
     if (stored) {
-      const cart = JSON.parse(stored);
+      const cart: StoredCartItem[] = JSON.parse(stored);
 
       total = cart.reduce(
-        (acc: number, item: any) =>
-          acc + item.priceCents * item.quantity,
+        (acc, item) => acc + item.priceCents * item.quantity,
         0
       );
 
-      items = cart.map((item: any) => ({
+      items = cart.map((item) => ({
         item_id: item.id,
         item_name: item.name,
         price: item.priceCents / 100,
@@ -30,20 +41,18 @@ export default function SuccessPage() {
       }));
     }
 
-    // 🔥 TRACKING
     if (typeof window !== "undefined" && (window as any).gtag) {
       (window as any).gtag("event", "purchase", {
+        transaction_id: Date.now().toString(),
         currency: "EUR",
         value: total / 100,
         items,
       });
     }
 
-    // 🔥 FIX CRITIQUE → async pour éviter freeze UI
     setTimeout(() => {
       clearCart();
     }, 0);
-
   }, [clearCart]);
 
   return (
@@ -56,9 +65,7 @@ export default function SuccessPage() {
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: "60px", marginBottom: "10px" }}>
-          🎉
-        </div>
+        <div style={{ fontSize: "60px", marginBottom: "10px" }}>🎉</div>
 
         <h1 style={{ fontSize: "32px", marginBottom: "10px" }}>
           Paiement confirmé

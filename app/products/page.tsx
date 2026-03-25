@@ -1,175 +1,142 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useCart } from "@/lib/cart-store"; // ✅ FIX
-import { useToast } from "@/components/ui/toast";
-import { useUIStore } from "@/components/ui-provider";
+import Link from "next/link";
+import { motion } from "framer-motion";
+
+type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  priceCents: number;
+  imageUrl: string;
+};
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { addToCart } = useCart(); // ✅ FIX
-  const { showToast } = useToast();
-  const { openCart } = useUIStore(); // ✅ FIX
-
+  // 🔥 FETCH PRODUITS (client side = pas d'erreur URL)
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
         setProducts(data);
-
-        const q: Record<string, number> = {};
-        data.forEach((p: any) => (q[p.id] = 1));
-        setQuantities(q);
-      });
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
-  const increase = (id: string) => {
-    setQuantities((prev) => ({ ...prev, [id]: prev[id] + 1 }));
-  };
+  // 🔥 TRACK LIST VIEW
+  useEffect(() => {
+    if (!products.length) return;
 
-  const decrease = (id: string) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [id]: Math.max(1, prev[id] - 1),
-    }));
-  };
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "view_item_list", {
+        item_list_name: "Produits",
+        items: products.map((p) => ({
+          item_id: p.id,
+          item_name: p.name,
+          price: p.priceCents / 100,
+        })),
+      });
+    }
+  }, [products]);
+
+  if (loading) {
+    return <div style={{ padding: 40 }}>Chargement...</div>;
+  }
 
   return (
-    <div className="max-w-7xl mx-auto py-20 px-6">
-      {/* HEADER */}
-      <div style={{ textAlign: "center", marginBottom: "60px" }}>
-        <h1 style={{ fontSize: "42px", fontWeight: 800 }}>
+    <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: "40px 20px",
+        }}
+      >
+        {/* TITLE */}
+        <h1 style={{ textAlign: "center", marginBottom: "40px" }}>
           Nos produits
         </h1>
-      </div>
 
-      {/* GRID */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {products.map((product, index) => (
-          <div
-            key={product.id}
-            data-testid="product-card" // 🔥 QA
-            style={{
-              position: "relative",
-              borderRadius: "22px",
-              padding: "18px",
-              background: "#ffffff",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-            }}
-          >
-            {/* BADGE */}
-            {index === 0 && (
-              <div
-                style={{
-                  position: "absolute",
-                  background: "#a16207",
-                  color: "white",
-                  padding: "6px 12px",
-                  borderRadius: "20px",
-                  fontSize: "12px",
-                  top: "15px",
-                  left: "15px",
-                }}
-              >
-                ⭐ Best seller
-              </div>
-            )}
-
-            {/* IMAGE */}
-            <img
-              src={product.imageUrl || "/images/product-vanille.jpg"}
-              alt={product.name}
-              style={{
-                width: "100%",
-                height: "260px",
-                objectFit: "cover",
-                borderRadius: "16px",
-                marginBottom: "14px",
-              }}
-            />
-
-            {/* NAME */}
-            <h2 style={{ fontSize: "20px", fontWeight: 700 }}>
-              {product.name}
-            </h2>
-
-            {/* DESC */}
-            <p style={{ color: "#6b7280", margin: "10px 0" }}>
-              {product.description}
-            </p>
-
-            {/* PRICE */}
-            <p style={{ fontWeight: "bold", marginBottom: "10px" }}>
-              {formatPrice(product.priceCents)}
-            </p>
-
-            {/* QUANTITY */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "12px",
-              }}
+        {/* GRID */}
+        <div style={grid}>
+          {products.map((product) => (
+            <Link
+              key={product.id}
+              href={`/product/${product.slug}`}
+              style={{ textDecoration: "none", color: "inherit" }}
             >
-              <button onClick={() => decrease(product.id)}>-</button>
-              <span>{quantities[product.id]}</span>
-              <button onClick={() => increase(product.id)}>+</button>
-            </div>
-
-            {/* ACTIONS */}
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button
-                data-testid="add-to-cart" // 🔥 QA
-                onClick={() => {
-                  addToCart({
-                    id: product.id,
-                    name: product.name,
-                    priceCents: product.priceCents,
-                    quantity: quantities[product.id],
-                  });
-
-                  showToast("Ajouté au panier 🛒");
-
-                  setTimeout(() => openCart(), 200);
-                }}
-                style={{
-                  flex: 1,
-                  background: "#a16207",
-                  color: "white",
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "none",
-                  cursor: "pointer",
-                }}
+              <motion.div
+                whileHover={{ scale: 1.03 }}
+                style={cardStyle}
               >
-                Ajouter
-              </button>
+                <img
+                  src={product.imageUrl || "/images/product-vanille.jpg"}
+                  alt={product.name}
+                  style={imgStyle}
+                />
 
-              <Link
-                href={`/product/${product.slug}`}
-                style={{
-                  flex: 1,
-                  textAlign: "center",
-                  background: "#f3f4f6",
-                  padding: "12px",
-                  borderRadius: "10px",
-                  textDecoration: "none",
-                  color: "#111",
-                }}
-              >
-                Voir
-              </Link>
-            </div>
-          </div>
-        ))}
+                <h3 style={{ marginBottom: "5px" }}>
+                  {product.name}
+                </h3>
+
+                <p style={{ color: "#666", fontSize: "14px" }}>
+                  {product.description}
+                </p>
+
+                <p style={priceStyle}>
+                  {formatPrice(product.priceCents)}
+                </p>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+
+        {/* EMPTY */}
+        {products.length === 0 && (
+          <p style={{ textAlign: "center" }}>
+            Aucun produit disponible.
+          </p>
+        )}
       </div>
     </div>
   );
 }
+
+// 🎨 STYLES
+const grid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "25px",
+};
+
+const cardStyle = {
+  background: "white",
+  borderRadius: "16px",
+  overflow: "hidden",
+  padding: "15px",
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+  cursor: "pointer",
+};
+
+const imgStyle = {
+  width: "100%",
+  height: "200px",
+  objectFit: "cover" as const,
+  borderRadius: "12px",
+  marginBottom: "10px",
+};
+
+const priceStyle = {
+  marginTop: "10px",
+  fontWeight: "600",
+  color: "#a16207",
+};

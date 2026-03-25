@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -21,19 +22,16 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // 🔥 FIX HYDRATATION + PERSIST
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // ❗ IMPORTANT
   if (!mounted) {
     return null;
   }
 
   const total = cart.reduce(
-    (acc: number, item: CartItem) =>
-      acc + item.priceCents * item.quantity,
+    (acc: number, item: CartItem) => acc + item.priceCents * item.quantity,
     0
   );
 
@@ -47,6 +45,19 @@ export default function CheckoutPage() {
     }
 
     setLoading(true);
+
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "begin_checkout", {
+        currency: "EUR",
+        value: total / 100,
+        items: cart.map((item: CartItem) => ({
+          item_id: item.id,
+          item_name: item.name,
+          price: item.priceCents / 100,
+          quantity: item.quantity,
+        })),
+      });
+    }
 
     try {
       const res = await fetch("/api/create-checkout-session", {
@@ -96,7 +107,6 @@ export default function CheckoutPage() {
             gap: "40px",
           }}
         >
-          {/* GAUCHE */}
           <div>
             <div
               style={{
@@ -146,7 +156,6 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            {/* TRUST */}
             <div
               style={{
                 marginTop: "20px",
@@ -166,7 +175,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* DROITE */}
           <div>
             <div
               style={{
@@ -180,22 +188,18 @@ export default function CheckoutPage() {
             >
               <h2 style={{ marginBottom: "20px" }}>Résumé</h2>
 
-              {/* LIVRAISON */}
               <div style={{ fontSize: "14px", marginBottom: "15px" }}>
                 {remaining > 0 ? (
                   <p style={{ color: "#a16207" }}>
                     🚚 Plus que {formatPrice(remaining)} pour la livraison offerte
                   </p>
                 ) : (
-                  <p style={{ color: "green" }}>
-                    🎉 Livraison offerte
-                  </p>
+                  <p style={{ color: "green" }}>🎉 Livraison offerte</p>
                 )}
               </div>
 
-              {/* TOTAL */}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span>Sous-total</span>
+                <span>Sous-total</span>
                 <span>{formatPrice(total)}</span>
               </div>
 
@@ -229,7 +233,6 @@ export default function CheckoutPage() {
                 <span>{formatPrice(total)}</span>
               </div>
 
-              {/* CTA */}
               <button
                 onClick={handleCheckout}
                 disabled={loading}

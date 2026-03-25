@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { sendOrderEmail } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,6 @@ export async function POST(req: Request) {
         session.id
       );
 
-      // 🔥 FIX TS ICI
       const items = lineItems.data.map((item) => ({
         name: item.description || "Produit",
         quantity: item.quantity || 1,
@@ -46,19 +46,34 @@ export async function POST(req: Request) {
         0
       );
 
-      const customerEmail = session.customer_details?.email;
+      const customerEmail =
+        session.customer_details?.email || "tn.smok@hotmail.fr";
 
-      if (customerEmail) {
-        await sendOrderEmail({
-          to: customerEmail,
-          items,
+      // 🔥 ENREGISTREMENT DB (CRITIQUE)
+      await prisma.order.create({
+        data: {
+          stripeSessionId: session.id,
+          stripePaymentId: session.payment_intent as string,
+          email: customerEmail,
+          status: "PAID",
           totalCents,
-        });
-      }
+          items: items as any, // ✅ JSON safe
+        },
+      });
+
+      console.log("💾 ORDER SAVED");
+
+      // 🔥 EMAIL
+      await sendOrderEmail({
+        to: customerEmail,
+        items,
+        totalCents,
+      });
 
       console.log("📧 EMAIL SENT");
+
     } catch (error) {
-      console.error("❌ EMAIL ERROR:", error);
+      console.error("❌ PROCESS ERROR:", error);
     }
   }
 

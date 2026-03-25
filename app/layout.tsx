@@ -3,7 +3,6 @@ import HeaderWrapper from "@/components/header-wrapper";
 import { ToastProvider } from "@/components/ui/toast";
 import { UIProvider } from "@/components/ui-provider";
 import Analytics from "@/app/analytics";
-
 import type { Metadata } from "next";
 import React from "react";
 
@@ -20,7 +19,6 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-
         <UIProvider>
           <ToastProvider>
             <HeaderWrapper />
@@ -28,6 +26,7 @@ export default function RootLayout({
           </ToastProvider>
         </UIProvider>
 
+        <Analytics />
       </body>
     </html>
   );

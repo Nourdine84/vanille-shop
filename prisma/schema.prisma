@@ -14,6 +14,7 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   orders    Order[]
 }
 
@@ -33,21 +34,32 @@ model Product {
 
 model Order {
   id              String      @id @default(cuid())
+
   userId          String?
   user            User?       @relation(fields: [userId], references: [id])
+
   status          OrderStatus @default(PENDING)
+
   stripeSessionId String?     @unique
   stripePaymentId String?     @unique
+
+  email           String?
   totalCents      Int
   currency        String      @default("EUR")
-  items           Json        // On stocke les produits au moment de l'achat
+
+  items           Json
+
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+
+  @@index([createdAt])
 }
 
 enum OrderStatus {
   PENDING
   PAID
+  SHIPPED
+  DELIVERED
   FAILED
   CANCELED
 }
