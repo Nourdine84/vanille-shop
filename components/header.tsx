@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
-import MiniCart from "./mini-cart";
+import MiniCart from "@/components/mini-cart";
 import { useUIStore } from "@/components/ui-provider";
 
 export default function Header() {
@@ -18,13 +18,13 @@ export default function Header() {
     <>
       <header style={header}>
         {/* LOGO */}
-        <Link href="/" data-testid="logo" style={logo}>
+        <Link href="/" style={logo}>
           Vanille’Or
         </Link>
 
         {/* NAV */}
         <nav style={nav}>
-          <Link href="/products" data-testid="nav-products" style={link}>
+          <Link href="/products" style={link}>
             Produits
           </Link>
 
@@ -36,20 +36,19 @@ export default function Header() {
             Épices
           </Link>
 
-          <Link href="/about" data-testid="nav-about" style={link}>
+          <Link href="/about" style={link}>
             À propos
           </Link>
 
           {/* CART */}
           <button
-            data-testid="cart-button"
-            onClick={openCart}
+            onClick={() => openCart()}
             style={cartButton}
           >
             🛒
 
             {totalItems > 0 && (
-              <span data-testid="cart-count" style={badge}>
+              <span style={badge}>
                 {totalItems}
               </span>
             )}
@@ -57,7 +56,7 @@ export default function Header() {
         </nav>
       </header>
 
-      {/* MINI CART */}
+      {/* CART DRAWER */}
       <MiniCart open={isCartOpen} onClose={closeCart} />
     </>
   );
@@ -82,7 +81,6 @@ const logo = {
   color: "#a16207",
   fontWeight: 800,
   fontSize: "22px",
-  letterSpacing: "0.5px",
 };
 
 const nav = {

@@ -1,8 +1,8 @@
 import Stripe from "stripe";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { sendOrderEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { sendOrderEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -25,12 +25,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
 
+  // ✅ PAIEMENT VALIDÉ
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
     console.log("💰 PAYMENT SUCCESS:", session.id);
 
     try {
+      // 🔥 récupérer produits Stripe
       const lineItems = await stripe.checkout.sessions.listLineItems(
         session.id
       );
@@ -47,33 +49,34 @@ export async function POST(req: Request) {
       );
 
       const customerEmail =
-        session.customer_details?.email || "tn.smok@hotmail.fr";
+        session.customer_details?.email || "N/A";
 
-      // 🔥 ENREGISTREMENT DB (CRITIQUE)
+      // 💾 SAVE EN BASE
       await prisma.order.create({
         data: {
-          stripeSessionId: session.id,
-          stripePaymentId: session.payment_intent as string,
-          email: customerEmail,
           status: "PAID",
+          stripeSessionId: session.id,
           totalCents,
-          items: items as any, // ✅ JSON safe
+          currency: "EUR",
+          email: customerEmail,
+          items: items,
         },
       });
 
       console.log("💾 ORDER SAVED");
 
-      // 🔥 EMAIL
-      await sendOrderEmail({
-        to: customerEmail,
-        items,
-        totalCents,
-      });
+      // 📧 EMAIL CLIENT
+      if (customerEmail && customerEmail !== "N/A") {
+        await sendOrderEmail({
+          to: customerEmail,
+          items,
+          totalCents,
+        });
+      }
 
       console.log("📧 EMAIL SENT");
-
     } catch (error) {
-      console.error("❌ PROCESS ERROR:", error);
+      console.error("❌ ORDER SAVE ERROR:", error);
     }
   }
 
