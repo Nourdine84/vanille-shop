@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,17 +25,20 @@ export default function CheckoutPage() {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
-  const total = cart.reduce(
-    (acc: number, item: CartItem) => acc + item.priceCents * item.quantity,
+  const subtotal = cart.reduce(
+    (acc: number, item: CartItem) =>
+      acc + item.priceCents * item.quantity,
     0
   );
 
-  const freeShippingThreshold = 5000;
-  const remaining = freeShippingThreshold - total;
+  // 🚚 LIVRAISON
+  const freeShippingThreshold = 5000; // 50€
+  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
+  const total = subtotal + shippingCost;
+
+  const remaining = freeShippingThreshold - subtotal;
 
   const handleCheckout = async () => {
     if (!cart.length) {
@@ -46,16 +48,12 @@ export default function CheckoutPage() {
 
     setLoading(true);
 
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      (window as any).gtag("event", "begin_checkout", {
+    // 🔥 TRACK CHECKOUT
+    if (typeof window !== "undefined") {
+      (window as any).gtag?.("event", "begin_checkout", {
         currency: "EUR",
         value: total / 100,
-        items: cart.map((item: CartItem) => ({
-          item_id: item.id,
-          item_name: item.name,
-          price: item.priceCents / 100,
-          quantity: item.quantity,
-        })),
+        items: cart,
       });
     }
 
@@ -65,23 +63,20 @@ export default function CheckoutPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ cart }),
+        body: JSON.stringify({
+          cart,
+          shippingCost,
+        }),
       });
-
-      if (!res.ok) {
-        throw new Error("Erreur API");
-      }
 
       const data = await res.json();
 
       if (data.url) {
         window.location.href = data.url;
-      } else {
-        throw new Error("Pas de redirection Stripe");
       }
     } catch (err) {
       console.error(err);
-      alert("Erreur lors du paiement");
+      alert("Erreur paiement");
     } finally {
       setLoading(false);
     }
@@ -89,183 +84,107 @@ export default function CheckoutPage() {
 
   return (
     <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
-      <div
-        style={{
-          maxWidth: "1100px",
-          margin: "0 auto",
-          padding: "40px 20px",
-        }}
-      >
-        <h1 style={{ marginBottom: "40px", textAlign: "center" }}>
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px" }}>
+        <h1 style={{ textAlign: "center", marginBottom: "40px" }}>
           Finalisation de votre commande
         </h1>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 400px",
-            gap: "40px",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                background: "white",
-                padding: "20px",
-                borderRadius: "16px",
-                boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-              }}
-            >
-              <h2 style={{ marginBottom: "20px" }}>Votre panier</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: "40px" }}>
+          
+          {/* PANIER */}
+          <div style={card}>
+            <h2>Votre panier</h2>
 
-              {cart.length === 0 && <p>Votre panier est vide</p>}
-
-              {cart.map((item: CartItem) => (
-                <div
-                  key={item.id}
-                  style={{
-                    display: "flex",
-                    gap: "15px",
-                    marginBottom: "20px",
-                    alignItems: "center",
-                  }}
-                >
-                  <img
-                    src={item.imageUrl || "/images/product-vanille.jpg"}
-                    alt={item.name}
-                    style={{
-                      width: "80px",
-                      height: "80px",
-                      objectFit: "cover",
-                      borderRadius: "10px",
-                    }}
-                  />
-
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: "600" }}>{item.name}</p>
-
-                    <p style={{ fontSize: "14px", color: "#666" }}>
-                      Quantité : {item.quantity}
-                    </p>
-
-                    <p style={{ fontWeight: "600" }}>
-                      {formatPrice(item.priceCents * item.quantity)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                marginTop: "20px",
-                background: "white",
-                padding: "20px",
-                borderRadius: "16px",
-                boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-              }}
-            >
-              <h3>Pourquoi choisir Vanille’Or ?</h3>
-
-              <p style={{ marginTop: "10px", color: "#666" }}>
-                ✔ Vanille premium de Madagascar <br />
-                ✔ Sélection artisanale <br />
-                ✔ Livraison rapide et sécurisée
-              </p>
-            </div>
+            {cart.map((item: CartItem) => (
+              <div key={item.id} style={itemStyle}>
+                <p>{item.name}</p>
+                <p>
+                  {item.quantity} × {formatPrice(item.priceCents)}
+                </p>
+              </div>
+            ))}
           </div>
 
-          <div>
-            <div
-              style={{
-                background: "white",
-                padding: "25px",
-                borderRadius: "16px",
-                boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-                position: "sticky",
-                top: "20px",
-              }}
-            >
-              <h2 style={{ marginBottom: "20px" }}>Résumé</h2>
+          {/* RESUME */}
+          <div style={card}>
+            <h2>Résumé</h2>
 
-              <div style={{ fontSize: "14px", marginBottom: "15px" }}>
-                {remaining > 0 ? (
-                  <p style={{ color: "#a16207" }}>
-                    🚚 Plus que {formatPrice(remaining)} pour la livraison offerte
-                  </p>
-                ) : (
-                  <p style={{ color: "green" }}>🎉 Livraison offerte</p>
-                )}
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Sous-total</span>
-                <span>{formatPrice(total)}</span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "20px",
-                }}
-              >
-                <span>Livraison</span>
-                <span>
-                  {total >= freeShippingThreshold
-                    ? "Offerte"
-                    : "Calculée au paiement"}
-                </span>
-              </div>
-
-              <hr />
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: "15px",
-                  fontWeight: "600",
-                  fontSize: "18px",
-                }}
-              >
-                <span>Total</span>
-                <span>{formatPrice(total)}</span>
-              </div>
-
-              <button
-                onClick={handleCheckout}
-                disabled={loading}
-                style={{
-                  marginTop: "25px",
-                  width: "100%",
-                  background: loading ? "#999" : "#a16207",
-                  color: "white",
-                  padding: "16px",
-                  borderRadius: "12px",
-                  border: "none",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontWeight: "600",
-                  fontSize: "16px",
-                }}
-              >
-                {loading ? "Redirection..." : "Payer en sécurité 🔒"}
-              </button>
-
-              <p
-                style={{
-                  marginTop: "15px",
-                  fontSize: "12px",
-                  color: "#666",
-                  textAlign: "center",
-                }}
-              >
-                Paiement sécurisé • Stripe • Données protégées
-              </p>
+            {/* SHIPPING MESSAGE */}
+            <div style={{ marginBottom: "15px" }}>
+              {shippingCost === 0 ? (
+                <p style={{ color: "green" }}>
+                  🎉 Livraison offerte
+                </p>
+              ) : (
+                <p style={{ color: "#a16207" }}>
+                  🚚 Plus que {formatPrice(remaining)} pour livraison offerte
+                </p>
+              )}
             </div>
+
+            {/* PRICES */}
+            <Row label="Sous-total" value={formatPrice(subtotal)} />
+            <Row
+              label="Livraison"
+              value={shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
+            />
+
+            <hr />
+
+            <Row
+              label="Total"
+              value={formatPrice(total)}
+              bold
+            />
+
+            {/* CTA */}
+            <button onClick={handleCheckout} style={cta}>
+              {loading ? "Chargement..." : "Payer 🔒"}
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+/* COMPONENT ROW */
+function Row({ label, value, bold = false }: any) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        margin: "10px 0",
+        fontWeight: bold ? 700 : 400,
+      }}
+    >
+      <span>{label}</span>
+      <span>{value}</span>
+    </div>
+  );
+}
+
+/* STYLES */
+const card = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "16px",
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+};
+
+const itemStyle = {
+  borderBottom: "1px solid #eee",
+  padding: "10px 0",
+};
+
+const cta = {
+  marginTop: "20px",
+  width: "100%",
+  background: "#a16207",
+  color: "white",
+  padding: "16px",
+  borderRadius: "12px",
+  border: "none",
+  cursor: "pointer",
+};

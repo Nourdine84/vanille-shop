@@ -29,21 +29,47 @@ export async function POST(req: Request) {
 
     const baseUrl = getBaseUrl(req);
 
+    // 💰 CALCUL TOTAL
+    const subtotal = body.cart.reduce(
+      (acc: number, item: any) =>
+        acc + item.priceCents * item.quantity,
+      0
+    );
+
+    // 🚚 LIVRAISON
+    const freeShippingThreshold = 5000;
+    const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
+
     // 🔄 MAPPING PRODUITS
-    const lineItems = body.cart.map((item: any) => ({
-      price_data: {
-        currency: "eur",
-        product_data: {
-          name: item.name,
-          description: "Vanille premium de Madagascar — Vanille’Or",
-          images: [
-            item.imageUrl || `${baseUrl}/images/product-vanille.jpg`,
-          ],
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      body.cart.map((item: any) => ({
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: item.name,
+            description: "Vanille premium de Madagascar — Vanille’Or",
+            images: [
+              item.imageUrl || `${baseUrl}/images/product-vanille.jpg`,
+            ],
+          },
+          unit_amount: item.priceCents,
         },
-        unit_amount: item.priceCents,
-      },
-      quantity: item.quantity,
-    }));
+        quantity: item.quantity,
+      }));
+
+    // 🚚 AJOUT LIVRAISON (SEULEMENT SI > 0)
+    if (shippingCost > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: "Frais de livraison",
+          },
+          unit_amount: shippingCost,
+        },
+        quantity: 1,
+      });
+    }
 
     // 💳 SESSION STRIPE PREMIUM
     const session = await stripe.checkout.sessions.create({
@@ -51,7 +77,6 @@ export async function POST(req: Request) {
       payment_method_types: ["card"],
       line_items: lineItems,
 
-      // 🔥 REDIRECTION DYNAMIQUE (clé)
       success_url: `${baseUrl}/success`,
       cancel_url: `${baseUrl}/checkout`,
 
@@ -66,16 +91,17 @@ export async function POST(req: Request) {
         enabled: true,
       },
 
-      // 💰 MARQUE
+      // 🔥 TRÈS IMPORTANT (future logique backend)
+      metadata: {
+        source: "vanilleor-shop",
+        subtotal: String(subtotal),
+        shipping: String(shippingCost),
+      },
+
       custom_text: {
         submit: {
           message: "Paiement sécurisé • Vanille’Or",
         },
-      },
-
-      // 📦 FUTUR TRACKING
-      metadata: {
-        source: "vanilleor-shop",
       },
     });
 
