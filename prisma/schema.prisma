@@ -12,6 +12,7 @@ model User {
   email     String   @unique
   password  String?
   name      String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -28,8 +29,15 @@ model Product {
   imageUrl    String
   stock       Int      @default(0)
   isActive    Boolean  @default(true)
+
+  category    String   @default("vanille")
+  subCategory String?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
 }
 
 model Order {
@@ -44,15 +52,21 @@ model Order {
   stripePaymentId String?     @unique
 
   email           String?
+
   totalCents      Int
   currency        String      @default("EUR")
 
   items           Json
 
+  // 🔥 TRACKING PRO
+  trackingNumber  String?
+  carrier         String?
+
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   @@index([createdAt])
+  @@index([status])
 }
 
 enum OrderStatus {

@@ -3,6 +3,41 @@
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 
+/* =========================
+   MODAL ERREUR
+========================= */
+function ErrorModal({
+  open,
+  message,
+  onClose,
+}: {
+  open: boolean;
+  message: string;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div style={overlay}>
+      <div style={modal}>
+        <h2 style={{ marginBottom: "10px" }}>❌ Paiement échoué</h2>
+
+        <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px" }}>
+          {message}
+        </p>
+
+        <button style={primaryBtn} onClick={onClose}>
+          Réessayer
+        </button>
+
+        <button style={secondaryBtn} onClick={onClose}>
+          Continuer mes achats
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type CartItem = {
   id: string;
   name: string;
@@ -21,8 +56,19 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   useEffect(() => {
     setMounted(true);
+
+    // ✅ GESTION RETOUR STRIPE
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("error")) {
+      setErrorMessage("Le paiement a été annulé ou refusé.");
+      setErrorOpen(true);
+    }
   }, []);
 
   if (!mounted) return null;
@@ -33,31 +79,18 @@ export default function CheckoutPage() {
     0
   );
 
-  const freeShippingThreshold = 5000; // 50 €
-  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490; // 4,90 €
+  const freeShippingThreshold = 5000;
+  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
   const total = subtotal + shippingCost;
-  const remaining = Math.max(0, freeShippingThreshold - subtotal);
 
   const handleCheckout = async () => {
     if (!cart.length) {
-      alert("Votre panier est vide");
+      setErrorMessage("Votre panier est vide");
+      setErrorOpen(true);
       return;
     }
 
     setLoading(true);
-
-    if (typeof window !== "undefined") {
-      (window as any).gtag?.("event", "begin_checkout", {
-        currency: "EUR",
-        value: total / 100,
-        items: cart.map((item: CartItem) => ({
-          item_id: item.id,
-          item_name: item.name,
-          price: item.priceCents / 100,
-          quantity: item.quantity,
-        })),
-      });
-    }
 
     try {
       const res = await fetch("/api/create-checkout-session", {
@@ -72,7 +105,7 @@ export default function CheckoutPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Erreur API");
+        throw new Error("Erreur serveur");
       }
 
       const data = await res.json();
@@ -80,170 +113,101 @@ export default function CheckoutPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error("Pas de redirection Stripe");
+        throw new Error("Erreur de redirection Stripe");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Erreur lors du paiement");
+
+      setErrorMessage(
+        error?.message ||
+          "Une erreur est survenue lors du paiement."
+      );
+      setErrorOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
-      <div
-        style={{
-          maxWidth: "1100px",
-          margin: "0 auto",
-          padding: "40px 20px",
-        }}
-      >
-        <h1
-          style={{
-            textAlign: "center",
-            marginBottom: "40px",
-            fontSize: "32px",
-          }}
-        >
-          Finalisation de votre commande
-        </h1>
+    <>
+      <ErrorModal
+        open={errorOpen}
+        message={errorMessage}
+        onClose={() => setErrorOpen(false)}
+      />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 400px",
-            gap: "40px",
-          }}
-        >
-          {/* COLONNE GAUCHE */}
-          <div>
-            <div style={cardStyle}>
-              <h2 style={{ marginBottom: "20px" }}>Votre sélection</h2>
+      <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 20px" }}>
+          <h1 style={{ textAlign: "center", marginBottom: "40px", fontSize: "32px" }}>
+            Finalisation de votre commande
+          </h1>
 
-              {cart.length === 0 && (
-                <p style={{ color: "#666" }}>Votre panier est vide.</p>
-              )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: "40px" }}>
+            
+            {/* GAUCHE */}
+            <div>
+              <div style={cardStyle}>
+                <h2>Votre sélection</h2>
 
-              {cart.map((item: CartItem) => (
-                <div key={item.id} style={itemRowStyle}>
-                  <img
-                    src={item.imageUrl || "/images/product-vanille.jpg"}
-                    alt={item.name}
-                    style={itemImageStyle}
-                  />
+                {cart.map((item: CartItem) => (
+                  <div key={item.id} style={itemRowStyle}>
+                    <img
+                      src={item.imageUrl || "/images/product-vanille.jpg"}
+                      alt={item.name}
+                      style={itemImageStyle}
+                    />
 
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: 600, marginBottom: "6px" }}>
-                      {item.name}
-                    </p>
-
-                    <p style={{ fontSize: "14px", color: "#666", margin: 0 }}>
-                      Quantité : {item.quantity}
-                    </p>
-
-                    <p
-                      style={{
-                        marginTop: "8px",
-                        fontWeight: 600,
-                        color: "#a16207",
-                      }}
-                    >
-                      {formatPrice(item.priceCents * item.quantity)}
-                    </p>
+                    <div>
+                      <p style={{ fontWeight: 600 }}>{item.name}</p>
+                      <p style={{ color: "#666" }}>
+                        Quantité : {item.quantity}
+                      </p>
+                      <p style={{ color: "#a16207", fontWeight: 600 }}>
+                        {formatPrice(item.priceCents * item.quantity)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ ...cardStyle, marginTop: "20px" }}>
-              <h3 style={{ marginBottom: "15px" }}>Pourquoi choisir Vanille’Or ?</h3>
-
-              <p style={infoTextStyle}>
-                ✔ Vanille premium de Madagascar
-                <br />
-                ✔ Sélection artisanale
-                <br />
-                ✔ Paiement sécurisé
-                <br />
-                ✔ Expédition rapide France & Europe
-              </p>
-            </div>
-          </div>
-
-          {/* COLONNE DROITE */}
-          <div>
-            <div
-              style={{
-                ...cardStyle,
-                position: "sticky",
-                top: "20px",
-              }}
-            >
-              <h2 style={{ marginBottom: "20px" }}>Résumé</h2>
-
-              <div style={{ marginBottom: "15px", fontSize: "14px" }}>
-                {shippingCost === 0 ? (
-                  <p style={{ color: "green", fontWeight: 600, margin: 0 }}>
-                    🎉 Livraison offerte activée
-                  </p>
-                ) : (
-                  <p style={{ color: "#a16207", margin: 0 }}>
-                    🚚 Plus que <strong>{formatPrice(remaining)}</strong> pour la
-                    livraison offerte
-                  </p>
-                )}
+                ))}
               </div>
+            </div>
 
-              <PriceRow label="Sous-total" value={formatPrice(subtotal)} />
+            {/* DROITE */}
+            <div>
+              <div style={{ ...cardStyle, position: "sticky", top: "20px" }}>
+                <h2>Résumé</h2>
 
-              <PriceRow
-                label="Livraison"
-                value={shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
-              />
+                <PriceRow label="Sous-total" value={formatPrice(subtotal)} />
+                <PriceRow
+                  label="Livraison"
+                  value={shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
+                />
 
-              <hr style={{ border: "none", borderTop: "1px solid #eee", margin: "18px 0" }} />
+                <hr />
 
-              <PriceRow
-                label="Total"
-                value={formatPrice(total)}
-                bold
-              />
+                <PriceRow label="Total" value={formatPrice(total)} bold />
 
-              <button
-                onClick={handleCheckout}
-                disabled={loading || cart.length === 0}
-                style={{
-                  ...checkoutButtonStyle,
-                  background:
-                    loading || cart.length === 0 ? "#999" : "#a16207",
-                  cursor:
-                    loading || cart.length === 0 ? "not-allowed" : "pointer",
-                }}
-              >
-                {loading ? "Redirection..." : "Payer en sécurité 🔒"}
-              </button>
-
-              <p
-                style={{
-                  marginTop: "15px",
-                  fontSize: "12px",
-                  color: "#666",
-                  textAlign: "center",
-                  lineHeight: 1.5,
-                }}
-              >
-                Paiement sécurisé via Stripe
-                <br />
-                Vos données sont protégées
-              </p>
+                <button
+                  onClick={handleCheckout}
+                  disabled={loading}
+                  style={{
+                    ...checkoutButtonStyle,
+                    background: loading ? "#999" : "#a16207",
+                  }}
+                >
+                  {loading ? "Redirection..." : "Payer en sécurité 🔒"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
+
+/* =========================
+   UI
+========================= */
 
 function PriceRow({
   label,
@@ -255,17 +219,9 @@ function PriceRow({
   bold?: boolean;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        margin: "10px 0",
-        fontWeight: bold ? 700 : 400,
-        fontSize: bold ? "18px" : "15px",
-      }}
-    >
+    <div style={{ display: "flex", justifyContent: "space-between", margin: "10px 0" }}>
       <span>{label}</span>
-      <span>{value}</span>
+      <span style={{ fontWeight: bold ? 700 : 400 }}>{value}</span>
     </div>
   );
 }
@@ -274,39 +230,60 @@ const cardStyle = {
   background: "white",
   padding: "25px",
   borderRadius: "16px",
-  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
 };
 
 const itemRowStyle = {
   display: "flex",
   gap: "15px",
-  alignItems: "center",
-  paddingBottom: "16px",
-  marginBottom: "16px",
-  borderBottom: "1px solid #eee",
+  marginBottom: "15px",
 };
 
 const itemImageStyle = {
   width: "80px",
   height: "80px",
-  objectFit: "cover" as const,
   borderRadius: "10px",
 };
 
-const infoTextStyle = {
-  margin: 0,
-  color: "#666",
-  lineHeight: 1.8,
-};
-
 const checkoutButtonStyle = {
-  marginTop: "25px",
+  marginTop: "20px",
   width: "100%",
-  color: "white",
   padding: "16px",
   borderRadius: "12px",
+  color: "white",
   border: "none",
-  fontWeight: 700,
-  fontSize: "16px",
-  boxShadow: "0 8px 20px rgba(161,98,7,0.25)",
+};
+
+const overlay = {
+  position: "fixed" as const,
+  inset: 0,
+  background: "rgba(0,0,0,0.5)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+};
+
+const modal = {
+  background: "white",
+  padding: "30px",
+  borderRadius: "16px",
+  width: "320px",
+  textAlign: "center" as const,
+};
+
+const primaryBtn = {
+  width: "100%",
+  padding: "12px",
+  background: "#a16207",
+  color: "white",
+  borderRadius: "10px",
+  border: "none",
+  marginBottom: "10px",
+};
+
+const secondaryBtn = {
+  width: "100%",
+  padding: "10px",
+  background: "#f3f4f6",
+  borderRadius: "10px",
+  border: "none",
 };
