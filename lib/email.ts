@@ -1,79 +1,88 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 type OrderItem = {
   name: string;
   quantity: number;
   priceCents: number;
 };
 
-function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " €";
-}
-
-export async function sendOrderEmail({
-  to,
-  items,
-  totalCents,
-}: {
+type SendOrderConfirmationParams = {
   to: string;
+  orderId: string;
   items: OrderItem[];
   totalCents: number;
-}) {
-  try {
-    const safeEmail = to || "tn.smok@hotmail.fr";
+};
 
-    const itemsHtml = items
-      .map(
-        (item) => `
+type SendShippingEmailParams = {
+  to: string;
+  orderId: string;
+  trackingNumber: string;
+  carrier?: string | null;
+};
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const from = process.env.RESEND_FROM_EMAIL || "Vanille’Or <onboarding@resend.dev>";
+
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+export async function sendOrderConfirmationEmail({
+  to,
+  orderId,
+  items,
+  totalCents,
+}: SendOrderConfirmationParams) {
+  const safeItems = items.map((item) => ({
+    name: escapeHtml(item.name),
+    quantity: item.quantity,
+    price: formatPrice(item.priceCents * item.quantity),
+  }));
+
+  const itemsHtml = safeItems
+    .map(
+      (item) => `
         <tr>
-          <td style="padding:12px; border-bottom:1px solid #eee;">
-            ${item.name}
-          </td>
-          <td style="padding:12px; border-bottom:1px solid #eee; text-align:center;">
-            ${item.quantity}
-          </td>
-          <td style="padding:12px; border-bottom:1px solid #eee; text-align:right; font-weight:600;">
-            ${formatPrice(item.priceCents * item.quantity)}
-          </td>
+          <td style="padding:8px 0;color:#111;">${item.name}</td>
+          <td style="padding:8px 0;color:#666;text-align:center;">x${item.quantity}</td>
+          <td style="padding:8px 0;color:#111;text-align:right;">${item.price}</td>
         </tr>
       `
-      )
-      .join("");
+    )
+    .join("");
 
-    const html = `
-    <div style="font-family: Arial, sans-serif; background:#f5f1ea; padding:40px;">
-      
-      <div style="max-width:620px; margin:auto; background:white; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
-
-        <!-- HEADER PREMIUM -->
-        <div style="background:linear-gradient(135deg,#a16207,#d4a373); color:white; padding:30px; text-align:center;">
-          <h1 style="margin:0; font-size:26px;">Vanille’Or</h1>
-          <p style="margin:8px 0 0; font-size:14px; opacity:0.9;">
-            L’excellence de la vanille de Madagascar
-          </p>
-        </div>
-
-        <!-- CONTENU -->
-        <div style="padding:30px;">
-          
-          <h2 style="margin-top:0; font-size:22px;">
-            Merci pour votre commande ✨
-          </h2>
-
-          <p style="color:#555; line-height:1.6;">
-            Nous avons bien reçu votre commande.  
-            Chaque gousse de vanille est sélectionnée avec soin auprès de producteurs locaux à Madagascar afin de garantir une qualité exceptionnelle.
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Confirmation de commande Vanille’Or #${orderId.slice(0, 8)}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#faf7f2;padding:32px;">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
+          <h1 style="margin:0 0 16px;font-size:28px;color:#111;">Merci pour votre commande ✨</h1>
+          <p style="margin:0 0 24px;color:#555;line-height:1.6;">
+            Votre commande Vanille’Or a bien été confirmée et est en cours de préparation.
           </p>
 
-          <!-- TABLE PRODUITS -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="margin-top:25px;">
+          <div style="background:#f7f7f7;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
+            <p style="margin:0;color:#333;"><strong>Commande :</strong> #${escapeHtml(orderId.slice(0, 8))}</p>
+          </div>
+
+          <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
             <thead>
-              <tr style="text-align:left; border-bottom:2px solid #eee;">
-                <th style="padding:10px;">Produit</th>
-                <th style="padding:10px; text-align:center;">Qté</th>
-                <th style="padding:10px; text-align:right;">Prix</th>
+              <tr>
+                <th style="text-align:left;padding-bottom:10px;border-bottom:1px solid #eee;">Produit</th>
+                <th style="text-align:center;padding-bottom:10px;border-bottom:1px solid #eee;">Qté</th>
+                <th style="text-align:right;padding-bottom:10px;border-bottom:1px solid #eee;">Montant</th>
               </tr>
             </thead>
             <tbody>
@@ -81,52 +90,60 @@ export async function sendOrderEmail({
             </tbody>
           </table>
 
-          <!-- TOTAL -->
-          <div style="margin-top:25px; text-align:right;">
-            <h2 style="margin:0;">Total : ${formatPrice(totalCents)}</h2>
+          <div style="display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:16px;margin-bottom:24px;">
+            <span style="font-size:16px;color:#333;"><strong>Total</strong></span>
+            <span style="font-size:18px;color:#a16207;"><strong>${formatPrice(totalCents)}</strong></span>
           </div>
 
-          <!-- INFO LIVRAISON -->
-          <div style="margin-top:25px; font-size:14px; color:#666;">
-            📦 Préparation en cours <br/>
-            🚚 Expédition sous 24-48h <br/>
-            📧 Suivi envoyé prochainement
-          </div>
-
-          <!-- CTA -->
-          <div style="text-align:center; margin-top:30px;">
-            <a href="https://vanilleor.fr/products" 
-               style="display:inline-block; background:#a16207; color:white; padding:14px 24px; border-radius:10px; text-decoration:none; font-weight:600;">
-               Découvrir nos produits
-            </a>
-          </div>
-
-        </div>
-
-        <!-- FOOTER -->
-        <div style="background:#fafafa; padding:20px; text-align:center; font-size:12px; color:#888;">
-          <p style="margin:0;">
-            Vanille premium • Madagascar • Qualité artisanale
+          <p style="margin:0;color:#555;line-height:1.6;">
+            Vous recevrez un nouvel email dès que votre commande sera expédiée.
           </p>
-          <p style="margin:5px 0 0;">
-            © Vanille’Or — AKM Consulting
-          </p>
-        </div>
 
+          <div style="margin-top:28px;padding-top:18px;border-top:1px solid #eee;font-size:13px;color:#888;">
+            Vanille’Or — Vanille premium de Madagascar
+          </div>
+        </div>
       </div>
-    </div>
-    `;
+    `,
+  });
+}
 
-    const response = await resend.emails.send({
-      from: process.env.EMAIL_FROM || "contact@vanilleor.fr",
-      to: safeEmail,
-      subject: "Votre commande Vanille’Or est confirmée ✨",
-      html,
-    });
+export async function sendShippingEmail({
+  to,
+  orderId,
+  trackingNumber,
+  carrier,
+}: SendShippingEmailParams) {
+  const safeTracking = escapeHtml(trackingNumber);
+  const safeCarrier = carrier ? escapeHtml(carrier) : "Transporteur";
 
-    console.log("✅ Email envoyé:", response);
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Votre commande Vanille’Or #${orderId.slice(0, 8)} a été expédiée`,
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#faf7f2;padding:32px;">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
+          <h1 style="margin:0 0 16px;font-size:28px;color:#111;">Votre commande est en route 📦</h1>
+          <p style="margin:0 0 24px;color:#555;line-height:1.6;">
+            Bonne nouvelle, votre commande Vanille’Or a été expédiée.
+          </p>
 
-  } catch (error) {
-    console.error("❌ Erreur email:", error);
-  }
+          <div style="background:#f7f7f7;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
+            <p style="margin:0 0 8px;color:#333;"><strong>Commande :</strong> #${escapeHtml(orderId.slice(0, 8))}</p>
+            <p style="margin:0 0 8px;color:#333;"><strong>Transporteur :</strong> ${safeCarrier}</p>
+            <p style="margin:0;color:#333;"><strong>Numéro de suivi :</strong> ${safeTracking}</p>
+          </div>
+
+          <p style="margin:0;color:#555;line-height:1.6;">
+            Conservez cet email pour suivre l’acheminement de votre colis.
+          </p>
+
+          <div style="margin-top:28px;padding-top:18px;border-top:1px solid #eee;font-size:13px;color:#888;">
+            Vanille’Or — Vanille premium de Madagascar
+          </div>
+        </div>
+      </div>
+    `,
+  });
 }

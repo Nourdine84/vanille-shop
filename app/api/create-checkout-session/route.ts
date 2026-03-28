@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,15 +16,42 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    // 🔒 VALIDATION CART
     if (!body.cart || !Array.isArray(body.cart) || body.cart.length === 0) {
-      return NextResponse.json(
-        { error: "Panier vide" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Panier vide" }, { status: 400 });
     }
 
     const baseUrl = getBaseUrl(req);
 
+    // 🔒 VALIDATION PRODUITS + STOCK
+    for (const item of body.cart) {
+      if (!item.id || !item.priceCents || !item.quantity) {
+        return NextResponse.json(
+          { error: "Produit invalide" },
+          { status: 400 }
+        );
+      }
+
+      const product = await prisma.product.findUnique({
+        where: { id: item.id },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          { error: `Produit introuvable: ${item.name}` },
+          { status: 404 }
+        );
+      }
+
+      if (product.stock < item.quantity) {
+        return NextResponse.json(
+          { error: `Stock insuffisant pour ${item.name}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 💰 CALCUL
     const subtotal = body.cart.reduce(
       (acc: number, item: any) =>
         acc + item.priceCents * item.quantity,
@@ -32,7 +60,19 @@ export async function POST(req: Request) {
 
     const freeShippingThreshold = 5000;
     const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
+    const total = subtotal + shippingCost;
 
+    // 🧾 CREATE ORDER
+    const order = await prisma.order.create({
+      data: {
+        status: "PENDING",
+        totalCents: total,
+        currency: "EUR",
+        items: body.cart,
+      },
+    });
+
+    // 🛒 STRIPE LINE ITEMS
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
       body.cart.map((item: any) => ({
         price_data: {
@@ -62,12 +102,12 @@ export async function POST(req: Request) {
       });
     }
 
+    // 💳 STRIPE SESSION
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
 
-      // ✅ FIX PRO
       success_url: `${baseUrl}/checkout/success`,
       cancel_url: `${baseUrl}/checkout?error=1`,
 
@@ -82,16 +122,27 @@ export async function POST(req: Request) {
       },
 
       metadata: {
+        orderId: order.id,
         source: "vanilleor-shop",
         subtotal: String(subtotal),
         shipping: String(shippingCost),
       },
     });
 
+    // 🔗 LINK SESSION
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        stripeSessionId: session.id,
+      },
+    });
+
+    console.log("✅ ORDER CREATED:", order.id);
+
     return NextResponse.json({ url: session.url });
 
   } catch (error) {
-    console.error("STRIPE ERROR:", error);
+    console.error("🔥 STRIPE ERROR:", error);
 
     return NextResponse.json(
       { error: "Erreur Stripe" },

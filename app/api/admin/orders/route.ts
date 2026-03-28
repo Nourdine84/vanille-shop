@@ -1,10 +1,19 @@
+import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({
-    orders: [],
-    message: "Admin orders en construction",
-  });
+  try {
+    const orders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(orders);
+
+  } catch (error) {
+    console.error("GET ADMIN ORDERS ERROR:", error);
+
+    return NextResponse.json([], { status: 500 });
+  }
 }

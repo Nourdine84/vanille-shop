@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendShippingEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,15 @@ type OrderStatus =
   | "FAILED"
   | "CANCELED";
 
+const allowedStatuses: OrderStatus[] = [
+  "PENDING",
+  "PAID",
+  "SHIPPED",
+  "DELIVERED",
+  "FAILED",
+  "CANCELED",
+];
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -20,7 +30,6 @@ export async function POST(req: Request) {
     const trackingNumber = formData.get("trackingNumber");
     const carrier = formData.get("carrier");
 
-    // 🔒 VALIDATION TYPE
     if (typeof id !== "string" || typeof status !== "string") {
       console.error("❌ Invalid payload:", { id, status });
 
@@ -29,16 +38,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    // 🔒 VALIDATION STATUS
-    const allowedStatuses: OrderStatus[] = [
-      "PENDING",
-      "PAID",
-      "SHIPPED",
-      "DELIVERED",
-      "FAILED",
-      "CANCELED",
-    ];
 
     if (!allowedStatuses.includes(status as OrderStatus)) {
       console.error("❌ Invalid status:", status);
@@ -49,9 +48,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔍 CHECK ORDER EXIST
     const existingOrder = await prisma.order.findUnique({
       where: { id },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+      },
     });
 
     if (!existingOrder) {
@@ -63,29 +66,57 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔄 UPDATE
-    await prisma.order.update({
+    const cleanTracking =
+      typeof trackingNumber === "string" && trackingNumber.trim()
+        ? trackingNumber.trim()
+        : null;
+
+    const cleanCarrier =
+      typeof carrier === "string" && carrier.trim()
+        ? carrier.trim()
+        : null;
+
+    const updatedOrder = await prisma.order.update({
       where: { id },
       data: {
         status: status as OrderStatus,
-        trackingNumber:
-          typeof trackingNumber === "string" && trackingNumber.trim() !== ""
-            ? trackingNumber
-            : null,
-        carrier:
-          typeof carrier === "string" && carrier.trim() !== ""
-            ? carrier
-            : null,
+        trackingNumber: cleanTracking,
+        carrier: cleanCarrier,
+      },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        trackingNumber: true,
+        carrier: true,
       },
     });
 
+    const becameShipped =
+      existingOrder.status !== "SHIPPED" &&
+      updatedOrder.status === "SHIPPED" &&
+      updatedOrder.email &&
+      updatedOrder.trackingNumber;
+
+    if (becameShipped) {
+      try {
+        await sendShippingEmail({
+          to: updatedOrder.email!,
+          orderId: updatedOrder.id,
+          trackingNumber: updatedOrder.trackingNumber!,
+          carrier: updatedOrder.carrier,
+        });
+        console.log("📧 Shipping email sent:", updatedOrder.email);
+      } catch (emailError) {
+        console.error("🔥 SHIPPING EMAIL ERROR:", emailError);
+      }
+    }
+
     console.log("✅ ORDER UPDATED:", id, status);
 
-    return NextResponse.redirect(
-      new URL("/admin", req.url),
-      { status: 303 }
-    );
-
+    return NextResponse.redirect(new URL("/admin", req.url), {
+      status: 303,
+    });
   } catch (error) {
     console.error("🔥 UPDATE ORDER ERROR:", error);
 

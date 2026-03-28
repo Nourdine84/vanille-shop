@@ -14,11 +14,6 @@ type SearchParams = {
   q?: string;
 };
 
-type DailyRevenue = {
-  label: string;
-  cents: number;
-};
-
 export default async function AdminPage({
   searchParams,
 }: {
@@ -48,6 +43,7 @@ export default async function AdminPage({
     orderBy: { createdAt: "desc" },
   });
 
+  // KPI
   const totalRevenue = orders.reduce(
     (acc, order) => acc + order.totalCents,
     0
@@ -60,7 +56,10 @@ export default async function AdminPage({
   const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
   const shippedOrders = orders.filter((o) => o.status === "SHIPPED").length;
   const deliveredOrders = orders.filter((o) => o.status === "DELIVERED").length;
+  const failedOrders = orders.filter((o) => o.status === "FAILED").length;
+  const canceledOrders = orders.filter((o) => o.status === "CANCELED").length;
 
+  // TOP PRODUITS
   const productMap: Record<string, number> = {};
 
   orders.forEach((order) => {
@@ -69,7 +68,8 @@ export default async function AdminPage({
       : [];
 
     items.forEach((item) => {
-      productMap[item.name] = (productMap[item.name] || 0) + item.quantity;
+      productMap[item.name] =
+        (productMap[item.name] || 0) + item.quantity;
     });
   });
 
@@ -81,6 +81,7 @@ export default async function AdminPage({
     <div style={container}>
       <h1 style={title}>📊 Dashboard Vanille’Or</h1>
 
+      {/* KPI */}
       <div style={grid4}>
         <Card title="💰 CA" value={`${(totalRevenue / 100).toFixed(2)} €`} />
         <Card title="📦 Commandes" value={String(totalOrders)} />
@@ -88,6 +89,36 @@ export default async function AdminPage({
         <Card title="✅ / ⏳" value={`${paidOrders} / ${pendingOrders}`} />
       </div>
 
+      {/* STATS LOGISTIQUE */}
+      <div style={card}>
+        <h2 style={{ marginBottom: "10px" }}>📦 Logistique</h2>
+
+        <div style={statsRow}>
+          <span>Payées: {paidOrders}</span>
+          <span>Expédiées: {shippedOrders}</span>
+          <span>Livrées: {deliveredOrders}</span>
+          <span>Échecs: {failedOrders}</span>
+          <span>Annulées: {canceledOrders}</span>
+        </div>
+      </div>
+
+      {/* TOP PRODUITS */}
+      <div style={card}>
+        <h2 style={{ marginBottom: "10px" }}>🏆 Top produits</h2>
+
+        {topProducts.length === 0 ? (
+          <p style={{ color: "#777" }}>Aucune vente</p>
+        ) : (
+          topProducts.map(([name, qty], i) => (
+            <div key={i} style={topProductRow}>
+              <span>{i + 1}. {name}</span>
+              <strong>{qty} ventes</strong>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* COMMANDES */}
       <div style={table}>
         <h2>Commandes</h2>
 
@@ -113,15 +144,42 @@ export default async function AdminPage({
               </div>
 
               <div style={itemsBox}>
-                {items.map((item, i) => (
-                  <p key={i}>{item.name} x{item.quantity}</p>
-                ))}
+                {items.length === 0 ? (
+                  <p style={{ color: "#777" }}>
+                    Aucun détail produit
+                  </p>
+                ) : (
+                  items.map((item, i) => (
+                    <p key={i}>
+                      {item.name} x{item.quantity}
+                    </p>
+                  ))
+                )}
               </div>
 
-              {/* 🔥 TRACKING */}
-              <form action="/api/admin/update-tracking" method="POST" style={actionRow}>
+              {/* 🔥 FORM UPDATE */}
+              <form
+                action="/api/admin/update-order"
+                method="POST"
+                style={actionRow}
+              >
                 <input type="hidden" name="id" value={order.id} />
 
+                {/* STATUS */}
+                <select
+                  name="status"
+                  defaultValue={order.status}
+                  style={input}
+                >
+                  <option value="PENDING">PENDING</option>
+                  <option value="PAID">PAID</option>
+                  <option value="SHIPPED">SHIPPED</option>
+                  <option value="DELIVERED">DELIVERED</option>
+                  <option value="FAILED">FAILED</option>
+                  <option value="CANCELED">CANCELED</option>
+                </select>
+
+                {/* TRACKING */}
                 <input
                   name="trackingNumber"
                   placeholder="Tracking"
@@ -129,6 +187,7 @@ export default async function AdminPage({
                   style={input}
                 />
 
+                {/* CARRIER */}
                 <input
                   name="carrier"
                   placeholder="Transporteur"
@@ -136,7 +195,9 @@ export default async function AdminPage({
                   style={input}
                 />
 
-                <button style={primaryBtn}>Enregistrer</button>
+                <button style={primaryBtn}>
+                  Enregistrer
+                </button>
               </form>
             </div>
           );
@@ -176,18 +237,105 @@ function Status({ status }: { status: OrderStatus }) {
 
 /* STYLES */
 
-const container = { padding: "40px", background: "#faf7f2" };
-const title = { fontSize: "28px", marginBottom: "30px" };
-const grid4 = { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "20px" };
-const card = { background: "white", padding: "20px", borderRadius: "12px" };
-const valueStyle = { fontSize: "22px", fontWeight: 700 };
-const table = { marginTop: "30px" };
-const orderCard = { background: "white", padding: "20px", marginTop: "15px", borderRadius: "12px" };
-const rowTop = { display: "flex", justifyContent: "space-between" };
-const amount = { color: "#a16207", fontWeight: 700 };
-const date = { fontSize: "12px", color: "#777" };
-const itemsBox = { marginTop: "10px" };
-const actionRow = { marginTop: "10px", display: "flex", gap: "10px" };
-const input = { padding: "10px", borderRadius: "8px", border: "1px solid #ddd" };
-const primaryBtn = { background: "#a16207", color: "white", padding: "10px", borderRadius: "8px", border: "none" };
-const badge = { padding: "6px 10px", borderRadius: "999px", color: "white" };
+const container = {
+  padding: "40px",
+  background: "#faf7f2",
+  minHeight: "100vh",
+};
+
+const title = {
+  fontSize: "28px",
+  marginBottom: "30px",
+};
+
+const grid4 = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4,1fr)",
+  gap: "20px",
+  marginBottom: "20px",
+};
+
+const card = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+  marginBottom: "20px",
+};
+
+const valueStyle = {
+  fontSize: "22px",
+  fontWeight: 700,
+};
+
+const statsRow = {
+  display: "flex",
+  gap: "20px",
+  flexWrap: "wrap" as const,
+};
+
+const table = {
+  marginTop: "30px",
+};
+
+const orderCard = {
+  background: "white",
+  padding: "20px",
+  marginTop: "15px",
+  borderRadius: "12px",
+  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+};
+
+const rowTop = {
+  display: "flex",
+  justifyContent: "space-between",
+};
+
+const amount = {
+  color: "#a16207",
+  fontWeight: 700,
+};
+
+const date = {
+  fontSize: "12px",
+  color: "#777",
+};
+
+const itemsBox = {
+  marginTop: "10px",
+};
+
+const actionRow = {
+  marginTop: "15px",
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+};
+
+const input = {
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid #ddd",
+};
+
+const primaryBtn = {
+  background: "#a16207",
+  color: "white",
+  padding: "10px 14px",
+  borderRadius: "8px",
+  border: "none",
+  cursor: "pointer",
+};
+
+const badge = {
+  padding: "6px 10px",
+  borderRadius: "999px",
+  color: "white",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const topProductRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "6px 0",
+};

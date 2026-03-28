@@ -13,9 +13,9 @@ type Product = {
   description: string;
   priceCents: number;
   imageUrl: string;
+  stock: number;
 };
 
-// 🔥 FORMATS
 const formats = [
   { label: "10g", multiplier: 0.1 },
   { label: "25g", multiplier: 0.25 },
@@ -38,17 +38,31 @@ export default function ProductPage() {
   const { openCart } = useUIStore();
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState(formats[2]); // 100g par défaut
+  const [loading, setLoading] = useState(true);
+  const [selectedFormat, setSelectedFormat] = useState(formats[2]);
 
   useEffect(() => {
     if (!slug) return;
 
-    fetch(`/api/products/${slug}`)
-      .then((res) => res.json())
-      .then((data) => setProduct(data));
+    (async () => {
+      try {
+        const res = await fetch(`/api/products/${slug}`);
+        if (!res.ok) throw new Error();
+
+        const data = await res.json();
+        setProduct(data);
+      } catch {
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [slug]);
 
-  if (!product) return <div style={{ padding: 40 }}>Chargement...</div>;
+  if (loading) return <div style={{ padding: 40 }}>Chargement...</div>;
+  if (!product) return <div style={{ padding: 40 }}>Produit introuvable</div>;
+
+  const isOutOfStock = product.stock <= 0;
 
   const dynamicPrice = Math.round(
     product.priceCents * selectedFormat.multiplier
@@ -58,22 +72,21 @@ export default function ProductPage() {
     <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
       <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px" }}>
 
-        {/* IMAGE */}
-        <motion.img
-          src={product.imageUrl}
-          style={{
-            width: "100%",
-            height: "400px",
-            objectFit: "cover",
-            borderRadius: "16px",
-          }}
-        />
+        <div style={{ position: "relative" }}>
+          {isOutOfStock && <div style={badge}>ÉPUISÉ</div>}
 
-        {/* INFOS */}
+          <motion.img
+            src={product.imageUrl || "/images/product-vanille.jpg"}
+            alt={product.name}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={img}
+          />
+        </div>
+
         <h1 style={{ marginTop: "20px" }}>{product.name}</h1>
         <p style={{ color: "#666" }}>{product.description}</p>
 
-        {/* FORMATS */}
         <div style={{ marginTop: "30px" }}>
           <h3>Choisissez votre format</h3>
 
@@ -100,14 +113,15 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* PRIX */}
         <h2 style={{ marginTop: "20px" }}>
           {formatPrice(dynamicPrice)}
         </h2>
 
-        {/* CTA */}
         <button
+          disabled={isOutOfStock}
           onClick={() => {
+            if (isOutOfStock) return;
+
             addToCart({
               id: product.id + "_" + selectedFormat.label,
               name: `${product.name} (${selectedFormat.label})`,
@@ -118,12 +132,14 @@ export default function ProductPage() {
             showToast("Ajouté au panier 🛒");
             setTimeout(() => openCart(), 200);
           }}
-          style={cta}
+          style={{
+            ...cta,
+            background: isOutOfStock ? "#999" : "#a16207",
+          }}
         >
-          Ajouter au panier
+          {isOutOfStock ? "Produit indisponible" : "Ajouter au panier"}
         </button>
 
-        {/* B2B */}
         <div style={{ marginTop: "40px", textAlign: "center" }}>
           <p style={{ color: "#666" }}>
             Besoin de grandes quantités ?
@@ -138,30 +154,44 @@ export default function ProductPage() {
   );
 }
 
-/* 🎨 STYLES */
+/* 🎨 */
+
+const badge = {
+  position: "absolute" as const,
+  top: "15px",
+  left: "15px",
+  background: "#dc2626",
+  color: "white",
+  padding: "8px 14px",
+  borderRadius: "999px",
+  fontWeight: 700,
+};
+
+const img = {
+  width: "100%",
+  height: "400px",
+  objectFit: "cover" as const,
+  borderRadius: "16px",
+};
+
 const formatGrid = {
   display: "flex",
   gap: "10px",
   flexWrap: "wrap" as const,
-  marginTop: "10px",
 };
 
 const formatBtn = {
-  padding: "10px 16px",
+  padding: "10px",
   borderRadius: "10px",
   border: "1px solid #ddd",
-  cursor: "pointer",
 };
 
 const cta = {
   marginTop: "20px",
-  background: "#a16207",
   color: "white",
   padding: "16px",
   borderRadius: "12px",
   border: "none",
-  cursor: "pointer",
-  fontWeight: "600",
 };
 
 const b2bBtn = {
