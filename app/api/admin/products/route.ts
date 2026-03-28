@@ -1,37 +1,74 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-// ✅ GET safe
-export async function GET() {
-  return NextResponse.json({ message: "Admin products API OK" });
-}
-
-// ✅ POST avec lazy Prisma
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("../../../../lib/prisma"); // 🔥 LA SOLUTION
-
     const body = await req.json();
 
-    const product = await prisma.product.create({
+    const {
+      id,
+      name,
+      slug,
+      description,
+      priceCents,
+      imageUrl,
+      stock,
+      category,
+      subCategory,
+      isActive,
+    } = body;
+
+    // 🔒 VALIDATION
+    if (!name || !slug || !priceCents) {
+      return NextResponse.json(
+        { error: "Champs obligatoires manquants" },
+        { status: 400 }
+      );
+    }
+
+    // 🔄 UPDATE
+    if (id) {
+      const updated = await prisma.product.update({
+        where: { id },
+        data: {
+          name,
+          slug,
+          description,
+          priceCents: Number(priceCents),
+          imageUrl,
+          stock: Number(stock),
+          category,
+          subCategory,
+          isActive,
+        },
+      });
+
+      return NextResponse.json(updated);
+    }
+
+    // ➕ CREATE
+    const created = await prisma.product.create({
       data: {
-        name: body.name,
-        slug: body.slug,
-        priceCents: body.priceCents,
-        imageUrl: body.imageUrl,
-        description: "",
-        stock: 10,
-        isActive: true,
+        name,
+        slug,
+        description,
+        priceCents: Number(priceCents),
+        imageUrl,
+        stock: Number(stock || 0),
+        category,
+        subCategory,
+        isActive: isActive ?? true,
       },
     });
 
-    return NextResponse.json(product);
-  } catch (error) {
-    console.error(error);
+    return NextResponse.json(created);
 
+  } catch (error) {
+    console.error("🔥 PRODUCT API ERROR:", error);
     return NextResponse.json(
-      { error: "Erreur création produit" },
+      { error: "Erreur serveur" },
       { status: 500 }
     );
   }
