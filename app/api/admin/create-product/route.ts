@@ -7,7 +7,6 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
 
-    const id = formData.get("id");
     const name = formData.get("name");
     const slug = formData.get("slug");
     const description = formData.get("description");
@@ -19,7 +18,6 @@ export async function POST(req: Request) {
     const isActive = formData.get("isActive");
 
     if (
-      typeof id !== "string" ||
       typeof name !== "string" ||
       typeof slug !== "string" ||
       typeof description !== "string" ||
@@ -31,8 +29,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    await prisma.product.update({
-      where: { id },
+    await prisma.product.create({
       data: {
         name: name.trim(),
         slug: slug.trim(),
@@ -53,7 +50,7 @@ export async function POST(req: Request) {
       status: 303,
     });
   } catch (error) {
-    console.error("UPDATE PRODUCT ERROR:", error);
+    console.error("CREATE PRODUCT ERROR:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
