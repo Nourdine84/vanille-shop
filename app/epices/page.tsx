@@ -1,70 +1,226 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 
-async function getProducts() {
-  const res = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
-  });
+type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  priceCents: number;
+  imageUrl: string;
+  stock?: number;
+};
 
-  if (!res.ok) return [];
-
-  const data = await res.json();
-
-  // filtre épices
-  return data.filter((p: any) =>
-    ["cannelle", "poivre", "cacao", "girofle"].some((k) =>
-      p.name.toLowerCase().includes(k)
-    )
-  );
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-export default async function EpicesPage() {
-  const products = await getProducts();
+// 🔥 mots clés épices
+const SPICES_KEYWORDS = [
+  "cannelle",
+  "poivre",
+  "girofle",
+  "épice",
+  "epice",
+];
+
+export default function EpicesPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("/api/products");
+        if (!res.ok) throw new Error("Erreur API");
+
+        const data = await res.json();
+
+        const filtered = data.filter((p: Product) =>
+          SPICES_KEYWORDS.some((keyword) =>
+            p.name.toLowerCase().includes(keyword)
+          )
+        );
+
+        setProducts(filtered);
+      } catch (error) {
+        console.error("❌ FETCH EPICES ERROR:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   return (
-    <div style={{ padding: "60px 20px" }}>
-      <h1 style={{ textAlign: "center", marginBottom: "40px" }}>
-        Épices premium
-      </h1>
+    <div style={container}>
+      <h1 style={title}>🌶️ Univers Épices</h1>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: "30px",
-          maxWidth: "1000px",
-          margin: "0 auto",
-        }}
-      >
-        {products.map((product: any) => (
-          <div
-            key={product.id}
-            style={{
-              background: "#fff",
-              borderRadius: "16px",
-              padding: "16px",
-              textAlign: "center",
-              boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-            }}
-          >
-            <img
-              src={product.imageUrl || "/images/product-vanille.jpg"}
-              style={{
-                width: "100%",
-                height: "180px",
-                objectFit: "cover",
-                borderRadius: "12px",
-                marginBottom: "12px",
-              }}
-            />
+      {/* LOADING */}
+      {loading && <div style={center}>Chargement des épices...</div>}
 
-            <h3>{product.name}</h3>
+      {/* EMPTY */}
+      {!loading && products.length === 0 && (
+        <div style={center}>Aucune épice disponible</div>
+      )}
 
-            <Link href={`/product/${product.slug}`}>
-              Voir →
+      {/* GRID */}
+      <div style={grid}>
+        {products.map((product, index) => {
+          const isOutOfStock = product.stock === 0;
+
+          return (
+            <Link
+              key={product.id}
+              href={`/product/${product.slug}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.04 }}
+                style={{
+                  ...card,
+                  opacity: isOutOfStock ? 0.6 : 1,
+                }}
+              >
+                {/* ⭐ BEST SELLER */}
+                {index === 0 && !isOutOfStock && (
+                  <div style={bestSeller}>⭐ Best seller</div>
+                )}
+
+                {/* 🔴 ÉPUISÉ */}
+                {isOutOfStock && (
+                  <div style={outOfStock}>ÉPUISÉ</div>
+                )}
+
+                {/* IMAGE */}
+                <div style={{ position: "relative" }}>
+                  <img
+                    src={product.imageUrl || "/images/product-default.jpg"}
+                    alt={product.name}
+                    style={img}
+                  />
+
+                  {/* HOVER CTA */}
+                  <div style={overlay}>Voir produit →</div>
+                </div>
+
+                {/* INFOS */}
+                <h3 style={name}>{product.name}</h3>
+
+                <p style={desc}>
+                  {product.description?.slice(0, 80)}...
+                </p>
+
+                <p style={price}>
+                  {formatPrice(product.priceCents)}
+                </p>
+              </motion.div>
             </Link>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
+
+/* 🎨 STYLES */
+
+const container = {
+  background: "#faf7f2",
+  minHeight: "100vh",
+  padding: "40px 20px",
+  maxWidth: "1100px",
+  margin: "0 auto",
+};
+
+const title = {
+  textAlign: "center" as const,
+  marginBottom: "40px",
+  fontSize: "32px",
+};
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+  gap: "25px",
+};
+
+const card = {
+  background: "white",
+  padding: "15px",
+  borderRadius: "16px",
+  boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
+  cursor: "pointer",
+  position: "relative" as const,
+  overflow: "hidden",
+};
+
+const img = {
+  width: "100%",
+  height: "220px",
+  objectFit: "cover" as const,
+  borderRadius: "12px",
+  marginBottom: "10px",
+};
+
+const overlay = {
+  position: "absolute" as const,
+  bottom: "10px",
+  right: "10px",
+  background: "#a16207",
+  color: "white",
+  padding: "6px 10px",
+  borderRadius: "8px",
+  fontSize: "12px",
+  opacity: 0,
+  transition: "0.3s",
+};
+
+const name = {
+  fontSize: "18px",
+  fontWeight: 700,
+};
+
+const desc = {
+  color: "#666",
+  fontSize: "14px",
+};
+
+const price = {
+  marginTop: "10px",
+  fontWeight: "700",
+  color: "#a16207",
+};
+
+const bestSeller = {
+  position: "absolute" as const,
+  top: "12px",
+  left: "12px",
+  background: "#a16207",
+  color: "white",
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  zIndex: 2,
+};
+
+const outOfStock = {
+  position: "absolute" as const,
+  top: "12px",
+  right: "12px",
+  background: "#dc2626",
+  color: "white",
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  zIndex: 2,
+};
+
+const center = {
+  textAlign: "center" as const,
+  marginBottom: "20px",
+};
