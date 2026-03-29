@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState } from "react";
 
 export default function B2BPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
 
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(e.target);
 
     const data = {
       name: form.get("name"),
@@ -24,7 +24,7 @@ export default function B2BPage() {
       const res = await fetch("/api/b2b", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json", // 🔥 IMPORTANT
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
@@ -32,8 +32,7 @@ export default function B2BPage() {
       if (!res.ok) throw new Error();
 
       setSuccess(true);
-    } catch (err) {
-      console.error("B2B ERROR:", err);
+    } catch {
       alert("Erreur lors de l'envoi");
     } finally {
       setLoading(false);
@@ -100,7 +99,7 @@ export default function B2BPage() {
   );
 }
 
-/* 🎨 STYLES */
+/* 🎨 STYLE */
 
 const container = {
   background: "#faf7f2",
@@ -134,7 +133,6 @@ const input = {
   padding: "14px",
   borderRadius: "10px",
   border: "1px solid #ddd",
-  fontSize: "14px",
 };
 
 const button = {
@@ -150,11 +148,9 @@ const successBox = {
   background: "white",
   padding: "20px",
   borderRadius: "12px",
-  marginTop: "20px",
 };
 
 const trust = {
   marginTop: "40px",
   color: "#666",
-  fontSize: "14px",
 };

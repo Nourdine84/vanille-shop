@@ -1,30 +1,68 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { prisma } from "@/lib/prisma";
+import { sendB2BEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { name, email, company, quantity, message } = body;
+    const {
+      name,
+      email,
+      company,
+      quantity,
+      message,
+    }: {
+      name?: string;
+      email?: string;
+      company?: string;
+      quantity?: string;
+      message?: string;
+    } = body;
 
-    await resend.emails.send({
-      from: "contact@vanilleor.fr",
-      to: "tn.smok@hotmail.fr",
-      subject: "Nouvelle demande B2B 🚀",
-      html: `
-        <h2>Nouvelle demande professionnelle</h2>
-        <p><strong>Nom :</strong> ${name}</p>
-        <p><strong>Email :</strong> ${email}</p>
-        <p><strong>Entreprise :</strong> ${company}</p>
-        <p><strong>Quantité :</strong> ${quantity}</p>
-        <p><strong>Message :</strong><br/>${message}</p>
-      `,
+    /* 🔒 VALIDATION */
+    if (!name || !email || !quantity) {
+      return NextResponse.json(
+        { error: "Champs manquants" },
+        { status: 400 }
+      );
+    }
+
+    /* 💾 SAVE DB */
+    const request = await prisma.B2BRequest.create({
+      data: {
+        name,
+        email,
+        company: company || null,
+        quantity,
+        message: message || null,
+      },
     });
 
+    /* 📩 EMAIL */
+    try {
+      await sendB2BEmail({
+        name,
+        email,
+        company,
+        quantity,
+        message,
+      });
+    } catch (emailError) {
+      console.error("EMAIL ERROR:", emailError);
+      // 👉 on ne bloque pas la requête si email KO
+    }
+
+    console.log("✅ B2B CREATED:", request.id);
+
     return NextResponse.json({ success: true });
+
   } catch (error) {
-    return NextResponse.json({ error: true }, { status: 500 });
+    console.error("🔥 B2B ERROR:", error);
+
+    return NextResponse.json(
+      { error: "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }

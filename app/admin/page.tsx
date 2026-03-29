@@ -43,14 +43,13 @@ export default async function AdminPage({
     orderBy: { createdAt: "desc" },
   });
 
-  // KPI
   const totalRevenue = orders.reduce(
     (acc, order) => acc + order.totalCents,
     0
   );
 
   const totalOrders = orders.length;
-  const avgCart = totalOrders ? totalRevenue / totalOrders : 0;
+  const avgCart = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
   const paidOrders = orders.filter((o) => o.status === "PAID").length;
   const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
@@ -59,7 +58,6 @@ export default async function AdminPage({
   const failedOrders = orders.filter((o) => o.status === "FAILED").length;
   const canceledOrders = orders.filter((o) => o.status === "CANCELED").length;
 
-  // TOP PRODUITS
   const productMap: Record<string, number> = {};
 
   orders.forEach((order) => {
@@ -68,8 +66,7 @@ export default async function AdminPage({
       : [];
 
     items.forEach((item) => {
-      productMap[item.name] =
-        (productMap[item.name] || 0) + item.quantity;
+      productMap[item.name] = (productMap[item.name] || 0) + item.quantity;
     });
   });
 
@@ -81,7 +78,6 @@ export default async function AdminPage({
     <div style={container}>
       <h1 style={title}>📊 Dashboard Vanille’Or</h1>
 
-      {/* KPI */}
       <div style={grid4}>
         <Card title="💰 CA" value={`${(totalRevenue / 100).toFixed(2)} €`} />
         <Card title="📦 Commandes" value={String(totalOrders)} />
@@ -89,7 +85,6 @@ export default async function AdminPage({
         <Card title="✅ / ⏳" value={`${paidOrders} / ${pendingOrders}`} />
       </div>
 
-      {/* STATS LOGISTIQUE */}
       <div style={card}>
         <h2 style={{ marginBottom: "10px" }}>📦 Logistique</h2>
 
@@ -102,7 +97,6 @@ export default async function AdminPage({
         </div>
       </div>
 
-      {/* TOP PRODUITS */}
       <div style={card}>
         <h2 style={{ marginBottom: "10px" }}>🏆 Top produits</h2>
 
@@ -118,96 +112,91 @@ export default async function AdminPage({
         )}
       </div>
 
-      {/* COMMANDES */}
       <div style={table}>
         <h2>Commandes</h2>
 
-        {orders.map((order) => {
-          const items = Array.isArray(order.items)
-            ? (order.items as unknown as OrderItem[])
-            : [];
+        {orders.length === 0 ? (
+          <div style={emptyState}>Aucune commande trouvée.</div>
+        ) : (
+          orders.map((order) => {
+            const items = Array.isArray(order.items)
+              ? (order.items as unknown as OrderItem[])
+              : [];
 
-          return (
-            <div key={order.id} style={orderCard}>
-              <div style={rowTop}>
-                <strong>{order.email || "N/A"}</strong>
-                <Status status={order.status} />
-              </div>
+            return (
+              <div key={order.id} style={orderCard}>
+                <div style={rowTop}>
+                  <strong>{order.email || "N/A"}</strong>
+                  <Status status={order.status} />
+                </div>
 
-              <div style={rowTop}>
-                <span style={amount}>
-                  {(order.totalCents / 100).toFixed(2)} €
-                </span>
-                <span style={date}>
-                  {new Date(order.createdAt).toLocaleString()}
-                </span>
-              </div>
+                <div style={{ ...rowTop, marginTop: "8px" }}>
+                  <span style={amount}>
+                    {(order.totalCents / 100).toFixed(2)} €
+                  </span>
+                  <span style={date}>
+                    {new Date(order.createdAt).toLocaleString("fr-FR")}
+                  </span>
+                </div>
 
-              <div style={itemsBox}>
-                {items.length === 0 ? (
-                  <p style={{ color: "#777" }}>
-                    Aucun détail produit
-                  </p>
-                ) : (
-                  items.map((item, i) => (
-                    <p key={i}>
-                      {item.name} x{item.quantity}
-                    </p>
-                  ))
-                )}
-              </div>
+                <div style={itemsBox}>
+                  {items.length === 0 ? (
+                    <p style={{ color: "#777" }}>Aucun détail produit</p>
+                  ) : (
+                    items.map((item, i) => (
+                      <p key={i}>
+                        {item.name} x{item.quantity}
+                      </p>
+                    ))
+                  )}
+                </div>
 
-              {/* 🔥 FORM UPDATE */}
-              <form
-                action="/api/admin/update-order"
-                method="POST"
-                style={actionRow}
-              >
-                <input type="hidden" name="id" value={order.id} />
-
-                {/* STATUS */}
-                <select
-                  name="status"
-                  defaultValue={order.status}
-                  style={input}
+                <form
+                  action="/api/admin/update-order"
+                  method="POST"
+                  style={actionRow}
                 >
-                  <option value="PENDING">PENDING</option>
-                  <option value="PAID">PAID</option>
-                  <option value="SHIPPED">SHIPPED</option>
-                  <option value="DELIVERED">DELIVERED</option>
-                  <option value="FAILED">FAILED</option>
-                  <option value="CANCELED">CANCELED</option>
-                </select>
+                  <input type="hidden" name="id" value={order.id} />
 
-                {/* TRACKING */}
-                <input
-                  name="trackingNumber"
-                  placeholder="Tracking"
-                  defaultValue={order.trackingNumber || ""}
-                  style={input}
-                />
+                  <select
+                    name="status"
+                    defaultValue={order.status}
+                    style={input}
+                  >
+                    <option value="PENDING">PENDING</option>
+                    <option value="PAID">PAID</option>
+                    <option value="SHIPPED">SHIPPED</option>
+                    <option value="DELIVERED">DELIVERED</option>
+                    <option value="FAILED">FAILED</option>
+                    <option value="CANCELED">CANCELED</option>
+                  </select>
 
-                {/* CARRIER */}
-                <input
-                  name="carrier"
-                  placeholder="Transporteur"
-                  defaultValue={order.carrier || ""}
-                  style={input}
-                />
+                  <input
+                    name="trackingNumber"
+                    placeholder="Tracking"
+                    defaultValue={order.trackingNumber || ""}
+                    style={input}
+                  />
 
-                <button style={primaryBtn}>
-                  Enregistrer
-                </button>
-              </form>
-            </div>
-          );
-        })}
+                  <input
+                    name="carrier"
+                    placeholder="Transporteur"
+                    defaultValue={order.carrier || ""}
+                    style={input}
+                  />
+
+                  <button type="submit" style={primaryBtn}>
+                    Enregistrer
+                  </button>
+                </form>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
-
-/* COMPONENTS */
 
 function Card({ title, value }: { title: string; value: string }) {
   return (
@@ -234,8 +223,6 @@ function Status({ status }: { status: OrderStatus }) {
     </span>
   );
 }
-
-/* STYLES */
 
 const container = {
   padding: "40px",
@@ -338,4 +325,11 @@ const topProductRow = {
   display: "flex",
   justifyContent: "space-between",
   padding: "6px 0",
+};
+
+const emptyState = {
+  background: "white",
+  padding: "24px",
+  borderRadius: "12px",
+  color: "#777",
 };

@@ -77,3 +77,23 @@ enum OrderStatus {
   FAILED
   CANCELED
 }
+
+model B2BRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String?
+  quantity  String
+  message   String?
+
+  status    B2BStatus @default(NEW) // 🔥 NOUVEAU
+
+  createdAt DateTime @default(now())
+}
+
+enum B2BStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+

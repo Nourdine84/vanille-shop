@@ -1,5 +1,9 @@
 import { Resend } from "resend";
 
+/* =========================
+   TYPES
+========================= */
+
 type OrderItem = {
   name: string;
   quantity: number;
@@ -20,9 +24,30 @@ type SendShippingEmailParams = {
   carrier?: string | null;
 };
 
+type SendB2BParams = {
+  name: string;
+  email: string;
+  company?: string;
+  quantity: string;
+  message?: string;
+};
+
+/* =========================
+   INIT
+========================= */
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const from = process.env.RESEND_FROM_EMAIL || "Vanille’Or <onboarding@resend.dev>";
+const from =
+  process.env.RESEND_FROM_EMAIL ||
+  "Vanille’Or <onboarding@resend.dev>";
+
+const B2B_RECEIVER =
+  process.env.B2B_RECEIVER_EMAIL || "contact@vanilleor.com";
+
+/* =========================
+   UTILS
+========================= */
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
@@ -37,76 +62,96 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
+/* =========================
+   ORDER CONFIRMATION
+========================= */
+
 export async function sendOrderConfirmationEmail({
   to,
   orderId,
   items,
   totalCents,
 }: SendOrderConfirmationParams) {
-  const safeItems = items.map((item) => ({
-    name: escapeHtml(item.name),
-    quantity: item.quantity,
-    price: formatPrice(item.priceCents * item.quantity),
-  }));
+  try {
+    const safeItems = items.map((item) => ({
+      name: escapeHtml(item.name),
+      quantity: item.quantity,
+      price: formatPrice(item.priceCents * item.quantity),
+    }));
 
-  const itemsHtml = safeItems
-    .map(
-      (item) => `
-        <tr>
-          <td style="padding:8px 0;color:#111;">${item.name}</td>
-          <td style="padding:8px 0;color:#666;text-align:center;">x${item.quantity}</td>
-          <td style="padding:8px 0;color:#111;text-align:right;">${item.price}</td>
-        </tr>
-      `
-    )
-    .join("");
+    const itemsHtml = safeItems
+      .map(
+        (item) => `
+          <tr>
+            <td style="padding:8px 0;color:#111;">${item.name}</td>
+            <td style="padding:8px 0;color:#666;text-align:center;">x${item.quantity}</td>
+            <td style="padding:8px 0;color:#111;text-align:right;">${item.price}</td>
+          </tr>
+        `
+      )
+      .join("");
 
-  await resend.emails.send({
-    from,
-    to,
-    subject: `Confirmation de commande Vanille’Or #${orderId.slice(0, 8)}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#faf7f2;padding:32px;">
-        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
-          <h1 style="margin:0 0 16px;font-size:28px;color:#111;">Merci pour votre commande ✨</h1>
-          <p style="margin:0 0 24px;color:#555;line-height:1.6;">
-            Votre commande Vanille’Or a bien été confirmée et est en cours de préparation.
-          </p>
+    await resend.emails.send({
+      from,
+      to,
+      subject: `Confirmation de commande Vanille’Or #${orderId.slice(0, 8)}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;background:#faf7f2;padding:32px;">
+          <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
+            
+            <h1 style="margin:0 0 16px;font-size:28px;color:#111;">
+              Merci pour votre commande ✨
+            </h1>
 
-          <div style="background:#f7f7f7;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
-            <p style="margin:0;color:#333;"><strong>Commande :</strong> #${escapeHtml(orderId.slice(0, 8))}</p>
-          </div>
+            <p style="margin:0 0 24px;color:#555;line-height:1.6;">
+              Votre commande Vanille’Or a bien été confirmée et est en cours de préparation.
+            </p>
 
-          <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding-bottom:10px;border-bottom:1px solid #eee;">Produit</th>
-                <th style="text-align:center;padding-bottom:10px;border-bottom:1px solid #eee;">Qté</th>
-                <th style="text-align:right;padding-bottom:10px;border-bottom:1px solid #eee;">Montant</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
+            <div style="background:#f7f7f7;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
+              <p style="margin:0;color:#333;">
+                <strong>Commande :</strong> #${escapeHtml(orderId.slice(0, 8))}
+              </p>
+            </div>
 
-          <div style="display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:16px;margin-bottom:24px;">
-            <span style="font-size:16px;color:#333;"><strong>Total</strong></span>
-            <span style="font-size:18px;color:#a16207;"><strong>${formatPrice(totalCents)}</strong></span>
-          </div>
+            <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding-bottom:10px;border-bottom:1px solid #eee;">Produit</th>
+                  <th style="text-align:center;padding-bottom:10px;border-bottom:1px solid #eee;">Qté</th>
+                  <th style="text-align:right;padding-bottom:10px;border-bottom:1px solid #eee;">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
 
-          <p style="margin:0;color:#555;line-height:1.6;">
-            Vous recevrez un nouvel email dès que votre commande sera expédiée.
-          </p>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:16px;margin-bottom:24px;">
+              <span style="font-size:16px;color:#333;"><strong>Total</strong></span>
+              <span style="font-size:18px;color:#a16207;">
+                <strong>${formatPrice(totalCents)}</strong>
+              </span>
+            </div>
 
-          <div style="margin-top:28px;padding-top:18px;border-top:1px solid #eee;font-size:13px;color:#888;">
-            Vanille’Or — Vanille premium de Madagascar
+            <p style="margin:0;color:#555;line-height:1.6;">
+              Vous recevrez un nouvel email dès que votre commande sera expédiée.
+            </p>
+
+            <div style="margin-top:28px;padding-top:18px;border-top:1px solid #eee;font-size:13px;color:#888;">
+              Vanille’Or — Vanille premium de Madagascar
+            </div>
           </div>
         </div>
-      </div>
-    `,
-  });
+      `,
+    });
+  } catch (error) {
+    console.error("❌ EMAIL ORDER ERROR:", error);
+  }
 }
+
+/* =========================
+   SHIPPING EMAIL
+========================= */
 
 export async function sendShippingEmail({
   to,
@@ -114,36 +159,84 @@ export async function sendShippingEmail({
   trackingNumber,
   carrier,
 }: SendShippingEmailParams) {
-  const safeTracking = escapeHtml(trackingNumber);
-  const safeCarrier = carrier ? escapeHtml(carrier) : "Transporteur";
+  try {
+    const safeTracking = escapeHtml(trackingNumber);
+    const safeCarrier = carrier ? escapeHtml(carrier) : "Transporteur";
 
-  await resend.emails.send({
-    from,
-    to,
-    subject: `Votre commande Vanille’Or #${orderId.slice(0, 8)} a été expédiée`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#faf7f2;padding:32px;">
-        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
-          <h1 style="margin:0 0 16px;font-size:28px;color:#111;">Votre commande est en route 📦</h1>
-          <p style="margin:0 0 24px;color:#555;line-height:1.6;">
-            Bonne nouvelle, votre commande Vanille’Or a été expédiée.
-          </p>
+    await resend.emails.send({
+      from,
+      to,
+      subject: `Votre commande Vanille’Or #${orderId.slice(0, 8)} a été expédiée`,
+      html: `
+        <div style="font-family:Arial,sans-serif;background:#faf7f2;padding:32px;">
+          <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
+            
+            <h1 style="margin:0 0 16px;font-size:28px;color:#111;">
+              Votre commande est en route 📦
+            </h1>
 
-          <div style="background:#f7f7f7;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
-            <p style="margin:0 0 8px;color:#333;"><strong>Commande :</strong> #${escapeHtml(orderId.slice(0, 8))}</p>
-            <p style="margin:0 0 8px;color:#333;"><strong>Transporteur :</strong> ${safeCarrier}</p>
-            <p style="margin:0;color:#333;"><strong>Numéro de suivi :</strong> ${safeTracking}</p>
-          </div>
+            <p style="margin:0 0 24px;color:#555;line-height:1.6;">
+              Bonne nouvelle, votre commande Vanille’Or a été expédiée.
+            </p>
 
-          <p style="margin:0;color:#555;line-height:1.6;">
-            Conservez cet email pour suivre l’acheminement de votre colis.
-          </p>
+            <div style="background:#f7f7f7;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
+              <p><strong>Commande :</strong> #${escapeHtml(orderId.slice(0, 8))}</p>
+              <p><strong>Transporteur :</strong> ${safeCarrier}</p>
+              <p><strong>Suivi :</strong> ${safeTracking}</p>
+            </div>
 
-          <div style="margin-top:28px;padding-top:18px;border-top:1px solid #eee;font-size:13px;color:#888;">
-            Vanille’Or — Vanille premium de Madagascar
+            <p style="margin:0;color:#555;">
+              Conservez cet email pour suivre votre colis.
+            </p>
+
+            <div style="margin-top:28px;padding-top:18px;border-top:1px solid #eee;font-size:13px;color:#888;">
+              Vanille’Or — Vanille premium de Madagascar
+            </div>
           </div>
         </div>
-      </div>
-    `,
-  });
+      `,
+    });
+  } catch (error) {
+    console.error("❌ EMAIL SHIPPING ERROR:", error);
+  }
+}
+
+/* =========================
+   B2B EMAIL
+========================= */
+
+export async function sendB2BEmail({
+  name,
+  email,
+  company,
+  quantity,
+  message,
+}: SendB2BParams) {
+  try {
+    await resend.emails.send({
+      from,
+      to: [B2B_RECEIVER],
+      subject: "🔥 Nouvelle demande B2B Vanille’Or",
+      html: `
+        <div style="font-family:Arial,sans-serif;background:#faf7f2;padding:32px;">
+          <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;">
+            
+            <h2>Nouvelle demande professionnelle</h2>
+
+            <p><strong>Nom :</strong> ${escapeHtml(name)}</p>
+            <p><strong>Email :</strong> ${escapeHtml(email)}</p>
+            <p><strong>Entreprise :</strong> ${escapeHtml(company || "-")}</p>
+            <p><strong>Quantité :</strong> ${escapeHtml(quantity)}</p>
+
+            <p><strong>Message :</strong><br/>
+            ${escapeHtml(message || "-")}
+            </p>
+
+          </div>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("❌ EMAIL B2B ERROR:", error);
+  }
 }
