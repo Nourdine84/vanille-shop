@@ -1,83 +1,79 @@
 {
   "compilerOptions": {
     /* =========================
-       CORE CONFIG
-    ========================= */
+        CORE CONFIG
+     ========================= */
     "target": "ES2020",
-    "lib": ["dom", "dom.iterable", "esnext"],
-
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "module": "esnext",
     "moduleResolution": "bundler",
-
     "jsx": "preserve",
-
     /* =========================
-       STRICT MODE (🔥 PRO)
-    ========================= */
+        STRICT MODE (🔥 PRO)
+     ========================= */
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
-
     /* =========================
-       CODE QUALITY (🔥 BONUS PRO)
-    ========================= */
+        CODE QUALITY (🔥 BONUS PRO)
+     ========================= */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
     /* =========================
-       MODULE & INTEROP
-    ========================= */
+        MODULE & INTEROP
+     ========================= */
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-
     /* =========================
-       NEXT / BUILD
-    ========================= */
+        NEXT / BUILD
+     ========================= */
     "skipLibCheck": true,
     "noEmit": true,
     "incremental": true,
-
     /* =========================
-       TYPES (🔥 FIX CRITICAL)
-    ========================= */
-    "types": ["node"],
-
+        TYPES (🔥 FIX CRITICAL)
+     ========================= */
+    "types": [
+      "node"
+    ],
     /* =========================
-       IMPORTS CLEAN (🔥 IMPORTANT)
-    ========================= */
+        IMPORTS CLEAN (🔥 IMPORTANT)
+     ========================= */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     },
-
     /* =========================
-       SAFETY
-    ========================= */
+        SAFETY
+     ========================= */
     "allowJs": false,
-
     /* =========================
-       NEXT PLUGIN
-    ========================= */
+        NEXT PLUGIN
+     ========================= */
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next"
   ]
 }
-

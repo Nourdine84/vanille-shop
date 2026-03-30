@@ -58,7 +58,6 @@ model Order {
 
   items           Json
 
-  // 🔥 TRACKING PRO
   trackingNumber  String?
   carrier         String?
 
@@ -79,16 +78,24 @@ enum OrderStatus {
 }
 
 model B2BRequest {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  company   String?
-  quantity  String
-  message   String?
+  id           String   @id @default(cuid())
+  name         String
+  email        String
+  company      String?
+  quantity     String
+  message      String?
 
-  status    B2BStatus @default(NEW) // 🔥 NOUVEAU
+  status       B2BStatus @default(NEW)
+  relanceStep  Int       @default(0)
 
-  createdAt DateTime @default(now())
+  quoteSent    Boolean   @default(false)
+  quoteAmount  Int?
+
+  createdAt    DateTime  @default(now())
+
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
 }
 
 enum B2BStatus {
@@ -96,4 +103,3 @@ enum B2BStatus {
   CONTACTED
   CLOSED
 }
-

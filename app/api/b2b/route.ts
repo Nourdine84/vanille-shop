@@ -1,26 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendB2BEmail } from "@/lib/email";
+import { sendB2BEmail, sendB2BDevisEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const {
-      name,
-      email,
-      company,
-      quantity,
-      message,
-    }: {
-      name?: string;
-      email?: string;
-      company?: string;
-      quantity?: string;
-      message?: string;
-    } = body;
+    const { name, email, company, quantity, message } = body;
 
-    /* 🔒 VALIDATION */
     if (!name || !email || !quantity) {
       return NextResponse.json(
         { error: "Champs manquants" },
@@ -28,37 +15,37 @@ export async function POST(req: Request) {
       );
     }
 
-    /* 💾 SAVE DB */
-    const request = await prisma.B2BRequest.create({
+    await prisma.b2BRequest.create({
       data: {
-        name,
-        email,
-        company: company || null,
-        quantity,
-        message: message || null,
-      },
-    });
-
-    /* 📩 EMAIL */
-    try {
-      await sendB2BEmail({
         name,
         email,
         company,
         quantity,
         message,
-      });
-    } catch (emailError) {
-      console.error("EMAIL ERROR:", emailError);
-      // 👉 on ne bloque pas la requête si email KO
-    }
+      },
+    });
 
-    console.log("✅ B2B CREATED:", request.id);
+    // 🔥 EMAIL INTERNE (toi)
+    await sendB2BEmail({
+      name,
+      email,
+      company,
+      quantity,
+      message,
+    });
+
+    // 🔥 EMAIL CLIENT AUTO (DEVIS)
+    await sendB2BDevisEmail({
+      name,
+      email,
+      company,
+      quantity,
+    });
 
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error("🔥 B2B ERROR:", error);
+    console.error("B2B ERROR:", error);
 
     return NextResponse.json(
       { error: "Erreur serveur" },

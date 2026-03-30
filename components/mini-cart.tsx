@@ -1,302 +1,240 @@
 "use client";
 
 import { useCart } from "@/lib/cart-store";
-
-type Props = {
-  open: boolean;
-  onClose: () => void;
-};
+import { useUIStore } from "@/components/ui-provider";
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-export default function MiniCart({ open, onClose }: Props) {
-  const { cart, removeFromCart, updateQuantity, addToCart } = useCart();
+export default function MiniCart() {
+  const { cart, removeFromCart } = useCart();
+  const { isCartOpen, closeCart } = useUIStore();
 
-  const total = cart.reduce(
-    (acc: number, item: any) =>
-      acc + item.priceCents * item.quantity,
+  if (!isCartOpen) return null;
+
+  const subtotal = cart.reduce(
+    (acc, item) => acc + item.priceCents * item.quantity,
     0
   );
 
   const freeShippingThreshold = 5000;
-  const remaining = freeShippingThreshold - total;
+  const remaining = Math.max(0, freeShippingThreshold - subtotal);
 
   return (
     <>
       {/* OVERLAY */}
-      <div
-        onClick={onClose}
-        style={{
-          ...overlay,
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-        }}
-      />
+      <div style={overlay} onClick={closeCart} />
 
-      {/* DRAWER */}
-      <aside
-        style={{
-          ...drawer,
-          transform: open
-            ? "translateX(0)"
-            : "translateX(100%)",
-        }}
-      >
-        <h2 style={title}>Votre panier</h2>
-
-        {/* ITEMS */}
-        <div style={content}>
-          {cart.length === 0 && (
-            <p style={{ color: "#777" }}>Panier vide</p>
-          )}
-
-          {cart.map((item) => (
-            <div key={item.id} style={itemBox}>
-              <img
-                src={item.imageUrl || "/images/product-vanille.jpg"}
-                alt={item.name}
-                style={img}
-              />
-
-              <div style={{ flex: 1 }}>
-                <p style={{ fontWeight: 600 }}>{item.name}</p>
-
-                <p style={{ fontSize: "14px", color: "#666" }}>
-                  {formatPrice(item.priceCents)}
-                </p>
-
-                <div style={qtyBox}>
-                  <button
-                    onClick={() =>
-                      item.quantity > 1
-                        ? updateQuantity(item.id, item.quantity - 1)
-                        : removeFromCart(item.id)
-                    }
-                    style={qtyBtn}
-                  >
-                    -
-                  </button>
-
-                  <span>{item.quantity}</span>
-
-                  <button
-                    onClick={() =>
-                      updateQuantity(item.id, item.quantity + 1)
-                    }
-                    style={qtyBtn}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={() => removeFromCart(item.id)}
-                style={removeBtn}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+      {/* CART */}
+      <div style={cartStyle}>
+        
+        {/* HEADER */}
+        <div style={header}>
+          <h2 style={{ margin: 0 }}>Votre panier</h2>
+          <button onClick={closeCart} style={closeBtn}>✕</button>
         </div>
 
-        {/* 🔥 SHIPPING + URGENCE */}
+        {/* SHIPPING INFO */}
+        <div style={shippingBox}>
+          {subtotal >= freeShippingThreshold ? (
+            <span>🚚 Livraison offerte</span>
+          ) : (
+            <span>
+              Encore <strong>{formatPrice(remaining)}</strong> pour la livraison offerte
+            </span>
+          )}
+        </div>
+
+        {/* LIST */}
+        <div style={list}>
+          {cart.length === 0 ? (
+            <p style={emptyText}>
+              Votre panier est vide
+            </p>
+          ) : (
+            cart.map((item) => (
+              <div key={item.id} style={itemRow}>
+                
+                {/* IMAGE */}
+                <img
+                  src={item.imageUrl || "/images/product-vanille.jpg"}
+                  alt={item.name}
+                  style={image}
+                />
+
+                {/* INFO */}
+                <div style={{ flex: 1 }}>
+                  <p style={itemName}>{item.name}</p>
+
+                  <p style={itemQty}>
+                    Quantité : {item.quantity}
+                  </p>
+
+                  <p style={itemPrice}>
+                    {formatPrice(item.priceCents * item.quantity)}
+                  </p>
+                </div>
+
+                {/* REMOVE */}
+                <button
+                  onClick={() => removeFromCart(item.id)}
+                  style={removeBtn}
+                >
+                  ✕
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* FOOTER */}
         {cart.length > 0 && (
-          <div style={shippingBox}>
-            {remaining > 0 ? (
-              <p style={{ color: "#a16207", fontWeight: 500 }}>
-                🚚 Plus que <strong>{formatPrice(remaining)}</strong> pour livraison offerte
-              </p>
-            ) : (
-              <p style={{ color: "green", fontWeight: 600 }}>
-                🎉 Livraison offerte activée
-              </p>
-            )}
+          <div style={footer}>
+            
+            {/* TOTAL */}
+            <div style={totalRow}>
+              <span>Total</span>
+              <strong>{formatPrice(subtotal)}</strong>
+            </div>
 
-            <p style={urgency}>
-              🔥 Forte demande sur nos produits
-            </p>
-          </div>
-        )}
+            {/* CTA CHECKOUT */}
+            <a href="/checkout" style={checkoutBtn}>
+              Payer maintenant 🔒
+            </a>
 
-        {/* 🔥 UPSELL */}
-        {total < 5000 && (
-          <div style={upsell}>
-            <p style={{ fontWeight: 600 }}>
-              💡 Complétez votre commande
-            </p>
-
-            <p style={{ fontSize: "13px", color: "#666" }}>
-              Ajoutez de la poudre de vanille premium
-            </p>
-
-            <button
-              onClick={() =>
-                addToCart({
-                  id: "upsell-vanille",
-                  name: "Poudre de vanille",
-                  priceCents: 500,
-                  quantity: 1,
-                })
-              }
-              style={upsellBtn}
-            >
-              Ajouter +5€
+            {/* CTA CONTINUE */}
+            <button onClick={closeCart} style={continueBtn}>
+              Continuer mes achats
             </button>
           </div>
         )}
-
-        {/* TOTAL */}
-        <div style={totalBox}>
-          <span>Total</span>
-          <span>{formatPrice(total)}</span>
-        </div>
-
-        {/* ACTIONS */}
-        <button onClick={onClose} style={secondaryBtn}>
-          Continuer mes achats
-        </button>
-
-        <button
-          onClick={() => (window.location.href = "/checkout")}
-          style={primaryBtn}
-        >
-          🔒 Paiement sécurisé
-        </button>
-      </aside>
+      </div>
     </>
   );
 }
 
-/* 🎨 STYLES */
+/* 🎨 STYLE */
 
 const overlay = {
   position: "fixed" as const,
   inset: 0,
   background: "rgba(0,0,0,0.4)",
-  backdropFilter: "blur(4px)",
-  transition: "0.3s",
-  zIndex: 999,
+  zIndex: 40,
 };
 
-const drawer = {
+const cartStyle = {
   position: "fixed" as const,
-  top: 0,
   right: 0,
-  width: "380px",
-  height: "100%",
+  top: 0,
+  width: "400px",
+  maxWidth: "100%",
+  height: "100vh",
   background: "white",
-  boxShadow: "-10px 0 40px rgba(0,0,0,0.15)",
-  transition: "transform 0.35s ease",
-  zIndex: 1000,
-  padding: "20px",
+  zIndex: 50,
   display: "flex",
   flexDirection: "column" as const,
+  boxShadow: "-10px 0 30px rgba(0,0,0,0.1)",
 };
 
-const title = {
-  fontSize: "22px",
-  marginBottom: "20px",
-};
-
-const content = {
-  flex: 1,
-  overflowY: "auto" as const,
-};
-
-const itemBox = {
+const header = {
   display: "flex",
-  gap: "12px",
-  marginBottom: "18px",
+  justifyContent: "space-between",
   alignItems: "center",
+  padding: "20px",
+  borderBottom: "1px solid #eee",
 };
 
-const img = {
-  width: "70px",
-  height: "70px",
-  objectFit: "cover" as const,
-  borderRadius: "10px",
-};
-
-const qtyBox = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  marginTop: "6px",
-};
-
-const qtyBtn = {
-  padding: "4px 8px",
-  borderRadius: "6px",
-  border: "1px solid #ddd",
-  cursor: "pointer",
-  background: "white",
-};
-
-const removeBtn = {
-  background: "#dc2626",
-  color: "white",
+const closeBtn = {
+  background: "transparent",
   border: "none",
-  padding: "6px 10px",
-  borderRadius: "6px",
+  fontSize: "18px",
   cursor: "pointer",
 };
 
 const shippingBox = {
+  padding: "12px 20px",
+  background: "#fef3c7",
   fontSize: "14px",
-  marginBottom: "12px",
 };
 
-const urgency = {
-  color: "#dc2626",
-  fontSize: "13px",
-  marginTop: "5px",
+const list = {
+  flex: 1,
+  overflowY: "auto" as const,
+  padding: "20px",
 };
 
-const upsell = {
-  background: "#f9f6f1",
-  padding: "12px",
-  borderRadius: "10px",
+const emptyText = {
+  textAlign: "center" as const,
+  color: "#777",
+};
+
+const itemRow = {
+  display: "flex",
+  gap: "12px",
   marginBottom: "15px",
+  alignItems: "center",
 };
 
-const upsellBtn = {
-  marginTop: "8px",
-  background: "#a16207",
-  color: "white",
+const image = {
+  width: "70px",
+  height: "70px",
+  borderRadius: "10px",
+  objectFit: "cover" as const,
+};
+
+const itemName = {
+  fontWeight: 600,
+  marginBottom: "4px",
+};
+
+const itemQty = {
+  fontSize: "13px",
+  color: "#666",
+};
+
+const itemPrice = {
+  color: "#a16207",
+  fontWeight: 600,
+};
+
+const removeBtn = {
+  background: "transparent",
   border: "none",
-  padding: "8px 12px",
-  borderRadius: "8px",
   cursor: "pointer",
+  color: "#999",
 };
 
-const totalBox = {
+const footer = {
+  padding: "20px",
+  borderTop: "1px solid #eee",
+};
+
+const totalRow = {
   display: "flex",
   justifyContent: "space-between",
-  fontWeight: 600,
   marginBottom: "15px",
+  fontSize: "16px",
 };
 
-const primaryBtn = {
+const checkoutBtn = {
+  display: "block",
+  width: "100%",
+  textAlign: "center" as const,
+  padding: "14px",
   background: "#a16207",
   color: "white",
-  padding: "16px",
-  borderRadius: "12px",
-  border: "none",
-  cursor: "pointer",
-  fontWeight: 700,
-  fontSize: "16px",
-  boxShadow: "0 8px 20px rgba(161,98,7,0.3)",
+  borderRadius: "10px",
+  textDecoration: "none",
+  marginBottom: "10px",
+  fontWeight: 600,
 };
 
-const secondaryBtn = {
-  marginBottom: "10px",
+const continueBtn = {
+  width: "100%",
   padding: "12px",
   background: "#f3f4f6",
-  borderRadius: "10px",
   border: "none",
+  borderRadius: "10px",
   cursor: "pointer",
-  fontWeight: 600,
 };

@@ -12,18 +12,25 @@ const getBaseUrl = (req: Request) => {
   return origin || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 };
 
+/* =========================
+   POST CHECKOUT
+========================= */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // 🔒 VALIDATION CART
+    /* =========================
+       VALIDATION PANIER
+    ========================= */
     if (!body.cart || !Array.isArray(body.cart) || body.cart.length === 0) {
       return NextResponse.json({ error: "Panier vide" }, { status: 400 });
     }
 
     const baseUrl = getBaseUrl(req);
 
-    // 🔒 VALIDATION PRODUITS + STOCK
+    /* =========================
+       VALIDATION PRODUITS
+    ========================= */
     for (const item of body.cart) {
       if (!item.id || !item.priceCents || !item.quantity) {
         return NextResponse.json(
@@ -51,7 +58,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // 💰 CALCUL
+    /* =========================
+       CALCUL PRIX
+    ========================= */
     const subtotal = body.cart.reduce(
       (acc: number, item: any) =>
         acc + item.priceCents * item.quantity,
@@ -62,7 +71,9 @@ export async function POST(req: Request) {
     const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
     const total = subtotal + shippingCost;
 
-    // 🧾 CREATE ORDER
+    /* =========================
+       CREATE ORDER
+    ========================= */
     const order = await prisma.order.create({
       data: {
         status: "PENDING",
@@ -72,7 +83,9 @@ export async function POST(req: Request) {
       },
     });
 
-    // 🛒 STRIPE LINE ITEMS
+    /* =========================
+       STRIPE LINE ITEMS
+    ========================= */
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
       body.cart.map((item: any) => ({
         price_data: {
@@ -102,13 +115,15 @@ export async function POST(req: Request) {
       });
     }
 
-    // 💳 STRIPE SESSION
+    /* =========================
+       STRIPE SESSION
+    ========================= */
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
 
-      success_url: `${baseUrl}/checkout/success`,
+      success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/checkout?error=1`,
 
       billing_address_collection: "required",
@@ -124,12 +139,12 @@ export async function POST(req: Request) {
       metadata: {
         orderId: order.id,
         source: "vanilleor-shop",
-        subtotal: String(subtotal),
-        shipping: String(shippingCost),
       },
     });
 
-    // 🔗 LINK SESSION
+    /* =========================
+       LINK ORDER → STRIPE
+    ========================= */
     await prisma.order.update({
       where: { id: order.id },
       data: {
@@ -141,12 +156,22 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url });
 
-  } catch (error) {
-    console.error("🔥 STRIPE ERROR:", error);
+  } catch (error: any) {
+    console.error("🔥 STRIPE FULL ERROR:");
+    console.error(error);
+    console.error("MESSAGE:", error?.message);
+    console.error("TYPE:", error?.type);
 
     return NextResponse.json(
-      { error: "Erreur Stripe" },
+      { error: error?.message || "Erreur Stripe" },
       { status: 500 }
     );
   }
+}
+
+/* =========================
+   GET (OPTION DEBUG)
+========================= */
+export async function GET() {
+  return NextResponse.json({ message: "API checkout OK" });
 }

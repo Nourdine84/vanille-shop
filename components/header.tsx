@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
-import MiniCart from "@/components/mini-cart";
 import { useUIStore } from "@/components/ui-provider";
 
 export default function Header() {
   const { cart } = useCart();
-  const { isCartOpen, openCart, closeCart } = useUIStore();
+  const { openCart } = useUIStore();
 
   const totalItems = cart.reduce(
     (acc: number, item: any) => acc + item.quantity,
@@ -15,78 +14,67 @@ export default function Header() {
   );
 
   return (
-    <>
-      <header style={header}>
-        {/* LOGO */}
-        <Link href="/" style={logo}>
-          Vanille’Or
+    <header style={header}>
+      
+      {/* LOGO */}
+      <Link href="/" style={logo}>
+        Vanille’Or
+      </Link>
+
+      {/* NAV */}
+      <nav style={nav}>
+        <Link href="/products" style={link}>Produits</Link>
+        <Link href="/collections/vanille" style={link}>Vanille</Link>
+        <Link href="/collections/epices" style={link}>Épices</Link>
+        <Link href="/b2b" style={link}>Pro</Link>
+      </nav>
+
+      {/* ACTIONS */}
+      <div style={actions}>
+        
+        {/* LOGIN */}
+        <Link href="/login" style={login}>
+          Connexion
         </Link>
 
-        {/* NAV */}
-        <nav style={nav}>
-          <Link href="/products" style={link}>
-            Produits
-          </Link>
-
-          <Link href="/collections/vanille" style={link}>
-            Vanille
-          </Link>
-
-          <Link href="/collections/epices" style={link}>
-            Épices
-          </Link>
-
-          <Link href="/about" style={link}>
-            À propos
-          </Link>
-
-          {/* CART */}
-          <button
-            onClick={() => openCart()}
-            style={cartButton}
-          >
-            🛒
-
-            {totalItems > 0 && (
-              <span style={badge}>
-                {totalItems}
-              </span>
-            )}
-          </button>
-        </nav>
-      </header>
-
-      {/* CART DRAWER */}
-      <MiniCart open={isCartOpen} onClose={closeCart} />
-    </>
+        {/* CART */}
+        <button onClick={openCart} style={cartBtn}>
+          🛒
+          {totalItems > 0 && (
+            <span style={badge}>{totalItems}</span>
+          )}
+        </button>
+      </div>
+    </header>
   );
 }
 
-/* 🎨 STYLES */
+/* 🎨 STYLE PREMIUM */
 
 const header = {
+  position: "sticky" as const,
+  top: 0,
+  zIndex: 100,
+  background: "rgba(255,255,255,0.9)",
+  backdropFilter: "blur(10px)",
+  borderBottom: "1px solid #eee",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "20px 40px",
-  borderBottom: "1px solid #eee",
-  background: "#fff",
-  position: "sticky" as const,
-  top: 0,
-  zIndex: 1000,
+  padding: "18px 40px",
 };
 
 const logo = {
-  textDecoration: "none",
-  color: "#a16207",
-  fontWeight: 800,
   fontSize: "22px",
+  fontWeight: 800,
+  color: "#a16207",
+  textDecoration: "none",
+  letterSpacing: "0.5px",
 };
 
 const nav = {
   display: "flex",
-  gap: "25px",
-  alignItems: "center",
+  gap: "30px",
 };
 
 const link = {
@@ -95,27 +83,35 @@ const link = {
   fontWeight: 500,
 };
 
-const cartButton = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
+const actions = {
+  display: "flex",
+  alignItems: "center",
+  gap: "15px",
+};
+
+const login = {
+  textDecoration: "none",
+  color: "#555",
+  fontSize: "14px",
+};
+
+const cartBtn = {
   position: "relative" as const,
-  fontSize: "22px",
+  background: "#a16207",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  padding: "10px 14px",
+  cursor: "pointer",
 };
 
 const badge = {
   position: "absolute" as const,
   top: "-6px",
-  right: "-10px",
-  background: "#a16207",
+  right: "-6px",
+  background: "#dc2626",
   color: "white",
   fontSize: "11px",
-  minWidth: "18px",
-  height: "18px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "999px",
-  padding: "0 5px",
-  fontWeight: 700,
+  borderRadius: "50%",
+  padding: "3px 6px",
 };

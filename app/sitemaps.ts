@@ -1,18 +1,7 @@
 import { MetadataRoute } from "next";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://ton-site.com";
-
-  const res = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
-  });
-
-  const products = await res.json();
-
-  const productUrls = products.map((p: any) => ({
-    url: `${baseUrl}/product/${p.slug}`,
-    lastModified: new Date(),
-  }));
+export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = "https://vanille-or.com";
 
   return [
     {
@@ -23,6 +12,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/products`,
       lastModified: new Date(),
     },
-    ...productUrls,
+    {
+      url: `${baseUrl}/collections/vanille`,
+      lastModified: new Date(),
+    },
+    {
+      url: `${baseUrl}/collections/epices`,
+      lastModified: new Date(),
+    },
+    {
+      url: `${baseUrl}/b2b`,
+      lastModified: new Date(),
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: new Date(),
+    },
+    {
+      url: `${baseUrl}/cgv`,
+      lastModified: new Date(),
+    },
   ];
 }

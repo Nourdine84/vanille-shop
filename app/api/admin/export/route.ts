@@ -1,28 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Order } from "@prisma/client";
+
+type OrderItem = {
+  name: string;
+  quantity: number;
+  priceCents: number;
+};
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const orders = await prisma.order.findMany({
+    const orders: Order[] = await prisma.order.findMany({
       orderBy: { createdAt: "desc" },
     });
 
-    const rows = [
-      [
-        "ID",
-        "Email",
-        "Statut",
-        "Total (€)",
-        "Date",
-        "Produits",
-      ],
+    const rows: string[][] = [
+      ["ID", "Email", "Statut", "Total (€)", "Date", "Produits"],
     ];
 
-    orders.forEach((order) => {
+    orders.forEach((order: Order) => {
       const items = Array.isArray(order.items)
-        ? (order.items as any[])
+        ? (order.items as unknown as OrderItem[])
         : [];
 
       const productList = items
@@ -50,6 +50,9 @@ export async function GET() {
 
   } catch (error) {
     console.error("EXPORT ERROR:", error);
-    return NextResponse.json({ error: "Export failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Export failed" },
+      { status: 500 }
+    );
   }
 }

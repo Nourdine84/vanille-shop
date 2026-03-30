@@ -15,25 +15,65 @@ type B2BRequest = {
   createdAt: Date;
 };
 
-export default async function AdminB2BPage() {
+export default async function AdminB2BPage({
+  searchParams,
+}: {
+  searchParams?: {
+    status?: string;
+    q?: string;
+  };
+}) {
   const isAdmin = cookies().get("admin");
 
   if (!isAdmin) {
     redirect("/admin/login");
   }
 
+  const statusFilter = searchParams?.status || "";
+  const query = searchParams?.q || "";
+
   const requests: B2BRequest[] = await prisma.b2BRequest.findMany({
+    where: {
+      ...(statusFilter ? { status: statusFilter as Status } : {}),
+      ...(query
+        ? {
+            email: {
+              contains: query,
+              mode: "insensitive",
+            },
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
 
   const total = requests.length;
-  const newCount = requests.filter(r => r.status === "NEW").length;
-  const contacted = requests.filter(r => r.status === "CONTACTED").length;
-  const closed = requests.filter(r => r.status === "CLOSED").length;
+  const newCount = requests.filter((r) => r.status === "NEW").length;
+  const contacted = requests.filter((r) => r.status === "CONTACTED").length;
+  const closed = requests.filter((r) => r.status === "CLOSED").length;
 
   return (
     <div style={container}>
       <h1 style={title}>📦 CRM B2B</h1>
+
+      {/* FILTRES */}
+      <form method="GET" style={filterBar}>
+        <input
+          name="q"
+          placeholder="Rechercher email..."
+          defaultValue={query}
+          style={input}
+        />
+
+        <select name="status" defaultValue={statusFilter} style={select}>
+          <option value="">Tous</option>
+          <option value="NEW">NEW</option>
+          <option value="CONTACTED">CONTACTED</option>
+          <option value="CLOSED">CLOSED</option>
+        </select>
+
+        <button style={btnSecondary}>Filtrer</button>
+      </form>
 
       {/* KPI */}
       <div style={kpiGrid}>
@@ -47,71 +87,125 @@ export default async function AdminB2BPage() {
         <div style={empty}>Aucune demande</div>
       ) : (
         <div style={grid}>
-          {requests.map((r) => (
-            <div
-              key={r.id}
-              style={{
-                ...card,
-                borderLeft:
-                  r.status === "NEW"
-                    ? "4px solid #f59e0b"
-                    : r.status === "CONTACTED"
-                    ? "4px solid #2563eb"
-                    : "4px solid #16a34a",
-              }}
-            >
-              <div style={header}>
-                <strong>{r.name}</strong>
-                <span style={badge(r.status)}>
-                  {formatStatus(r.status)}
-                </span>
+          {requests.map((r) => {
+            const score = getLeadScore(r);
+            const level = getLeadLevel(score);
+
+            return (
+              <div
+                key={r.id}
+                style={{
+                  ...card,
+                  borderLeft:
+                    r.status === "NEW"
+                      ? "4px solid #f59e0b"
+                      : r.status === "CONTACTED"
+                      ? "4px solid #2563eb"
+                      : "4px solid #16a34a",
+                }}
+              >
+                <div style={header}>
+                  <strong>{r.name}</strong>
+                  <span style={badge(r.status)}>
+                    {formatStatus(r.status)}
+                  </span>
+                </div>
+
+                <p style={email}>{r.email}</p>
+
+                {r.company && <p>🏢 {r.company}</p>}
+
+                <p>📦 {r.quantity}</p>
+
+                {/* LEAD */}
+                <p>
+                  🔥 Lead :
+                  <span style={leadBadge(level)}>{level}</span>
+                </p>
+
+                <p style={date}>
+                  {new Date(r.createdAt).toLocaleString("fr-FR")}
+                </p>
+
+                {r.message && (
+                  <div style={messageBox}>{r.message}</div>
+                )}
+
+                {/* ACTIONS */}
+                <div style={actions}>
+                  {/* EMAIL */}
+                  <a href={`mailto:${r.email}`} style={btnPrimary}>
+                    Répondre
+                  </a>
+
+                  {/* 🔥 DEVIS AUTO */}
+                  <a
+                    href={`/api/b2b/generate-devis?name=${encodeURIComponent(
+                      r.name
+                    )}&email=${encodeURIComponent(
+                      r.email
+                    )}&quantity=${encodeURIComponent(
+                      r.quantity
+                    )}&company=${encodeURIComponent(r.company || "")}`}
+                    target="_blank"
+                    style={btnSecondary}
+                  >
+                    📄 Devis
+                  </a>
+
+                  {/* STATUS */}
+                  <form
+                    action="/api/admin/b2b/update-status"
+                    method="POST"
+                    style={{ display: "flex", gap: "5px" }}
+                  >
+                    <input type="hidden" name="id" value={r.id} />
+
+                    <select
+                      name="status"
+                      defaultValue={r.status}
+                      style={select}
+                    >
+                      <option value="NEW">NEW</option>
+                      <option value="CONTACTED">CONTACTED</option>
+                      <option value="CLOSED">CLOSED</option>
+                    </select>
+
+                    <button style={btnSecondary}>OK</button>
+                  </form>
+                </div>
               </div>
-
-              <p style={email}>{r.email}</p>
-              {r.company && <p>🏢 {r.company}</p>}
-              <p>📦 {r.quantity}</p>
-
-              <p style={date}>
-                {new Date(r.createdAt).toLocaleString("fr-FR")}
-              </p>
-
-              {r.message && (
-                <div style={messageBox}>{r.message}</div>
-              )}
-
-              {/* ACTIONS */}
-              <div style={actions}>
-                <a
-                  href={`mailto:${r.email}`}
-                  style={btnPrimary}
-                >
-                  Répondre
-                </a>
-
-                {/* ✅ SAFE FORM */}
-                <form action="/api/admin/b2b/update-status" method="POST" style={{ display: "flex", gap: "5px" }}>
-                  <input type="hidden" name="id" value={r.id} />
-
-                  <select name="status" defaultValue={r.status} style={select}>
-                    <option value="NEW">NEW</option>
-                    <option value="CONTACTED">CONTACTED</option>
-                    <option value="CLOSED">CLOSED</option>
-                  </select>
-
-                  <button style={btnSecondary}>
-                    OK
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-/* HELPERS */
+/* =======================
+   LOGIC
+======================= */
+
+function getLeadScore(r: B2BRequest) {
+  let score = 0;
+
+  if (r.quantity.includes("10")) score += 1;
+  if (r.quantity.includes("25")) score += 2;
+  if (r.quantity.includes("50")) score += 3;
+  if (r.quantity.includes("100")) score += 5;
+
+  if (r.message && r.message.length > 10) score += 2;
+  if (r.company) score += 2;
+
+  return score;
+}
+
+function getLeadLevel(score: number) {
+  if (score >= 6) return "HOT";
+  if (score >= 3) return "WARM";
+  return "COLD";
+}
 
 function formatStatus(status: Status) {
   if (status === "NEW") return "Nouveau";
@@ -145,7 +239,13 @@ const container = {
 
 const title = {
   fontSize: "28px",
-  marginBottom: "30px",
+  marginBottom: "20px",
+};
+
+const filterBar = {
+  display: "flex",
+  gap: "10px",
+  marginBottom: "20px",
 };
 
 const kpiGrid = {
@@ -194,6 +294,7 @@ const actions = {
   display: "flex",
   gap: "10px",
   marginTop: "15px",
+  flexWrap: "wrap" as const,
 };
 
 const btnPrimary = {
@@ -213,9 +314,16 @@ const btnSecondary = {
   padding: "10px",
   borderRadius: "10px",
   cursor: "pointer",
+  textDecoration: "none",
 };
 
 const select = {
+  padding: "10px",
+  borderRadius: "10px",
+  border: "1px solid #ddd",
+};
+
+const input = {
   padding: "10px",
   borderRadius: "10px",
   border: "1px solid #ddd",
@@ -239,4 +347,18 @@ const badge = (status: Status) => ({
       : status === "CONTACTED"
       ? "#2563eb"
       : "#16a34a",
+});
+
+const leadBadge = (level: string) => ({
+  marginLeft: "8px",
+  padding: "4px 8px",
+  borderRadius: "6px",
+  color: "white",
+  fontSize: "12px",
+  background:
+    level === "HOT"
+      ? "#dc2626"
+      : level === "WARM"
+      ? "#f59e0b"
+      : "#6b7280",
 });

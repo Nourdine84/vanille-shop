@@ -5,26 +5,18 @@ type Status = "NEW" | "CONTACTED" | "CLOSED";
 
 export async function POST(req: Request) {
   try {
-    const contentType = req.headers.get("content-type") || "";
+    const formData = await req.formData();
 
-    let id: string | null = null;
-    let status: string | null = null;
-
-    // ✅ Support JSON ET FormData
-    if (contentType.includes("application/json")) {
-      const body = await req.json();
-      id = body.id;
-      status = body.status;
-    } else {
-      const formData = await req.formData();
-      id = formData.get("id") as string;
-      status = formData.get("status") as string;
-    }
+    const id = formData.get("id") as string;
+    const status = formData.get("status") as string;
 
     const allowed: Status[] = ["NEW", "CONTACTED", "CLOSED"];
 
     if (!id || !status || !allowed.includes(status as Status)) {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid payload" },
+        { status: 400 }
+      );
     }
 
     await prisma.b2BRequest.update({
@@ -36,8 +28,12 @@ export async function POST(req: Request) {
       status: 303,
     });
 
-  } catch (err) {
-    console.error("UPDATE STATUS ERROR:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (error) {
+    console.error("UPDATE STATUS ERROR:", error);
+
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

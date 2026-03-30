@@ -1,36 +1,58 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+type OrderData = {
+  amount_total: number;
+  customer_email?: string;
+};
+
+function formatPrice(cents: number) {
+  return (cents / 100).toFixed(2).replace(".", ",") + " €";
+}
 
 export default function SuccessPage() {
+  const [data, setData] = useState<OrderData | null>(null);
+
   useEffect(() => {
-    (window as any).gtag?.("event", "purchase", {
-      currency: "EUR",
-    });
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+
+    if (!sessionId) return;
+
+    fetch(`/api/checkout-session?session_id=${sessionId}`)
+      .then((res) => res.json())
+      .then((res) => setData(res))
+      .catch(() => {});
   }, []);
 
   return (
     <div style={container}>
       <div style={card}>
-        <h1 style={title}>🎉 Paiement réussi</h1>
+        
+        {/* ✅ ICON */}
+        <div style={icon}>✅</div>
 
+        {/* TITLE */}
+        <h1 style={title}>Paiement confirmé</h1>
+
+        {/* TEXT */}
         <p style={text}>
-          Merci pour votre commande Vanille’Or.
+          Merci pour votre commande chez <strong>Vanille’Or</strong>.
         </p>
 
-        <div style={box}>
-          <p style={info}>
-            📦 Votre commande est en préparation.
-            <br />
-            Vous recevrez un email avec votre suivi.
+        {data && (
+          <p style={price}>
+            Montant payé : <strong>{formatPrice(data.amount_total)}</strong>
           </p>
-        </div>
+        )}
 
-        <a href="/" style={primaryBtn}>
-          Accueil
-        </a>
+        <p style={subtext}>
+          Un email de confirmation vous sera envoyé.
+        </p>
 
-        <a href="/products" style={secondaryBtn}>
+        {/* CTA */}
+        <a href="/products" style={button}>
           Continuer mes achats
         </a>
       </div>
@@ -38,41 +60,55 @@ export default function SuccessPage() {
   );
 }
 
+/* 🎨 STYLE */
+
 const container = {
   minHeight: "100vh",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
   background: "#faf7f2",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const card = {
   background: "white",
-  padding: "40px",
+  padding: "50px",
   borderRadius: "20px",
   textAlign: "center" as const,
+  maxWidth: "500px",
+  boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
 };
 
-const title = { fontSize: "28px" };
-const text = { color: "#666", marginBottom: "20px" };
-const box = { background: "#f3f4f6", padding: "15px", borderRadius: "10px" };
-const info = { fontSize: "14px" };
+const icon = {
+  fontSize: "50px",
+  marginBottom: "20px",
+};
 
-const primaryBtn = {
-  display: "block",
-  marginTop: "20px",
+const title = {
+  fontSize: "28px",
+  marginBottom: "10px",
+};
+
+const text = {
+  color: "#666",
+  marginBottom: "10px",
+};
+
+const subtext = {
+  fontSize: "14px",
+  color: "#888",
+  marginBottom: "25px",
+};
+
+const price = {
+  marginBottom: "15px",
+};
+
+const button = {
+  display: "inline-block",
+  padding: "14px 28px",
   background: "#a16207",
   color: "white",
-  padding: "12px",
-  borderRadius: "10px",
-  textDecoration: "none",
-};
-
-const secondaryBtn = {
-  display: "block",
-  marginTop: "10px",
-  background: "#eee",
-  padding: "10px",
   borderRadius: "10px",
   textDecoration: "none",
 };
