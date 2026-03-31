@@ -24,18 +24,17 @@ export default function RootLayout({
           {/* HEADER */}
           <Header />
 
-          {/* MINI CART */}
+          {/* MINI CART (sécurisé côté client) */}
           <MiniCart />
 
           {/* CONTENT */}
           <main style={main}>{children}</main>
 
-          {/* FOOTER PREMIUM */}
+          {/* FOOTER */}
           <footer style={footer}>
             <div style={footerContainer}>
-              
               {/* BRAND */}
-              <div style={footerCol}>
+              <div>
                 <h3 style={footerTitle}>Vanille’Or</h3>
                 <p style={footerText}>
                   Vanille premium de Madagascar <br />
@@ -44,7 +43,7 @@ export default function RootLayout({
               </div>
 
               {/* NAV */}
-              <div style={footerCol}>
+              <div>
                 <h4 style={footerSubtitle}>Navigation</h4>
                 <FooterLink href="/products" label="Produits" />
                 <FooterLink href="/collections/vanille" label="Vanille" />
@@ -53,7 +52,7 @@ export default function RootLayout({
               </div>
 
               {/* SUPPORT */}
-              <div style={footerCol}>
+              <div>
                 <h4 style={footerSubtitle}>Support</h4>
                 <FooterLink href="/reclamation" label="Réclamation / SAV" />
                 <FooterLink href="/contact" label="Contact" />
@@ -75,6 +74,7 @@ export default function RootLayout({
 /* =========================
    COMPONENT
 ========================= */
+
 function FooterLink({
   href,
   label,
@@ -90,28 +90,28 @@ function FooterLink({
 }
 
 /* =========================
-   STYLE
+   STYLES
 ========================= */
 
-const bodyStyle = {
+const bodyStyle: React.CSSProperties = {
   margin: 0,
   background: "#f8f5ef",
   fontFamily: "system-ui, sans-serif",
 };
 
-const main = {
+const main: React.CSSProperties = {
   minHeight: "80vh",
 };
 
 /* FOOTER */
 
-const footer = {
+const footer: React.CSSProperties = {
   background: "#111",
   color: "#fff",
   padding: "50px 20px 20px",
 };
 
-const footerContainer = {
+const footerContainer: React.CSSProperties = {
   maxWidth: "1100px",
   margin: "0 auto",
   display: "grid",
@@ -119,27 +119,25 @@ const footerContainer = {
   gap: "30px",
 };
 
-const footerCol = {};
-
-const footerTitle = {
+const footerTitle: React.CSSProperties = {
   fontSize: "20px",
   marginBottom: "10px",
   color: "#a16207",
 };
 
-const footerSubtitle = {
+const footerSubtitle: React.CSSProperties = {
   fontSize: "14px",
   marginBottom: "10px",
   color: "#ddd",
 };
 
-const footerText = {
+const footerText: React.CSSProperties = {
   fontSize: "13px",
   color: "#aaa",
   lineHeight: "1.6",
 };
 
-const footerLink = {
+const footerLink: React.CSSProperties = {
   display: "block",
   fontSize: "13px",
   color: "#ccc",
@@ -147,11 +145,11 @@ const footerLink = {
   marginBottom: "6px",
 };
 
-const footerBottom = {
+const footerBottom: React.CSSProperties = {
   marginTop: "30px",
   paddingTop: "15px",
   borderTop: "1px solid #222",
-  textAlign: "center" as const,
+  textAlign: "center",
   fontSize: "12px",
   color: "#777",
 };
