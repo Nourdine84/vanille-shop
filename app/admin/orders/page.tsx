@@ -50,7 +50,14 @@ type ProductStat = {
    COMPONENT
 ========================= */
 export default function AdminOrdersPage() {
-  const { showToast } = useToast();
+
+  // ✅ FIX SSR ULTRA SAFE (IMPORTANT)
+  const toast = useToast();
+  const showToast = (...args: any[]) => {
+    if (toast && typeof toast.showToast === "function") {
+      toast.showToast(...args);
+    }
+  };
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -78,11 +85,7 @@ export default function AdminOrdersPage() {
       setOrders(data.orders || []);
       setTotalPages(data.totalPages || 1);
 
-      /* 🔥 ANALYTICS PRODUITS */
-      const productMap: Record<
-        string,
-        { quantity: number; revenue: number }
-      > = {};
+      const productMap: Record<string, { quantity: number; revenue: number }> = {};
 
       let total = 0;
 
@@ -103,12 +106,9 @@ export default function AdminOrdersPage() {
         });
       });
 
-      /* 🔥 MARGE SIMULÉE (à affiner plus tard avec vrai coût) */
       const enriched = Object.entries(productMap).map(
         ([name, data]) => {
           const revenue = data.revenue / 100;
-
-          // 👉 hypothèse coût = 40% (tu peux ajuster)
           const margin = revenue * 0.6;
 
           return {
@@ -120,21 +120,14 @@ export default function AdminOrdersPage() {
         }
       );
 
-      /* TOP VOLUME */
       setTopProducts(
-        [...enriched]
-          .sort((a, b) => b.quantity - a.quantity)
-          .slice(0, 5)
+        [...enriched].sort((a, b) => b.quantity - a.quantity).slice(0, 5)
       );
 
-      /* TOP CA */
       setTopRevenueProducts(
-        [...enriched]
-          .sort((a, b) => b.revenue - a.revenue)
-          .slice(0, 5)
+        [...enriched].sort((a, b) => b.revenue - a.revenue).slice(0, 5)
       );
 
-      /* PANIER MOYEN */
       if (data.orders.length > 0) {
         setAverageCart(total / data.orders.length / 100);
       }
@@ -170,9 +163,6 @@ export default function AdminOrdersPage() {
     fetchChart();
   }, [filter, search, page]);
 
-  /* =========================
-     UPDATE STATUS
-  ========================= */
   const updateStatus = async (id: string, status: string) => {
     try {
       await fetch(`/api/admin/orders/${id}`, {
@@ -188,14 +178,10 @@ export default function AdminOrdersPage() {
     }
   };
 
-  /* =========================
-     RENDER
-  ========================= */
   return (
     <div className="container py-10">
       <h1 style={title}>Dashboard commandes</h1>
 
-      {/* KPI */}
       {stats && (
         <div style={kpiGrid}>
           <div style={kpiCard}>
@@ -220,7 +206,6 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* GRAPH CA */}
       {chartData.length > 0 && (
         <div style={chartBox}>
           <h3>Évolution du CA (30 jours)</h3>
@@ -228,18 +213,12 @@ export default function AdminOrdersPage() {
             <LineChart data={chartData}>
               <XAxis dataKey="date" />
               <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#a16207"
-                strokeWidth={2}
-              />
+              <Line type="monotone" dataKey="value" stroke="#a16207" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* 🔥 TOP PRODUITS (CA) */}
       {topRevenueProducts.length > 0 && (
         <div style={chartBox}>
           <h3>Top produits (CA)</h3>
@@ -253,7 +232,6 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* 🔥 TOP PRODUITS (VOLUME) */}
       {topProducts.length > 0 && (
         <div style={chartBox}>
           <h3>Top produits (volume)</h3>
@@ -267,7 +245,6 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* 🔥 MARGE */}
       {topRevenueProducts.length > 0 && (
         <div style={topBox}>
           <h3>Marge estimée (top produits)</h3>
@@ -279,12 +256,10 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* EXPORT */}
       <a href="/api/admin/orders/export" style={exportBtn}>
         Export CSV
       </a>
 
-      {/* SEARCH */}
       <input
         placeholder="Rechercher..."
         value={search}
@@ -295,7 +270,6 @@ export default function AdminOrdersPage() {
         style={searchInput}
       />
 
-      {/* FILTER */}
       <div style={filters}>
         {["ACTIVE", "PENDING", "PAID", "FAILED"].map((f) => (
           <button
@@ -315,24 +289,16 @@ export default function AdminOrdersPage() {
         ))}
       </div>
 
-      {/* LIST */}
       {orders.map((order) => (
         <div key={order.id} style={card}>
           <strong>#{order.id.slice(0, 8)}</strong>
-
-          <p style={date}>
-            {new Date(order.createdAt).toLocaleString()}
-          </p>
-
+          <p style={date}>{new Date(order.createdAt).toLocaleString()}</p>
           <p>{order.email || "Pas d’email"}</p>
-
           <strong>{(order.totalCents / 100).toFixed(2)} €</strong>
 
           <select
             value={order.status}
-            onChange={(e) =>
-              updateStatus(order.id, e.target.value)
-            }
+            onChange={(e) => updateStatus(order.id, e.target.value)}
           >
             <option value="PENDING">PENDING</option>
             <option value="PAID">PAID</option>
@@ -343,20 +309,14 @@ export default function AdminOrdersPage() {
         </div>
       ))}
 
-      {/* PAGINATION */}
       <div style={pagination}>
         <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
           ←
         </button>
 
-        <span>
-          Page {page} / {totalPages}
-        </span>
+        <span>Page {page} / {totalPages}</span>
 
-        <button
-          disabled={page >= totalPages}
-          onClick={() => setPage(page + 1)}
-        >
+        <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
           →
         </button>
       </div>
@@ -369,78 +329,14 @@ export default function AdminOrdersPage() {
 ========================= */
 
 const title = { fontSize: "28px", marginBottom: "20px" };
-
-const kpiGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4,1fr)",
-  gap: "20px",
-  marginBottom: "30px",
-};
-
-const kpiCard = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  textAlign: "center" as const,
-};
-
-const chartBox = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  marginBottom: "30px",
-};
-
-const topBox = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  marginBottom: "30px",
-};
-
-const exportBtn = {
-  display: "inline-block",
-  marginBottom: "20px",
-  padding: "10px",
-  background: "#111",
-  color: "white",
-  borderRadius: "8px",
-  textDecoration: "none",
-};
-
-const searchInput = {
-  padding: "10px",
-  width: "100%",
-  marginBottom: "20px",
-};
-
-const filters = {
-  display: "flex",
-  gap: "10px",
-  marginBottom: "20px",
-};
-
-const filterBtn = {
-  padding: "10px",
-  borderRadius: "8px",
-  border: "none",
-  cursor: "pointer",
-};
-
-const card = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  marginBottom: "15px",
-};
-
-const date = {
-  fontSize: "12px",
-  color: "#666",
-};
-
-const pagination = {
-  marginTop: "20px",
-  display: "flex",
-  gap: "10px",
-};
+const kpiGrid = { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "20px", marginBottom: "30px" };
+const kpiCard = { background: "white", padding: "20px", borderRadius: "12px", textAlign: "center" as const };
+const chartBox = { background: "white", padding: "20px", borderRadius: "12px", marginBottom: "30px" };
+const topBox = { background: "white", padding: "20px", borderRadius: "12px", marginBottom: "30px" };
+const exportBtn = { display: "inline-block", marginBottom: "20px", padding: "10px", background: "#111", color: "white", borderRadius: "8px", textDecoration: "none" };
+const searchInput = { padding: "10px", width: "100%", marginBottom: "20px" };
+const filters = { display: "flex", gap: "10px", marginBottom: "20px" };
+const filterBtn = { padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer" };
+const card = { background: "white", padding: "20px", borderRadius: "12px", marginBottom: "15px" };
+const date = { fontSize: "12px", color: "#666" };
+const pagination = { marginTop: "20px", display: "flex", gap: "10px" };
