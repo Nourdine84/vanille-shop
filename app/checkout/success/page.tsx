@@ -12,23 +12,20 @@ export default function SuccessPage() {
   const { clearCart } = useCart();
 
   /* =========================
-     🔥 RESET PANIER (SAFE)
+     🔥 CLEAR CART (CRITIQUE)
   ========================= */
   useEffect(() => {
-    const alreadyCleared = sessionStorage.getItem("cart_cleared");
+    console.log("🧹 CLEAR CART AFTER PAYMENT");
 
-    if (!alreadyCleared) {
-      clearCart();
-      sessionStorage.setItem("cart_cleared", "true");
+    clearCart();
 
-      console.log("🧹 CART CLEARED AFTER PAYMENT");
-    }
-  }, [clearCart]);
+    // sécurité : vider localStorage direct
+    localStorage.removeItem("cart");
+  }, []);
 
   return (
     <div style={container}>
       
-      {/* SUCCESS CARD */}
       <div style={card}>
         
         {/* ICON */}
@@ -46,14 +43,12 @@ export default function SuccessPage() {
           </p>
         )}
 
-        {/* INFO */}
         <div style={infoBox}>
           <p>📦 Préparation en cours</p>
           <p>🚚 Expédition sous 24-48h</p>
           <p>📧 Email de confirmation envoyé</p>
         </div>
 
-        {/* CTA */}
         <div style={actions}>
           <Link href="/products" style={primaryBtn}>
             Continuer mes achats

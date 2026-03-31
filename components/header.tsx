@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useUIStore } from "@/components/ui-provider";
@@ -22,11 +23,17 @@ export default function Header() {
         
         {/* LOGO */}
         <Link href="/" style={logo}>
-          Vanille’Or
+          <Image
+            src="/logo-vanilleor.png"
+            alt="Vanille'Or"
+            width={220} // 🔥 PLUS GROS
+            height={70}
+            priority
+          />
         </Link>
 
         {/* NAV DESKTOP */}
-        <nav style={navDesktop}>
+        <nav style={navDesktop} className="desktop-nav">
           <NavLink href="/products" label="Produits" />
           <NavLink href="/collections/vanille" label="Vanille" />
           <NavLink href="/collections/epices" label="Épices" />
@@ -42,7 +49,6 @@ export default function Header() {
             Acheter
           </Link>
 
-          {/* CART */}
           <button style={cartBtn} onClick={openCart}>
             🛒
             {totalItems > 0 && (
@@ -50,7 +56,6 @@ export default function Header() {
             )}
           </button>
 
-          {/* BURGER */}
           <button
             style={burger}
             onClick={() => setMenuOpen(true)}
@@ -60,18 +65,13 @@ export default function Header() {
         </div>
       </header>
 
-      {/* =========================
-         MOBILE MENU (PRO)
-      ========================= */}
       {menuOpen && (
         <>
-          {/* OVERLAY */}
           <div
             style={overlay}
             onClick={() => setMenuOpen(false)}
           />
 
-          {/* MENU */}
           <div style={mobileMenu}>
             
             <button
@@ -94,9 +94,7 @@ export default function Header() {
   );
 }
 
-/* =========================
-   NAV LINK COMPONENT
-========================= */
+/* NAV LINK */
 function NavLink({
   href,
   label,
@@ -122,29 +120,25 @@ function NavLink({
   );
 }
 
-/* =========================
-   STYLE
-========================= */
+/* STYLES */
 
 const header = {
   position: "sticky" as const,
   top: 0,
   zIndex: 100,
   backdropFilter: "blur(12px)",
-  background: "rgba(255,255,255,0.7)",
+  background: "rgba(255,255,255,0.85)",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "16px 30px",
+  padding: "16px 24px", // 🔥 plus haut pour le logo
   borderBottom: "1px solid rgba(0,0,0,0.05)",
 };
 
 const logo = {
-  fontSize: "22px",
-  fontWeight: 800,
-  color: "#a16207",
+  display: "flex",
+  alignItems: "center",
   textDecoration: "none",
-  letterSpacing: "0.5px",
 };
 
 const navDesktop = {
@@ -156,8 +150,7 @@ const link = {
   textDecoration: "none",
   color: "#111",
   fontWeight: 500,
-  fontSize: "15px",
-  paddingBottom: "4px",
+  fontSize: "14px",
 };
 
 const mobileLink = {
@@ -170,24 +163,25 @@ const mobileLink = {
 const actions = {
   display: "flex",
   alignItems: "center",
-  gap: "12px",
+  gap: "10px",
 };
 
 const cta = {
   background: "#a16207",
   color: "white",
-  padding: "10px 18px",
-  borderRadius: "12px",
+  padding: "10px 16px",
+  borderRadius: "10px",
   textDecoration: "none",
   fontWeight: 600,
+  fontSize: "14px",
 };
 
 const cartBtn = {
   position: "relative" as const,
   background: "#f3f4f6",
   border: "none",
-  borderRadius: "12px",
-  padding: "10px 14px",
+  borderRadius: "10px",
+  padding: "8px 12px",
   cursor: "pointer",
   fontSize: "18px",
 };
@@ -199,19 +193,17 @@ const badge = {
   background: "#dc2626",
   color: "white",
   borderRadius: "50%",
-  fontSize: "11px",
-  padding: "4px 7px",
+  fontSize: "10px",
+  padding: "3px 6px",
 };
 
 const burger = {
-  display: "none",
+  display: "block",
   fontSize: "22px",
   background: "transparent",
   border: "none",
   cursor: "pointer",
 };
-
-/* MOBILE */
 
 const overlay = {
   position: "fixed" as const,
@@ -224,7 +216,8 @@ const mobileMenu = {
   position: "fixed" as const,
   top: 0,
   right: 0,
-  width: "280px",
+  width: "80%",
+  maxWidth: "300px",
   height: "100vh",
   background: "white",
   zIndex: 100,
@@ -241,4 +234,3 @@ const closeBtn = {
   border: "none",
   cursor: "pointer",
 };
-

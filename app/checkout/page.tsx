@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
+import CrossSell from "@/components/cross-sell";
 
 /* =========================
    MODAL ERREUR
@@ -22,9 +23,7 @@ function ErrorModal({
       <div style={modal}>
         <h2 style={{ marginBottom: "10px" }}>❌ Paiement échoué</h2>
 
-        <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px" }}>
-          {message}
-        </p>
+        <p style={modalText}>{message}</p>
 
         <button style={primaryBtn} onClick={onClose}>
           Réessayer
@@ -38,6 +37,9 @@ function ErrorModal({
   );
 }
 
+/* =========================
+   TYPES
+========================= */
 type CartItem = {
   id: string;
   name: string;
@@ -46,10 +48,16 @@ type CartItem = {
   imageUrl?: string;
 };
 
+/* =========================
+   UTILS
+========================= */
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
+/* =========================
+   PAGE
+========================= */
 export default function CheckoutPage() {
   const { cart } = useCart();
 
@@ -62,7 +70,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     setMounted(true);
 
-    // ✅ GESTION RETOUR STRIPE
     const params = new URLSearchParams(window.location.search);
 
     if (params.get("error")) {
@@ -73,6 +80,9 @@ export default function CheckoutPage() {
 
   if (!mounted) return null;
 
+  /* =========================
+     CALCULS
+  ========================= */
   const subtotal = cart.reduce(
     (acc: number, item: CartItem) =>
       acc + item.priceCents * item.quantity,
@@ -83,6 +93,9 @@ export default function CheckoutPage() {
   const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
   const total = subtotal + shippingCost;
 
+  /* =========================
+     CHECKOUT
+  ========================= */
   const handleCheckout = async () => {
     if (!cart.length) {
       setErrorMessage("Votre panier est vide");
@@ -104,16 +117,16 @@ export default function CheckoutPage() {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Erreur serveur");
-      }
-
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur paiement");
+      }
 
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error("Erreur de redirection Stripe");
+        throw new Error("Erreur Stripe");
       }
     } catch (error: any) {
       console.error(error);
@@ -128,6 +141,22 @@ export default function CheckoutPage() {
     }
   };
 
+  /* =========================
+     EMPTY STATE
+  ========================= */
+  if (cart.length === 0) {
+    return (
+      <div style={page}>
+        <div style={container}>
+          <h1 style={title}>Votre panier est vide</h1>
+          <p style={{ textAlign: "center" }}>
+            Ajoutez des produits avant de passer au paiement.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <ErrorModal
@@ -136,34 +165,39 @@ export default function CheckoutPage() {
         onClose={() => setErrorOpen(false)}
       />
 
-      <div style={{ background: "#faf7f2", minHeight: "100vh" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 20px" }}>
-          <h1 style={{ textAlign: "center", marginBottom: "40px", fontSize: "32px" }}>
+      <div style={page}>
+        <div style={container}>
+          <h1 style={title}>
             Finalisation de votre commande
           </h1>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: "40px" }}>
+          <div style={grid}>
             
-            {/* GAUCHE */}
+            {/* PRODUITS */}
             <div>
-              <div style={cardStyle}>
+              <div style={card}>
                 <h2>Votre sélection</h2>
 
                 {cart.map((item: CartItem) => (
-                  <div key={item.id} style={itemRowStyle}>
+                  <div key={item.id} style={itemRow}>
                     <img
-                      src={item.imageUrl || "/images/product-vanille.jpg"}
+                      src={
+                        item.imageUrl ||
+                        "/images/product-vanille.jpg"
+                      }
                       alt={item.name}
-                      style={itemImageStyle}
+                      style={image}
                     />
 
                     <div>
-                      <p style={{ fontWeight: 600 }}>{item.name}</p>
-                      <p style={{ color: "#666" }}>
+                      <p style={name}>{item.name}</p>
+                      <p style={qty}>
                         Quantité : {item.quantity}
                       </p>
-                      <p style={{ color: "#a16207", fontWeight: 600 }}>
-                        {formatPrice(item.priceCents * item.quantity)}
+                      <p style={price}>
+                        {formatPrice(
+                          item.priceCents * item.quantity
+                        )}
                       </p>
                     </div>
                   </div>
@@ -171,32 +205,49 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* DROITE */}
+            {/* RÉSUMÉ + CROSS SELL */}
             <div>
-              <div style={{ ...cardStyle, position: "sticky", top: "20px" }}>
+              <div style={summary}>
                 <h2>Résumé</h2>
 
-                <PriceRow label="Sous-total" value={formatPrice(subtotal)} />
+                <PriceRow
+                  label="Sous-total"
+                  value={formatPrice(subtotal)}
+                />
+
                 <PriceRow
                   label="Livraison"
-                  value={shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
+                  value={
+                    shippingCost === 0
+                      ? "Offerte"
+                      : formatPrice(shippingCost)
+                  }
                 />
 
                 <hr />
 
-                <PriceRow label="Total" value={formatPrice(total)} bold />
+                <PriceRow
+                  label="Total"
+                  value={formatPrice(total)}
+                  bold
+                />
 
                 <button
                   onClick={handleCheckout}
                   disabled={loading}
                   style={{
-                    ...checkoutButtonStyle,
+                    ...cta,
                     background: loading ? "#999" : "#a16207",
                   }}
                 >
-                  {loading ? "Redirection..." : "Payer en sécurité 🔒"}
+                  {loading
+                    ? "Redirection..."
+                    : "Payer en sécurité 🔒"}
                 </button>
               </div>
+
+              {/* 🔥 CROSS SELL */}
+              <CrossSell />
             </div>
           </div>
         </div>
@@ -206,9 +257,8 @@ export default function CheckoutPage() {
 }
 
 /* =========================
-   UI
+   COMPONENTS
 ========================= */
-
 function PriceRow({
   label,
   value,
@@ -219,39 +269,105 @@ function PriceRow({
   bold?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", margin: "10px 0" }}>
+    <div style={row}>
       <span>{label}</span>
-      <span style={{ fontWeight: bold ? 700 : 400 }}>{value}</span>
+      <span style={{ fontWeight: bold ? 700 : 400 }}>
+        {value}
+      </span>
     </div>
   );
 }
 
-const cardStyle = {
+/* =========================
+   STYLE
+========================= */
+
+const page = {
+  background: "#faf7f2",
+  minHeight: "100vh",
+  overflowX: "hidden" as const,
+};
+
+const container = {
+  maxWidth: "1100px",
+  margin: "0 auto",
+  padding: "30px 20px",
+};
+
+const title = {
+  textAlign: "center" as const,
+  marginBottom: "30px",
+  fontSize: "28px",
+};
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 400px",
+  gap: "40px",
+};
+
+/* 🔥 responsive inline safe */
+if (typeof window !== "undefined" && window.innerWidth < 768) {
+  (grid as any).display = "block";
+}
+
+const card = {
   background: "white",
-  padding: "25px",
+  padding: "20px",
   borderRadius: "16px",
 };
 
-const itemRowStyle = {
+const summary = {
+  ...card,
+  position: "sticky" as const,
+  top: "20px",
+};
+
+const itemRow = {
   display: "flex",
   gap: "15px",
   marginBottom: "15px",
 };
 
-const itemImageStyle = {
+const image = {
   width: "80px",
   height: "80px",
   borderRadius: "10px",
+  objectFit: "cover" as const,
 };
 
-const checkoutButtonStyle = {
+const name = {
+  fontWeight: 600,
+};
+
+const qty = {
+  color: "#666",
+  fontSize: "14px",
+};
+
+const price = {
+  color: "#a16207",
+  fontWeight: 600,
+};
+
+const row = {
+  display: "flex",
+  justifyContent: "space-between",
+  margin: "10px 0",
+};
+
+const cta = {
   marginTop: "20px",
   width: "100%",
   padding: "16px",
   borderRadius: "12px",
   color: "white",
   border: "none",
+  fontSize: "16px",
+  cursor: "pointer",
 };
+
+/* MODAL */
 
 const overlay = {
   position: "fixed" as const,
@@ -260,14 +376,22 @@ const overlay = {
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
+  zIndex: 999,
 };
 
 const modal = {
   background: "white",
-  padding: "30px",
+  padding: "25px",
   borderRadius: "16px",
-  width: "320px",
+  width: "90%",
+  maxWidth: "350px",
   textAlign: "center" as const,
+};
+
+const modalText = {
+  fontSize: "14px",
+  color: "#666",
+  marginBottom: "20px",
 };
 
 const primaryBtn = {
