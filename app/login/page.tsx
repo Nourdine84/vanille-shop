@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "../../components/ui/toast";
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/account";
 
-  const { showToast } = useToast();
+  const toast = useToast();
+  const showToast = toast?.showToast ?? (() => {});
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,10 +27,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -76,7 +74,7 @@ export default function LoginPage() {
             required
           />
 
-          {error ? <p style={{ color: "#dc2626" }}>{error}</p> : null}
+          {error && <p style={{ color: "#dc2626" }}>{error}</p>}
 
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? "Connexion..." : "Se connecter"}
@@ -84,5 +82,13 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40 }}>Chargement...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
