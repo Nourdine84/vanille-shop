@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String?
+  name      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders    Order[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  priceCents  Int
+  currency    String   @default("EUR")
+  imageUrl    String
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  category    String   @default("vanille")
+  subCategory String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+
+  status          OrderStatus @default(PENDING)
+
+  stripeSessionId String?     @unique
+  stripePaymentId String?     @unique
+
+  email           String?
+
+  totalCents      Int
+  currency        String      @default("EUR")
+
+  items           Json
+
+  trackingNumber  String?
+  carrier         String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  FAILED
+  CANCELED
+}
+
+model B2BRequest {
+  id           String   @id @default(cuid())
+  name         String
+  email        String
+  company      String?
+  quantity     String
+  message      String?
+
+  status       B2BStatus @default(NEW)
+  relanceStep  Int       @default(0)
+
+  quoteSent    Boolean   @default(false)
+  quoteAmount  Int?
+
+  createdAt    DateTime  @default(now())
+
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
+}
+
+enum B2BStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}

@@ -1,1 +1,79 @@
-{"compilerOptions": {"target": "ES2020", "useDefineForClassFields": true, "lib": ["ES2020", "DOM", "DOM.Iterable"], "module": "ESNext", "skipLibCheck": true, "esModuleInterop": true, "allowSyntheticDefaultImports": true, "strict": true, "forceConsistentCasingInFileNames": true, "resolveJsonModule": true, "isolatedModules": true, "noEmit": true, "jsx": "react-jsx", "moduleResolution": "bundler", "allowImportingTsExtensions": true, "resolvePackageJsonExports": true, "resolvePackageJsonImports": true, "baseUrl": ".", "paths": {"@/*": ["./src/*"]}}, "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"], "exclude": ["node_modules"]}
+{
+  "compilerOptions": {
+    /* =========================
+        CORE CONFIG
+     ========================= */
+    "target": "ES2020",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    /* =========================
+        STRICT MODE (🔥 PRO)
+     ========================= */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    /* =========================
+        CODE QUALITY (🔥 BONUS PRO)
+     ========================= */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    /* =========================
+        MODULE & INTEROP
+     ========================= */
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    /* =========================
+        NEXT / BUILD
+     ========================= */
+    "skipLibCheck": true,
+    "noEmit": true,
+    "incremental": true,
+    /* =========================
+        TYPES (🔥 FIX CRITICAL)
+     ========================= */
+    "types": [
+      "node"
+    ],
+    /* =========================
+        IMPORTS CLEAN (🔥 IMPORTANT)
+     ========================= */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    /* =========================
+        SAFETY
+     ========================= */
+    "allowJs": false,
+    /* =========================
+        NEXT PLUGIN
+     ========================= */
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
+}
