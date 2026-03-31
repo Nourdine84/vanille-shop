@@ -1,82 +1,90 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type OrderData = {
-  amount_total: number;
-  customer_email?: string;
-};
-
-function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " €";
-}
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useCart } from "@/lib/cart-store";
 
 export default function SuccessPage() {
-  const [data, setData] = useState<OrderData | null>(null);
+  const params = useSearchParams();
+  const sessionId = params.get("session_id");
 
+  const { clearCart } = useCart();
+
+  /* =========================
+     🔥 RESET PANIER (SAFE)
+  ========================= */
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
+    const alreadyCleared = sessionStorage.getItem("cart_cleared");
 
-    if (!sessionId) return;
+    if (!alreadyCleared) {
+      clearCart();
+      sessionStorage.setItem("cart_cleared", "true");
 
-    fetch(`/api/checkout-session?session_id=${sessionId}`)
-      .then((res) => res.json())
-      .then((res) => setData(res))
-      .catch(() => {});
-  }, []);
+      console.log("🧹 CART CLEARED AFTER PAYMENT");
+    }
+  }, [clearCart]);
 
   return (
     <div style={container}>
+      
+      {/* SUCCESS CARD */}
       <div style={card}>
         
-        {/* ✅ ICON */}
+        {/* ICON */}
         <div style={icon}>✅</div>
 
-        {/* TITLE */}
-        <h1 style={title}>Paiement confirmé</h1>
+        <h1 style={title}>Commande confirmée</h1>
 
-        {/* TEXT */}
-        <p style={text}>
-          Merci pour votre commande chez <strong>Vanille’Or</strong>.
+        <p style={subtitle}>
+          Merci pour votre achat chez <strong>Vanille’Or</strong>.
         </p>
 
-        {data && (
-          <p style={price}>
-            Montant payé : <strong>{formatPrice(data.amount_total)}</strong>
+        {sessionId && (
+          <p style={orderId}>
+            Référence : {sessionId.slice(0, 12)}
           </p>
         )}
 
-        <p style={subtext}>
-          Un email de confirmation vous sera envoyé.
-        </p>
+        {/* INFO */}
+        <div style={infoBox}>
+          <p>📦 Préparation en cours</p>
+          <p>🚚 Expédition sous 24-48h</p>
+          <p>📧 Email de confirmation envoyé</p>
+        </div>
 
         {/* CTA */}
-        <a href="/products" style={button}>
-          Continuer mes achats
-        </a>
+        <div style={actions}>
+          <Link href="/products" style={primaryBtn}>
+            Continuer mes achats
+          </Link>
+
+          <Link href="/b2b" style={secondaryBtn}>
+            Offre professionnelle
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
 
-/* 🎨 STYLE */
+/* STYLE */
 
 const container = {
   minHeight: "100vh",
-  background: "#faf7f2",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  background: "#f8f5ef",
 };
 
 const card = {
   background: "white",
-  padding: "50px",
+  padding: "40px",
   borderRadius: "20px",
   textAlign: "center" as const,
   maxWidth: "500px",
-  boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
 };
 
 const icon = {
@@ -89,26 +97,41 @@ const title = {
   marginBottom: "10px",
 };
 
-const text = {
+const subtitle = {
   color: "#666",
   marginBottom: "10px",
 };
 
-const subtext = {
-  fontSize: "14px",
-  color: "#888",
-  marginBottom: "25px",
+const orderId = {
+  fontSize: "12px",
+  color: "#999",
 };
 
-const price = {
-  marginBottom: "15px",
+const infoBox = {
+  marginTop: "20px",
+  marginBottom: "20px",
+  color: "#444",
+  lineHeight: "1.8",
 };
 
-const button = {
-  display: "inline-block",
-  padding: "14px 28px",
+const actions = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: "10px",
+};
+
+const primaryBtn = {
+  padding: "14px",
   background: "#a16207",
   color: "white",
   borderRadius: "10px",
   textDecoration: "none",
+};
+
+const secondaryBtn = {
+  padding: "12px",
+  background: "#f3f4f6",
+  borderRadius: "10px",
+  textDecoration: "none",
+  color: "#111",
 };

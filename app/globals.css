@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================
+   RESET GLOBAL
+========================= */
+
 * {
   box-sizing: border-box;
 }
@@ -15,44 +19,75 @@ body {
   padding: 0;
   background-color: #ffffff;
   color: #1f2937;
+  font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* =========================
+   LAYOUT
+========================= */
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding: 0 20px;
 }
 
+/* =========================
+   BUTTONS PREMIUM
+========================= */
+
 .btn-primary {
-  background: #d97706;
+  background: #a16207; /* Vanille’Or gold */
   color: white;
   font-weight: 600;
-  padding: 12px 16px;
+  padding: 12px 18px;
   border-radius: 10px;
   border: none;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-primary:hover {
-  background: #b45309;
+  background: #854d0e;
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: #e5e7eb;
-  color: #1f2937;
+  background: #f3f4f6;
+  color: #111;
   font-weight: 600;
   padding: 12px 16px;
   border-radius: 10px;
   border: none;
   cursor: pointer;
+  transition: 0.2s;
 }
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+/* =========================
+   CARD
+========================= */
 
 .card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+}
+
+/* =========================
+   INTERACTIONS SAFE
+========================= */
 
 button,
 a,
@@ -62,42 +97,57 @@ select {
   pointer-events: auto !important;
 }
 
-/* === VANILLE OR PREMIUM === */
+/* =========================
+   HEADER / NAV FIX (🔥 IMPORTANT)
+========================= */
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+nav {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  nav {
+    display: none !important;
   }
-  
-  /* Boutons premium */
-  .btn-primary {
-    background: #111;
-    color: #fff;
-    padding: 12px 18px;
-    border-radius: 10px;
-    font-weight: 600;
-    transition: 0.2s;
+}
+
+/* =========================
+   BURGER BUTTON FIX
+========================= */
+
+@media (max-width: 768px) {
+  button {
+    display: block;
   }
-  
-  .btn-primary:hover {
-    background: #000;
-    transform: translateY(-1px);
+}
+
+/* =========================
+   SCROLLBAR (🔥 PREMIUM TOUCH)
+========================= */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
+/* =========================
+   HEADER RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+  nav {
+    display: none !important;
   }
-  
-  /* Version luxe */
-  .btn-secondary {
-    border: 1px solid #111;
-    padding: 10px 16px;
-    border-radius: 10px;
+
+  .burger-btn {
+    display: block !important;
   }
-  
-  /* Hover card */
-  .card-hover {
-    transition: 0.2s;
-  }
-  
-  .card-hover:hover {
-    transform: translateY(-4px);
-  }
-  
+}

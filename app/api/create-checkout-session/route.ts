@@ -5,19 +5,48 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+/* =========================
+   INIT STRIPE (SAFE)
+========================= */
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("❌ STRIPE_SECRET_KEY manquante");
+}
 
-const getBaseUrl = (req: Request) => {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+/* =========================
+   BASE URL SAFE
+========================= */
+function getBaseUrl(req: Request) {
   const origin = req.headers.get("origin");
-  return origin || process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
-};
+
+  if (origin) return origin;
+
+  if (process.env.NEXT_PUBLIC_URL) {
+    return process.env.NEXT_PUBLIC_URL;
+  }
+
+  return "http://localhost:3000";
+}
 
 /* =========================
    POST CHECKOUT
 ========================= */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    /* =========================
+       SAFE JSON PARSE
+    ========================= */
+    let body: any;
+
+    try {
+      body = await req.json();
+    } catch {
+      console.error("❌ JSON invalide");
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    console.log("🧾 BODY:", body);
 
     /* =========================
        VALIDATION PANIER
@@ -39,11 +68,14 @@ export async function POST(req: Request) {
         );
       }
 
+      const cleanId = item.id.split("-")[0]; // 🔥 gestion variantes
+
       const product = await prisma.product.findUnique({
-        where: { id: item.id },
+        where: { id: cleanId },
       });
 
       if (!product) {
+        console.error("❌ Produit introuvable:", cleanId);
         return NextResponse.json(
           { error: `Produit introuvable: ${item.name}` },
           { status: 404 }
@@ -71,6 +103,8 @@ export async function POST(req: Request) {
     const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
     const total = subtotal + shippingCost;
 
+    console.log("💰 TOTAL:", total);
+
     /* =========================
        CREATE ORDER
     ========================= */
@@ -83,24 +117,30 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log("🧾 ORDER CREATED:", order.id);
+
     /* =========================
-       STRIPE LINE ITEMS
+       STRIPE LINE ITEMS (FIX IMAGE URL)
     ========================= */
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      body.cart.map((item: any) => ({
-        price_data: {
-          currency: "eur",
-          product_data: {
-            name: item.name,
-            description: "Vanille premium de Madagascar — Vanille’Or",
-            images: [
-              item.imageUrl || `${baseUrl}/images/product-vanille.jpg`,
-            ],
+      body.cart.map((item: any) => {
+        const imageUrl = item.imageUrl?.startsWith("http")
+          ? item.imageUrl
+          : `${baseUrl}${item.imageUrl || "/images/product-vanille.jpg"}`;
+
+        return {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: item.name,
+              description: "Vanille premium de Madagascar — Vanille’Or",
+              images: [imageUrl], // 🔥 FIX CRITIQUE STRIPE
+            },
+            unit_amount: item.priceCents,
           },
-          unit_amount: item.priceCents,
-        },
-        quantity: item.quantity,
-      }));
+          quantity: item.quantity,
+        };
+      });
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -116,7 +156,7 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       STRIPE SESSION
+       CREATE STRIPE SESSION
     ========================= */
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -142,8 +182,10 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log("💳 STRIPE SESSION:", session.id);
+
     /* =========================
-       LINK ORDER → STRIPE
+       LINK ORDER
     ========================= */
     await prisma.order.update({
       where: { id: order.id },
@@ -152,7 +194,7 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log("✅ ORDER CREATED:", order.id);
+    console.log("✅ READY TO PAY:", session.url);
 
     return NextResponse.json({ url: session.url });
 
@@ -170,8 +212,11 @@ export async function POST(req: Request) {
 }
 
 /* =========================
-   GET (OPTION DEBUG)
+   GET DEBUG
 ========================= */
 export async function GET() {
-  return NextResponse.json({ message: "API checkout OK" });
+  return NextResponse.json({
+    message: "API checkout OK",
+    env: !!process.env.STRIPE_SECRET_KEY,
+  });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
 import { useUIStore } from "@/components/ui-provider";
 
@@ -8,7 +9,7 @@ function formatPrice(priceCents: number) {
 }
 
 export default function MiniCart() {
-  const { cart, removeFromCart } = useCart();
+  const { cart, removeFromCart, updateQuantity } = useCart();
   const { isCartOpen, closeCart } = useUIStore();
 
   if (!isCartOpen) return null;
@@ -23,63 +24,83 @@ export default function MiniCart() {
 
   return (
     <>
-      {/* OVERLAY */}
       <div style={overlay} onClick={closeCart} />
 
-      {/* CART */}
-      <div style={cartStyle}>
-        
-        {/* HEADER */}
+      <aside style={cartStyle} aria-label="Panier">
         <div style={header}>
-          <h2 style={{ margin: 0 }}>Votre panier</h2>
-          <button onClick={closeCart} style={closeBtn}>✕</button>
+          <h2 style={headerTitle}>Votre panier</h2>
+          <button
+            type="button"
+            onClick={closeCart}
+            style={closeBtn}
+            aria-label="Fermer le panier"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* SHIPPING INFO */}
         <div style={shippingBox}>
           {subtotal >= freeShippingThreshold ? (
             <span>🚚 Livraison offerte</span>
           ) : (
             <span>
-              Encore <strong>{formatPrice(remaining)}</strong> pour la livraison offerte
+              Encore <strong>{formatPrice(remaining)}</strong> pour la livraison
+              offerte
             </span>
           )}
         </div>
 
-        {/* LIST */}
         <div style={list}>
           {cart.length === 0 ? (
-            <p style={emptyText}>
-              Votre panier est vide
-            </p>
+            <p style={empty}>Votre panier est vide</p>
           ) : (
             cart.map((item) => (
               <div key={item.id} style={itemRow}>
-                
-                {/* IMAGE */}
                 <img
                   src={item.imageUrl || "/images/product-vanille.jpg"}
                   alt={item.name}
                   style={image}
                 />
 
-                {/* INFO */}
-                <div style={{ flex: 1 }}>
-                  <p style={itemName}>{item.name}</p>
+                <div style={itemInfo}>
+                  <p style={name}>{item.name}</p>
 
-                  <p style={itemQty}>
-                    Quantité : {item.quantity}
-                  </p>
+                  <div style={qtyRow}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateQuantity(item.id, item.quantity - 1)
+                      }
+                      style={qtyBtn}
+                      aria-label={`Diminuer la quantité de ${item.name}`}
+                    >
+                      −
+                    </button>
 
-                  <p style={itemPrice}>
+                    <span style={qtyValue}>{item.quantity}</span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateQuantity(item.id, item.quantity + 1)
+                      }
+                      style={qtyBtn}
+                      aria-label={`Augmenter la quantité de ${item.name}`}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <p style={price}>
                     {formatPrice(item.priceCents * item.quantity)}
                   </p>
                 </div>
 
-                {/* REMOVE */}
                 <button
+                  type="button"
                   onClick={() => removeFromCart(item.id)}
                   style={removeBtn}
+                  aria-label={`Supprimer ${item.name}`}
                 >
                   ✕
                 </button>
@@ -88,39 +109,32 @@ export default function MiniCart() {
           )}
         </div>
 
-        {/* FOOTER */}
         {cart.length > 0 && (
           <div style={footer}>
-            
-            {/* TOTAL */}
             <div style={totalRow}>
               <span>Total</span>
               <strong>{formatPrice(subtotal)}</strong>
             </div>
 
-            {/* CTA CHECKOUT */}
-            <a href="/checkout" style={checkoutBtn}>
+            <Link href="/checkout" style={checkoutBtn} onClick={closeCart}>
               Payer maintenant 🔒
-            </a>
+            </Link>
 
-            {/* CTA CONTINUE */}
-            <button onClick={closeCart} style={continueBtn}>
+            <button type="button" onClick={closeCart} style={continueBtn}>
               Continuer mes achats
             </button>
           </div>
         )}
-      </div>
+      </aside>
     </>
   );
 }
-
-/* 🎨 STYLE */
 
 const overlay = {
   position: "fixed" as const,
   inset: 0,
   background: "rgba(0,0,0,0.4)",
-  zIndex: 40,
+  zIndex: 110,
 };
 
 const cartStyle = {
@@ -131,10 +145,10 @@ const cartStyle = {
   maxWidth: "100%",
   height: "100vh",
   background: "white",
-  zIndex: 50,
+  zIndex: 120,
   display: "flex",
   flexDirection: "column" as const,
-  boxShadow: "-10px 0 30px rgba(0,0,0,0.1)",
+  boxShadow: "-10px 0 40px rgba(0,0,0,0.12)",
 };
 
 const header = {
@@ -145,17 +159,24 @@ const header = {
   borderBottom: "1px solid #eee",
 };
 
+const headerTitle = {
+  margin: 0,
+  fontSize: "22px",
+};
+
 const closeBtn = {
   background: "transparent",
   border: "none",
-  fontSize: "18px",
   cursor: "pointer",
+  fontSize: "18px",
+  lineHeight: 1,
 };
 
 const shippingBox = {
-  padding: "12px 20px",
+  padding: "14px 20px",
   background: "#fef3c7",
   fontSize: "14px",
+  color: "#7c4a03",
 };
 
 const list = {
@@ -164,16 +185,17 @@ const list = {
   padding: "20px",
 };
 
-const emptyText = {
+const empty = {
   textAlign: "center" as const,
   color: "#777",
+  marginTop: "40px",
 };
 
 const itemRow = {
   display: "flex",
   gap: "12px",
-  marginBottom: "15px",
-  alignItems: "center",
+  marginBottom: "18px",
+  alignItems: "flex-start",
 };
 
 const image = {
@@ -181,33 +203,60 @@ const image = {
   height: "70px",
   borderRadius: "10px",
   objectFit: "cover" as const,
+  flexShrink: 0,
 };
 
-const itemName = {
+const itemInfo = {
+  flex: 1,
+};
+
+const name = {
   fontWeight: 600,
-  marginBottom: "4px",
+  margin: "0 0 6px 0",
+  color: "#111",
 };
 
-const itemQty = {
-  fontSize: "13px",
-  color: "#666",
+const qtyRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  margin: "6px 0",
 };
 
-const itemPrice = {
+const qtyBtn = {
+  padding: "4px 10px",
+  borderRadius: "6px",
+  border: "1px solid #ddd",
+  cursor: "pointer",
+  background: "white",
+  color: "#111",
+};
+
+const qtyValue = {
+  minWidth: "18px",
+  textAlign: "center" as const,
+  fontWeight: 600,
+};
+
+const price = {
   color: "#a16207",
   fontWeight: 600,
+  margin: "6px 0 0 0",
 };
 
 const removeBtn = {
   background: "transparent",
   border: "none",
   cursor: "pointer",
-  color: "#999",
+  color: "#777",
+  fontSize: "16px",
+  lineHeight: 1,
 };
 
 const footer = {
   padding: "20px",
   borderTop: "1px solid #eee",
+  background: "white",
 };
 
 const totalRow = {
@@ -237,4 +286,6 @@ const continueBtn = {
   border: "none",
   borderRadius: "10px",
   cursor: "pointer",
+  color: "#111",
+  fontWeight: 600,
 };

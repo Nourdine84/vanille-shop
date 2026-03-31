@@ -1,45 +1,38 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Order } from "@prisma/client";
 
-type OrderItem = {
-  name: string;
-  quantity: number;
-  priceCents: number;
-};
+export const dynamic = "force-dynamic";
 
-export const runtime = "nodejs";
+function formatPrice(cents: number) {
+  return (cents / 100).toFixed(2);
+}
 
 export async function GET() {
   try {
-    const orders: Order[] = await prisma.order.findMany({
+    const orders = await prisma.order.findMany({
       orderBy: { createdAt: "desc" },
     });
 
-    const rows: string[][] = [
-      ["ID", "Email", "Statut", "Total (€)", "Date", "Produits"],
+    const header = [
+      "ID",
+      "Date",
+      "Email",
+      "Status",
+      "Total (€)",
     ];
 
-    orders.forEach((order: Order) => {
-      const items = Array.isArray(order.items)
-        ? (order.items as unknown as OrderItem[])
-        : [];
+    const rows = orders.map((o) => [
+      o.id,
+      new Date(o.createdAt).toISOString(),
+      o.email || "",
+      o.status,
+      formatPrice(o.totalCents),
+    ]);
 
-      const productList = items
-        .map((i) => `${i.name} x${i.quantity}`)
-        .join(" | ");
-
-      rows.push([
-        order.id,
-        order.email || "",
-        order.status,
-        (order.totalCents / 100).toFixed(2),
-        new Date(order.createdAt).toLocaleString(),
-        productList,
-      ]);
-    });
-
-    const csv = rows.map((r) => r.join(";")).join("\n");
+    const csv = [
+      header.join(","),
+      ...rows.map((r) => r.join(",")),
+    ].join("\n");
 
     return new NextResponse(csv, {
       headers: {
@@ -49,9 +42,10 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("EXPORT ERROR:", error);
+    console.error("CSV ERROR:", error);
+
     return NextResponse.json(
-      { error: "Export failed" },
+      { error: "Erreur export CSV" },
       { status: 500 }
     );
   }

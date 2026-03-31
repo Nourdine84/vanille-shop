@@ -19,31 +19,20 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body style={bodyStyle}>
-        
         <Providers>
-          {/* HEADER */}
           <Header />
-
-          {/* MINI CART 🔥 */}
           <MiniCart />
 
-          {/* CONTENU */}
-          <main style={main}>
-            {children}
-          </main>
+          <main style={main}>{children}</main>
 
-          {/* FOOTER */}
           <footer style={footer}>
             © {new Date().getFullYear()} Vanille’Or
           </footer>
         </Providers>
-
       </body>
     </html>
   );
 }
-
-/* STYLE */
 
 const bodyStyle = {
   margin: 0,
