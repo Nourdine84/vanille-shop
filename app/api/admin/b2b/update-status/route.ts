@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic"; // 🔥 CRITIQUE VERCEL + PRISMA
+
 type Status = "NEW" | "CONTACTED" | "CLOSED";
 
 const allowedStatuses: Status[] = ["NEW", "CONTACTED", "CLOSED"];
@@ -12,18 +14,20 @@ export async function POST(req: Request) {
     let id: string | null = null;
     let status: string | null = null;
 
-    // ✅ Support JSON + FormData
+    // ✅ Support JSON + FormData (safe)
     if (contentType.includes("application/json")) {
-      const body = await req.json();
-      id = body.id;
-      status = body.status;
+      const body = await req.json().catch(() => null);
+
+      id = body?.id ?? null;
+      status = body?.status ?? null;
     } else {
       const formData = await req.formData();
-      id = formData.get("id") as string;
-      status = formData.get("status") as string;
+
+      id = (formData.get("id") as string) || null;
+      status = (formData.get("status") as string) || null;
     }
 
-    // 🔒 VALIDATION
+    // 🔒 VALIDATION STRICTE
     if (!id || !status || !allowedStatuses.includes(status as Status)) {
       console.error("❌ INVALID B2B UPDATE:", { id, status });
 
@@ -33,7 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔍 CHECK EXIST
+    // 🔍 CHECK EXIST (safe)
     const existing = await prisma.b2BRequest.findUnique({
       where: { id },
     });
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔄 UPDATE
+    // 🔄 UPDATE (robuste)
     await prisma.b2BRequest.update({
       where: { id },
       data: {
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
 
     console.log("✅ B2B UPDATED:", id, status);
 
-    // 🔁 REDIRECT SAFE
+    // 🔁 REDIRECT SAFE (toujours valide)
     return NextResponse.redirect(
       new URL("/admin/b2b", req.url),
       { status: 303 }
