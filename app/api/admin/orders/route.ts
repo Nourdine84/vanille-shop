@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /* =========================
+   CONFIG
+========================= */
+export const dynamic = "force-dynamic";
+
+/* =========================
    TYPES SAFE
 ========================= */
 type OrderStatus =
@@ -15,7 +20,6 @@ type OrderStatus =
 /* =========================
    CONFIG
 ========================= */
-export const dynamic = "force-dynamic";
 
 /* =========================
    GET ORDERS (PRO VERSION)
