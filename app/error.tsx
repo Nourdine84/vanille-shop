@@ -1,12 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function Error({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error;
   reset: () => void;
 }) {
+  useEffect(() => {
+    console.error("❌ Global error:", _error);
+  }, [_error]);
+
   return (
     <div style={{ padding: "40px", textAlign: "center" }}>
       <h2>Une erreur est survenue</h2>
