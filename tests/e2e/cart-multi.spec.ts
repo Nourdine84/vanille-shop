@@ -6,10 +6,20 @@ test("🛒 Ajout multiple produits", async ({ page }) => {
   const addButtons = page.getByRole("button", { name: "Ajouter" });
 
   await addButtons.nth(0).click();
-  await addButtons.nth(1).click();
-  await page.getByTestId("cart-overlay").click(); // 🔥
 
-  await page.locator('[data-testid="cart-button"]').click();
+  // 🔥 fermer overlay si ouvert
+  const overlay = page.locator('[data-testid="cart-overlay"]');
+  if (await overlay.isVisible().catch(() => false)) {
+    await overlay.click();
+  }
+
+  await addButtons.nth(1).click();
+
+  if (await overlay.isVisible().catch(() => false)) {
+    await overlay.click();
+  }
+
+  await page.getByTestId("cart-button").click();
 
   const items = page.getByTestId("cart-item");
   await expect(items).toHaveCount(2);

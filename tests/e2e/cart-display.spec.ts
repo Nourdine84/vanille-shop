@@ -3,9 +3,20 @@ import { test, expect } from "@playwright/test";
 test("📦 Affichage produit dans mini-cart", async ({ page }) => {
   await page.goto("/products");
 
-  await page.getByTestId("cart-overlay").click();
+  // 🔥 sécurité overlay
+  const overlay = page.locator('[data-testid="cart-overlay"]');
+  if (await overlay.isVisible().catch(() => false)) {
+    await overlay.click();
+  }
+
   await page.getByRole("button", { name: "Ajouter" }).first().click();
-  await page.locator('[data-testid="cart-button"]').click();
+
+  // 🔥 recheck overlay
+  if (await overlay.isVisible().catch(() => false)) {
+    await overlay.click();
+  }
+
+  await page.getByTestId("cart-button").click();
 
   await expect(page.getByTestId("cart-item")).toBeVisible();
 });
