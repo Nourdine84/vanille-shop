@@ -4,15 +4,23 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
 import { useUIStore } from "@/components/ui-provider";
 
+type MiniCartProps = {
+  open?: boolean;
+  onClose?: () => void;
+};
+
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-export default function MiniCart() {
+export default function MiniCart({ open, onClose }: MiniCartProps) {
   const { cart, removeFromCart, updateQuantity } = useCart();
   const { isCartOpen, closeCart } = useUIStore();
 
-  if (!isCartOpen) return null;
+  const isOpen = open ?? isCartOpen;
+  const handleClose = onClose ?? closeCart;
+
+  if (!isOpen) return null;
 
   const subtotal = cart.reduce(
     (acc, item) => acc + item.priceCents * item.quantity,
@@ -24,83 +32,71 @@ export default function MiniCart() {
 
   return (
     <>
-      <div style={overlay} onClick={closeCart} />
+      <div style={styles.overlay} onClick={handleClose} />
 
-      <aside style={cartStyle} aria-label="Panier">
-        <div style={header}>
-          <h2 style={headerTitle}>Votre panier</h2>
-          <button
-            type="button"
-            onClick={closeCart}
-            style={closeBtn}
-            aria-label="Fermer le panier"
-          >
+      <aside style={styles.cart}>
+        <div style={styles.header}>
+          <h2 style={styles.headerTitle}>Votre panier</h2>
+          <button onClick={handleClose} style={styles.closeBtn}>
             ✕
           </button>
         </div>
 
-        <div style={shippingBox}>
+        <div style={styles.shippingBox}>
           {subtotal >= freeShippingThreshold ? (
             <span>🚚 Livraison offerte</span>
           ) : (
             <span>
-              Encore <strong>{formatPrice(remaining)}</strong> pour la livraison
-              offerte
+              Encore <strong>{formatPrice(remaining)}</strong> pour la livraison offerte
             </span>
           )}
         </div>
 
-        <div style={list}>
+        <div style={styles.list}>
           {cart.length === 0 ? (
-            <p style={empty}>Votre panier est vide</p>
+            <p style={styles.empty}>Votre panier est vide</p>
           ) : (
             cart.map((item) => (
-              <div key={item.id} style={itemRow}>
+              <div key={item.id} style={styles.itemRow}>
                 <img
                   src={item.imageUrl || "/images/product-vanille.jpg"}
                   alt={item.name}
-                  style={image}
+                  style={styles.image}
                 />
 
-                <div style={itemInfo}>
-                  <p style={name}>{item.name}</p>
+                <div style={styles.itemInfo}>
+                  <p style={styles.name}>{item.name}</p>
 
-                  <div style={qtyRow}>
+                  <div style={styles.qtyRow}>
                     <button
-                      type="button"
                       onClick={() =>
-                        updateQuantity(item.id, item.quantity - 1)
+                        updateQuantity(item.id, Math.max(1, item.quantity - 1))
                       }
-                      style={qtyBtn}
-                      aria-label={`Diminuer la quantité de ${item.name}`}
+                      style={styles.qtyBtn}
                     >
                       −
                     </button>
 
-                    <span style={qtyValue}>{item.quantity}</span>
+                    <span style={styles.qtyValue}>{item.quantity}</span>
 
                     <button
-                      type="button"
                       onClick={() =>
                         updateQuantity(item.id, item.quantity + 1)
                       }
-                      style={qtyBtn}
-                      aria-label={`Augmenter la quantité de ${item.name}`}
+                      style={styles.qtyBtn}
                     >
                       +
                     </button>
                   </div>
 
-                  <p style={price}>
+                  <p style={styles.price}>
                     {formatPrice(item.priceCents * item.quantity)}
                   </p>
                 </div>
 
                 <button
-                  type="button"
                   onClick={() => removeFromCart(item.id)}
-                  style={removeBtn}
-                  aria-label={`Supprimer ${item.name}`}
+                  style={styles.removeBtn}
                 >
                   ✕
                 </button>
@@ -110,17 +106,17 @@ export default function MiniCart() {
         </div>
 
         {cart.length > 0 && (
-          <div style={footer}>
-            <div style={totalRow}>
+          <div style={styles.footer}>
+            <div style={styles.totalRow}>
               <span>Total</span>
               <strong>{formatPrice(subtotal)}</strong>
             </div>
 
-            <Link href="/checkout" style={checkoutBtn} onClick={closeCart}>
+            <Link href="/checkout" style={styles.checkoutBtn} onClick={handleClose}>
               Payer maintenant 🔒
             </Link>
 
-            <button type="button" onClick={closeCart} style={continueBtn}>
+            <button onClick={handleClose} style={styles.continueBtn}>
               Continuer mes achats
             </button>
           </div>
@@ -130,162 +126,126 @@ export default function MiniCart() {
   );
 }
 
-const overlay = {
-  position: "fixed" as const,
-  inset: 0,
-  background: "rgba(0,0,0,0.4)",
-  zIndex: 110,
-};
-
-const cartStyle = {
-  position: "fixed" as const,
-  right: 0,
-  top: 0,
-  width: "400px",
-  maxWidth: "100%",
-  height: "100vh",
-  background: "white",
-  zIndex: 120,
-  display: "flex",
-  flexDirection: "column" as const,
-  boxShadow: "-10px 0 40px rgba(0,0,0,0.12)",
-};
-
-const header = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "20px",
-  borderBottom: "1px solid #eee",
-};
-
-const headerTitle = {
-  margin: 0,
-  fontSize: "22px",
-};
-
-const closeBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  fontSize: "18px",
-  lineHeight: 1,
-};
-
-const shippingBox = {
-  padding: "14px 20px",
-  background: "#fef3c7",
-  fontSize: "14px",
-  color: "#7c4a03",
-};
-
-const list = {
-  flex: 1,
-  overflowY: "auto" as const,
-  padding: "20px",
-};
-
-const empty = {
-  textAlign: "center" as const,
-  color: "#777",
-  marginTop: "40px",
-};
-
-const itemRow = {
-  display: "flex",
-  gap: "12px",
-  marginBottom: "18px",
-  alignItems: "flex-start",
-};
-
-const image = {
-  width: "70px",
-  height: "70px",
-  borderRadius: "10px",
-  objectFit: "cover" as const,
-  flexShrink: 0,
-};
-
-const itemInfo = {
-  flex: 1,
-};
-
-const name = {
-  fontWeight: 600,
-  margin: "0 0 6px 0",
-  color: "#111",
-};
-
-const qtyRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  margin: "6px 0",
-};
-
-const qtyBtn = {
-  padding: "4px 10px",
-  borderRadius: "6px",
-  border: "1px solid #ddd",
-  cursor: "pointer",
-  background: "white",
-  color: "#111",
-};
-
-const qtyValue = {
-  minWidth: "18px",
-  textAlign: "center" as const,
-  fontWeight: 600,
-};
-
-const price = {
-  color: "#a16207",
-  fontWeight: 600,
-  margin: "6px 0 0 0",
-};
-
-const removeBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  color: "#777",
-  fontSize: "16px",
-  lineHeight: 1,
-};
-
-const footer = {
-  padding: "20px",
-  borderTop: "1px solid #eee",
-  background: "white",
-};
-
-const totalRow = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginBottom: "15px",
-  fontSize: "16px",
-};
-
-const checkoutBtn = {
-  display: "block",
-  width: "100%",
-  textAlign: "center" as const,
-  padding: "14px",
-  background: "#a16207",
-  color: "white",
-  borderRadius: "10px",
-  textDecoration: "none",
-  marginBottom: "10px",
-  fontWeight: 600,
-};
-
-const continueBtn = {
-  width: "100%",
-  padding: "12px",
-  background: "#f3f4f6",
-  border: "none",
-  borderRadius: "10px",
-  cursor: "pointer",
-  color: "#111",
-  fontWeight: 600,
+const styles = {
+  overlay: {
+    position: "fixed" as const,
+    inset: 0,
+    background: "rgba(0,0,0,0.4)",
+    zIndex: 110,
+  },
+  cart: {
+    position: "fixed" as const,
+    right: 0,
+    top: 0,
+    width: "400px",
+    maxWidth: "100%",
+    height: "100vh",
+    background: "white",
+    zIndex: 120,
+    display: "flex",
+    flexDirection: "column" as const,
+    boxShadow: "-10px 0 40px rgba(0,0,0,0.12)",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "20px",
+    borderBottom: "1px solid #eee",
+  },
+  headerTitle: {
+    margin: 0,
+    fontSize: "22px",
+  },
+  closeBtn: {
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "18px",
+  },
+  shippingBox: {
+    padding: "14px 20px",
+    background: "#fef3c7",
+    fontSize: "14px",
+    color: "#7c4a03",
+  },
+  list: {
+    flex: 1,
+    overflowY: "auto" as const,
+    padding: "20px",
+  },
+  empty: {
+    textAlign: "center" as const,
+    color: "#777",
+    marginTop: "40px",
+  },
+  itemRow: {
+    display: "flex",
+    gap: "12px",
+    marginBottom: "18px",
+  },
+  image: {
+    width: "70px",
+    height: "70px",
+    borderRadius: "10px",
+    objectFit: "cover" as const,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  name: {
+    fontWeight: 600,
+    margin: "0 0 6px 0",
+  },
+  qtyRow: {
+    display: "flex",
+    gap: "8px",
+    margin: "6px 0",
+  },
+  qtyBtn: {
+    padding: "4px 10px",
+    border: "1px solid #ddd",
+    background: "white",
+    cursor: "pointer",
+  },
+  qtyValue: {
+    fontWeight: 600,
+  },
+  price: {
+    color: "#a16207",
+    fontWeight: 600,
+  },
+  removeBtn: {
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+  },
+  footer: {
+    padding: "20px",
+    borderTop: "1px solid #eee",
+  },
+  totalRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "15px",
+  },
+  checkoutBtn: {
+    display: "block",
+    width: "100%",
+    padding: "14px",
+    background: "#a16207",
+    color: "white",
+    borderRadius: "10px",
+    textAlign: "center" as const,
+    textDecoration: "none",
+    marginBottom: "10px",
+  },
+  continueBtn: {
+    width: "100%",
+    padding: "12px",
+    background: "#f3f4f6",
+    border: "none",
+    borderRadius: "10px",
+    cursor: "pointer",
+  },
 };
