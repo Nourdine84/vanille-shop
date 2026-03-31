@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import { useToast } from "../../components/ui/toast";
 
 export default function RegisterPage() {
-  const { showToast } = useToast();
+  // ✅ FIX SSR SAFE
+  const toast = useToast();
+  const showToast = toast?.showToast ?? (() => {});
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
