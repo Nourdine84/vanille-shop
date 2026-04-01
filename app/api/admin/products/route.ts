@@ -1,11 +1,26 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+/* =========================
+   POST CREATE / UPDATE PRODUCT
+========================= */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
+
+    let body: any;
+
+    try {
+      body = await req.json();
+    } catch {
+      console.error("❌ JSON invalide");
+      return NextResponse.json(
+        { error: "Invalid JSON" },
+        { status: 400 }
+      );
+    }
 
     const {
       id,
@@ -20,7 +35,9 @@ export async function POST(req: Request) {
       isActive,
     } = body;
 
-    // 🔒 VALIDATION
+    /* =========================
+       VALIDATION
+    ========================= */
     if (!name || !slug || !priceCents) {
       return NextResponse.json(
         { error: "Champs obligatoires manquants" },
@@ -28,7 +45,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔄 UPDATE
+    const parsedPrice = Number(priceCents);
+    const parsedStock = Number(stock || 0);
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      return NextResponse.json(
+        { error: "Prix invalide" },
+        { status: 400 }
+      );
+    }
+
+    /* =========================
+       UPDATE
+    ========================= */
     if (id) {
       const updated = await prisma.product.update({
         where: { id },
@@ -36,37 +65,44 @@ export async function POST(req: Request) {
           name,
           slug,
           description,
-          priceCents: Number(priceCents),
+          priceCents: parsedPrice,
           imageUrl,
-          stock: Number(stock),
+          stock: parsedStock,
           category,
           subCategory,
           isActive,
         },
       });
 
+      console.log("✅ PRODUCT UPDATED:", id);
+
       return NextResponse.json(updated);
     }
 
-    // ➕ CREATE
+    /* =========================
+       CREATE
+    ========================= */
     const created = await prisma.product.create({
       data: {
         name,
         slug,
         description,
-        priceCents: Number(priceCents),
+        priceCents: parsedPrice,
         imageUrl,
-        stock: Number(stock || 0),
+        stock: parsedStock,
         category,
         subCategory,
         isActive: isActive ?? true,
       },
     });
 
+    console.log("✅ PRODUCT CREATED:", created.id);
+
     return NextResponse.json(created);
 
   } catch (error) {
     console.error("🔥 PRODUCT API ERROR:", error);
+
     return NextResponse.json(
       { error: "Erreur serveur" },
       { status: 500 }

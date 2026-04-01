@@ -1,7 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { Resend } from "resend";
 
@@ -19,34 +18,35 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 ========================= */
 
 export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = headers().get("stripe-signature");
-
-  if (!signature) {
-    console.error("❌ Missing Stripe signature");
-    return NextResponse.json({ error: "No signature" }, { status: 400 });
-  }
-
-  let event: Stripe.Event;
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET as string
-    );
-  } catch (err: any) {
-    console.error("❌ Signature error:", err.message);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-  }
+    const body = await req.text();
+    const signature = headers().get("stripe-signature");
 
-  try {
+    if (!signature) {
+      console.error("❌ Missing Stripe signature");
+      return NextResponse.json({ error: "No signature" }, { status: 400 });
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET as string
+      );
+    } catch (err: any) {
+      console.error("❌ Signature error:", err.message);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
     /* =========================
        ✅ CHECKOUT SUCCESS
     ========================= */
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
 
+      const session = event.data.object as Stripe.Checkout.Session;
       const orderId = session.metadata?.orderId;
 
       if (!orderId) {
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       }
 
       /* =========================
-         🔒 ID EMPOTENCE (CRITICAL)
+         🔒 ID EMPOTENCE
       ========================= */
       const existingOrder = await prisma.order.findUnique({
         where: { id: orderId },
@@ -106,12 +106,7 @@ export async function POST(req: Request) {
          📧 EMAIL ADMIN
       ========================= */
       await sendAdminNotification(order, session);
-    }
-
-    /* =========================
-       ℹ️ OTHER EVENTS
-    ========================= */
-    else {
+    } else {
       console.log("ℹ️ Ignored event:", event.type);
     }
 
@@ -124,7 +119,7 @@ export async function POST(req: Request) {
 }
 
 /* =========================
-   📧 ADMIN EMAIL (PREMIUM)
+   📧 ADMIN EMAIL
 ========================= */
 
 async function sendAdminNotification(

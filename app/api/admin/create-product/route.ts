@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+/* =========================
+   CREATE PRODUCT (FORM)
+========================= */
 export async function POST(req: Request) {
   try {
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
+
     const formData = await req.formData();
 
     const name = formData.get("name");
@@ -17,6 +22,9 @@ export async function POST(req: Request) {
     const subCategory = formData.get("subCategory");
     const isActive = formData.get("isActive");
 
+    /* =========================
+       VALIDATION
+    ========================= */
     if (
       typeof name !== "string" ||
       typeof slug !== "string" ||
@@ -26,17 +34,35 @@ export async function POST(req: Request) {
       typeof stock !== "string" ||
       typeof category !== "string"
     ) {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+      console.error("❌ Invalid payload");
+
+      return NextResponse.json(
+        { error: "Invalid payload" },
+        { status: 400 }
+      );
     }
 
-    await prisma.product.create({
+    const parsedPrice = Number(priceCents);
+    const parsedStock = Number(stock);
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      return NextResponse.json(
+        { error: "Prix invalide" },
+        { status: 400 }
+      );
+    }
+
+    /* =========================
+       CREATE
+    ========================= */
+    const product = await prisma.product.create({
       data: {
         name: name.trim(),
         slug: slug.trim(),
         description: description.trim(),
         imageUrl: imageUrl.trim(),
-        priceCents: Number(priceCents),
-        stock: Number(stock),
+        priceCents: parsedPrice,
+        stock: parsedStock,
         category: category.trim(),
         subCategory:
           typeof subCategory === "string" && subCategory.trim()
@@ -46,11 +72,22 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/admin/products", req.url), {
-      status: 303,
-    });
+    console.log("✅ PRODUCT CREATED:", product.id);
+
+    /* =========================
+       REDIRECT ADMIN
+    ========================= */
+    return NextResponse.redirect(
+      new URL("/admin/products", req.url),
+      { status: 303 }
+    );
+
   } catch (error) {
-    console.error("CREATE PRODUCT ERROR:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("🔥 CREATE PRODUCT ERROR:", error);
+
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

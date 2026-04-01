@@ -1,6 +1,5 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,6 +33,8 @@ function getBaseUrl(req: Request) {
 ========================= */
 export async function POST(req: Request) {
   try {
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
+
     /* =========================
        SAFE JSON PARSE
     ========================= */
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const cleanId = item.id.split("-")[0]; // 🔥 gestion variantes
+      const cleanId = item.id.split("-")[0];
 
       const product = await prisma.product.findUnique({
         where: { id: cleanId },
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
     console.log("🧾 ORDER CREATED:", order.id);
 
     /* =========================
-       STRIPE LINE ITEMS (FIX IMAGE URL)
+       STRIPE LINE ITEMS
     ========================= */
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
       body.cart.map((item: any) => {
@@ -134,7 +135,7 @@ export async function POST(req: Request) {
             product_data: {
               name: item.name,
               description: "Vanille premium de Madagascar — Vanille’Or",
-              images: [imageUrl], // 🔥 FIX CRITIQUE STRIPE
+              images: [imageUrl],
             },
             unit_amount: item.priceCents,
           },
