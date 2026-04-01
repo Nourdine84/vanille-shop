@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET() {
   try {
     const now = new Date();
-
     const start = new Date();
     start.setDate(now.getDate() - 30);
 
@@ -19,16 +21,10 @@ export async function GET() {
       },
     });
 
-    /* =========================
-       GROUP BY DAY
-    ========================= */
     const map: Record<string, number> = {};
 
     orders.forEach((o) => {
-      const date = new Date(o.createdAt)
-        .toISOString()
-        .slice(0, 10);
-
+      const date = new Date(o.createdAt).toISOString().slice(0, 10);
       map[date] = (map[date] || 0) + o.totalCents;
     });
 
@@ -38,7 +34,6 @@ export async function GET() {
     }));
 
     return NextResponse.json({ data });
-
   } catch (error) {
     console.error("CHART ERROR:", error);
 
