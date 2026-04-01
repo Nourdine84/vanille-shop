@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET() {
   try {
     const orders = await prisma.order.findMany({
-      where: {
-        status: "PAID",
-      },
+      where: { status: "PAID" },
       select: {
         items: true,
         totalCents: true,
@@ -27,20 +28,14 @@ export async function GET() {
 
       items.forEach((item) => {
         if (!productMap[item.name]) {
-          productMap[item.name] = {
-            revenue: 0,
-            quantity: 0,
-          };
+          productMap[item.name] = { revenue: 0, quantity: 0 };
         }
 
-        productMap[item.name].revenue +=
-          item.priceCents * item.quantity;
-
+        productMap[item.name].revenue += item.priceCents * item.quantity;
         productMap[item.name].quantity += item.quantity;
       });
     });
 
-    /* 🔥 TOP PRODUITS PAR CA */
     const topRevenueProducts = Object.entries(productMap)
       .map(([name, data]) => ({
         name,
@@ -50,7 +45,6 @@ export async function GET() {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    /* 🔥 TOP PRODUITS PAR VOLUME */
     const topQuantityProducts = Object.entries(productMap)
       .map(([name, data]) => ({
         name,
@@ -60,11 +54,8 @@ export async function GET() {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 5);
 
-    /* 🔥 PANIER MOYEN GLOBAL */
     const averageCart =
-      orders.length > 0
-        ? totalRevenue / orders.length / 100
-        : 0;
+      orders.length > 0 ? totalRevenue / orders.length / 100 : 0;
 
     return NextResponse.json({
       topRevenueProducts,
@@ -72,7 +63,6 @@ export async function GET() {
       averageCart,
       totalRevenue: totalRevenue / 100,
     });
-
   } catch (error) {
     console.error("ADVANCED STATS ERROR:", error);
 

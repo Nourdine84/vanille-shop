@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-/* =========================
-   CONFIG
-========================= */
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-/* =========================
-   TYPES SAFE
-========================= */
 type OrderStatus =
   | "PENDING"
   | "PAID"
@@ -17,13 +12,6 @@ type OrderStatus =
   | "FAILED"
   | "CANCELED";
 
-/* =========================
-   CONFIG
-========================= */
-
-/* =========================
-   GET ORDERS (PRO VERSION)
-========================= */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -46,36 +34,20 @@ export async function GET(req: Request) {
       "CANCELED",
     ];
 
-    /* =========================
-       🔥 FILTRE INTELLIGENT
-       → évite écran pollué
-    ========================= */
     if (!statusParam || statusParam === "ACTIVE") {
       where.status = {
         in: ["PENDING", "PAID", "SHIPPED"],
       };
-    }
-
-    /* =========================
-       🔎 FILTRE PAR STATUT
-    ========================= */
-    else if (
+    } else if (
       statusParam !== "ALL" &&
       validStatuses.includes(statusParam as OrderStatus)
     ) {
-      where.status = statusParam as OrderStatus;
+      where.status = statusParam;
     }
 
-    /* =========================
-       🔍 SEARCH (id + email)
-    ========================= */
     if (search) {
       where.OR = [
-        {
-          id: {
-            contains: search,
-          },
-        },
+        { id: { contains: search } },
         {
           email: {
             contains: search,
@@ -85,9 +57,6 @@ export async function GET(req: Request) {
       ];
     }
 
-    /* =========================
-       📊 QUERY
-    ========================= */
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
@@ -95,22 +64,15 @@ export async function GET(req: Request) {
         skip,
         take: PAGE_SIZE,
       }),
-
-      prisma.order.count({
-        where,
-      }),
+      prisma.order.count({ where }),
     ]);
 
-    /* =========================
-       RESPONSE
-    ========================= */
     return NextResponse.json({
       orders,
       total,
       page,
       totalPages: Math.ceil(total / PAGE_SIZE),
     });
-
   } catch (error) {
     console.error("🔥 ADMIN ORDERS ERROR:", error);
 
