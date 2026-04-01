@@ -12,10 +12,8 @@ model User {
   email     String   @unique
   password  String?
   name      String?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   orders    Order[]
 }
 
@@ -29,16 +27,12 @@ model Product {
   imageUrl    String
   stock       Int      @default(0)
   isActive    Boolean  @default(true)
-
   category    String   @default("vanille")
   subCategory String?
-
-  // 🔥 AJOUT PROPRE (SANS CASSE)
-  unit        String?  @default("g")     // g / kg / cl / unité
-  badge       String?                  // BESTSELLER / PREMIUM / NEW / PROMO
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  badge       String?
+  unit        String?  @default("g")
 
   @@index([category])
   @@index([isActive])
@@ -46,30 +40,40 @@ model Product {
 
 model Order {
   id              String      @id @default(cuid())
-
   userId          String?
-  user            User?       @relation(fields: [userId], references: [id])
-
   status          OrderStatus @default(PENDING)
-
   stripeSessionId String?     @unique
   stripePaymentId String?     @unique
-
   email           String?
-
   totalCents      Int
   currency        String      @default("EUR")
-
   items           Json
-
   trackingNumber  String?
   carrier         String?
-
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  user            User?       @relation(fields: [userId], references: [id])
 
   @@index([createdAt])
   @@index([status])
+}
+
+model B2BRequest {
+  id          String    @id @default(cuid())
+  name        String
+  email       String
+  company     String?
+  quantity    String
+  message     String?
+  status      B2BStatus @default(NEW)
+  createdAt   DateTime  @default(now())
+  quoteAmount Int?
+  quoteSent   Boolean   @default(false)
+  relanceStep Int       @default(0)
+
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
 }
 
 enum OrderStatus {
@@ -79,27 +83,6 @@ enum OrderStatus {
   DELIVERED
   FAILED
   CANCELED
-}
-
-model B2BRequest {
-  id           String   @id @default(cuid())
-  name         String
-  email        String
-  company      String?
-  quantity     String
-  message      String?
-
-  status       B2BStatus @default(NEW)
-  relanceStep  Int       @default(0)
-
-  quoteSent    Boolean   @default(false)
-  quoteAmount  Int?
-
-  createdAt    DateTime  @default(now())
-
-  @@index([status])
-  @@index([email])
-  @@index([createdAt])
 }
 
 enum B2BStatus {
