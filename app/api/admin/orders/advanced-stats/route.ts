@@ -1,15 +1,26 @@
-if (process.env.NEXT_PHASE === "phase-production-build") {
-  console.log("⛔ Skip Prisma during build");
-}
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
+type OrderItem = {
+  name: string;
+  quantity: number;
+  priceCents: number;
+};
+
+type PaidOrder = {
+  items: unknown;
+  totalCents: number;
+};
 
 export async function GET() {
   try {
+    // ✅ Prisma chargé uniquement à l’exécution de la route
+    const { prisma } = await import("@/lib/prisma");
+
     const orders = await prisma.order.findMany({
       where: { status: "PAID" },
       select: {
@@ -18,19 +29,15 @@ export async function GET() {
       },
     });
 
-    const productMap: Record<
-      string,
-      { revenue: number; quantity: number }
-    > = {};
-
+    const productMap: Record<string, { revenue: number; quantity: number }> = {};
     let totalRevenue = 0;
 
-    orders.forEach((order) => {
+    (orders as PaidOrder[]).forEach((order: PaidOrder) => {
       totalRevenue += order.totalCents;
 
-      const items = order.items as any[];
+      const items = Array.isArray(order.items) ? (order.items as OrderItem[]) : [];
 
-      items.forEach((item) => {
+      items.forEach((item: OrderItem) => {
         if (!productMap[item.name]) {
           productMap[item.name] = { revenue: 0, quantity: 0 };
         }
