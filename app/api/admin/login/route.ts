@@ -7,6 +7,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const password = body?.password;
 
+    /* =========================
+       VALIDATION
+    ========================= */
     if (!password || typeof password !== "string") {
       return NextResponse.json(
         { error: "Invalid payload" },
@@ -22,24 +25,31 @@ export async function POST(req: Request) {
       );
     }
 
-    if (password === process.env.ADMIN_PASSWORD) {
-      const res = NextResponse.json({ success: true });
-
-      res.cookies.set("admin", "true", {
-        httpOnly: true,
-        secure: true,          // ✅ obligatoire Vercel
-        sameSite: "lax",       // ✅ évite blocage cookie
-        path: "/",
-        maxAge: 60 * 60 * 24,  // ✅ 24h session
-      });
-
-      return res;
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    /* =========================
+       COOKIE SAFE (🔥 FIX CRITIQUE)
+    ========================= */
+    const res = NextResponse.json({ success: true });
+
+    res.cookies.set({
+      name: "admin",
+      value: "true",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production", // ✅ FIX IMPORTANT
+      path: "/",
+      maxAge: 60 * 60 * 24, // 24h
+    });
+
+    console.log("✅ ADMIN LOGIN SUCCESS");
+
+    return res;
 
   } catch (error) {
     console.error("🔥 LOGIN ERROR:", error);

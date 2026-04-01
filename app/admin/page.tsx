@@ -32,7 +32,8 @@ export default async function AdminPage({
 }: {
   searchParams?: SearchParams;
 }) {
-  const isAdmin = cookies().get("admin");
+  // ✅ FIX CRITIQUE COOKIE
+  const isAdmin = cookies().get("admin")?.value === "true";
 
   if (!isAdmin) {
     redirect("/admin/login");
@@ -59,7 +60,7 @@ export default async function AdminPage({
     : undefined;
 
   /* =========================
-     QUERY SAFE (NO TYPE BUG)
+     QUERY SAFE
   ========================= */
 
   const orders: OrderSafe[] = await prisma.order.findMany({
