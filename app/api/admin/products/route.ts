@@ -4,19 +4,32 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/* =========================
+   GET ALL PRODUCTS
+========================= */
+export async function GET() {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(products);
+  } catch (error) {
+    console.error("🔥 GET PRODUCTS ERROR:", error);
+
+    return NextResponse.json(
+      { error: "Erreur serveur" },
+      { status: 500 }
+    );
+  }
+}
+
+/* =========================
+   CREATE / UPDATE PRODUCT
+========================= */
 export async function POST(req: Request) {
   try {
-    let body: any;
-
-    try {
-      body = await req.json();
-    } catch {
-      console.error("❌ JSON invalide");
-      return NextResponse.json(
-        { error: "Invalid JSON" },
-        { status: 400 }
-      );
-    }
+    const body = await req.json();
 
     const {
       id,
@@ -52,7 +65,7 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       NORMALISATION DATA
+       NORMALISATION
     ========================= */
     const safeData = {
       name: String(name).trim(),
@@ -67,7 +80,7 @@ export async function POST(req: Request) {
     };
 
     /* =========================
-       CHECK SLUG UNIQUE (CREATE)
+       CHECK SLUG UNIQUE
     ========================= */
     if (!id) {
       const existing = await prisma.product.findUnique({
@@ -91,8 +104,6 @@ export async function POST(req: Request) {
         data: safeData,
       });
 
-      console.log("✅ PRODUCT UPDATED:", id);
-
       return NextResponse.json(updated);
     }
 
@@ -103,18 +114,15 @@ export async function POST(req: Request) {
       data: safeData,
     });
 
-    console.log("✅ PRODUCT CREATED:", created.id);
-
     return NextResponse.json(created);
 
   } catch (error: any) {
     console.error("🔥 PRODUCT API ERROR:", error);
 
-    // 🔥 DEBUG PROPRE (ULTRA IMPORTANT)
     return NextResponse.json(
       {
         error: "Erreur serveur",
-        message: error?.message || "unknown",
+        message: error?.message,
       },
       { status: 500 }
     );
