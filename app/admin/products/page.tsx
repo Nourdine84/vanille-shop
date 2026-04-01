@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { useState } from "react";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,14 +24,12 @@ export default async function AdminProductsPage({
 }: {
   searchParams?: SearchParams;
 }) {
-  /* ========================= AUTH ========================= */
   const isAdmin = cookies().get("admin")?.value === "true";
 
   if (!isAdmin) {
     redirect("/admin/login");
   }
 
-  /* ========================= FILTERS ========================= */
   const query = searchParams?.q?.trim() || "";
   const category = searchParams?.category?.trim() || "";
 
@@ -42,12 +41,8 @@ export default async function AdminProductsPage({
         ...(query
           ? {
               OR: [
-                {
-                  name: { contains: query, mode: "insensitive" },
-                },
-                {
-                  slug: { contains: query, mode: "insensitive" },
-                },
+                { name: { contains: query, mode: "insensitive" } },
+                { slug: { contains: query, mode: "insensitive" } },
               ],
             }
           : {}),
@@ -63,15 +58,12 @@ export default async function AdminProductsPage({
       orderBy: { createdAt: "desc" },
     });
   } catch (error) {
-    console.error("❌ PRISMA PRODUCTS ERROR:", error);
+    console.error("❌ PRISMA ERROR:", error);
   }
 
-  /* ========================= KPI ========================= */
   const totalProducts = products.length;
   const activeProducts = products.filter((p) => p.isActive).length;
   const outOfStockProducts = products.filter((p) => p.stock <= 0).length;
-
-  /* ========================= UI ========================= */
 
   return (
     <div style={container}>
@@ -87,116 +79,59 @@ export default async function AdminProductsPage({
       {/* FILTER */}
       <div style={card}>
         <form method="GET" style={filterRow}>
-          <input
-            name="q"
-            placeholder="Rechercher nom ou slug"
-            defaultValue={query}
-            style={input}
-          />
-
+          <input name="q" placeholder="Recherche" defaultValue={query} style={input} />
           <select name="category" defaultValue={category} style={input}>
-            <option value="">Toutes les catégories</option>
+            <option value="">Toutes</option>
             <option value="vanille">Vanille</option>
             <option value="epices">Épices</option>
           </select>
-
-          <button type="submit" style={primaryBtn}>
-            Filtrer
-          </button>
+          <button style={primaryBtn}>Filtrer</button>
         </form>
       </div>
 
       {/* CREATE */}
       <div style={card}>
-        <h2 style={sectionTitle}>➕ Ajouter un produit</h2>
+        <h2>➕ Ajouter un produit</h2>
 
         <form action="/api/admin/products" method="POST" style={formGrid}>
-          <input name="name" placeholder="Nom produit" style={input} required />
+          <input name="name" placeholder="Nom" style={input} required />
           <input name="slug" placeholder="Slug" style={input} required />
           <input name="description" placeholder="Description" style={input} required />
 
-          {/* IMAGE UPLOAD */}
           <ImageUpload />
 
           <input name="priceCents" type="number" placeholder="Prix centimes" style={input} required />
           <input name="stock" type="number" placeholder="Stock" style={input} required />
 
-          <select name="unit" style={input} defaultValue="g">
-            <option value="g">g</option>
-            <option value="kg">kg</option>
-            <option value="cl">cl</option>
-            <option value="unit">unité</option>
-          </select>
-
-          <select name="badge" style={input}>
-            <option value="">Aucun badge</option>
-            <option value="BESTSELLER">🔥 Bestseller</option>
-            <option value="PREMIUM">💎 Premium</option>
-            <option value="NEW">🆕 Nouveau</option>
-            <option value="PROMO">🏷 Promo</option>
-          </select>
-
-          <select name="category" defaultValue="vanille" style={input}>
+          <select name="category" style={input}>
             <option value="vanille">Vanille</option>
             <option value="epices">Épices</option>
           </select>
 
-          <input name="subCategory" placeholder="Sous-catégorie" style={input} />
-
           <label style={checkboxRow}>
             <input type="checkbox" name="isActive" defaultChecked />
-            Produit actif
+            Actif
           </label>
 
-          <button type="submit" style={primaryBtn}>
-            Créer le produit
-          </button>
+          <button style={primaryBtn}>Créer</button>
         </form>
       </div>
 
       {/* LIST */}
       <div style={listWrapper}>
-        <h2 style={sectionTitle}>📦 Catalogue</h2>
+        <h2>📦 Catalogue</h2>
 
         {products.length === 0 ? (
-          <div style={card}>Aucun produit trouvé.</div>
+          <div style={card}>Aucun produit</div>
         ) : (
-          products.map((product) => {
-            const isOutOfStock = product.stock <= 0;
-
-            return (
-              <div key={product.id} style={productCard}>
-                <div style={productHeader}>
-                  <div>
-                    <h3>{product.name}</h3>
-                    <p style={mutedText}>/product/{product.slug}</p>
-                  </div>
-
-                  <div style={badgeRow}>
-                    <Badge color={product.isActive ? "#16a34a" : "#6b7280"}>
-                      {product.isActive ? "ACTIF" : "INACTIF"}
-                    </Badge>
-
-                    {isOutOfStock && (
-                      <Badge color="#dc2626">ÉPUISÉ</Badge>
-                    )}
-
-                    {product.badge && (
-                      <Badge color="#f59e0b">{product.badge}</Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div style={infoRow}>
-                  <span><strong>Prix :</strong> {formatPrice(product.priceCents)}</span>
-                  <span><strong>Stock :</strong> {product.stock}</span>
-                  <span><strong>Catégorie :</strong> {product.category}</span>
-                </div>
-
-                <p style={description}>{product.description}</p>
-              </div>
-            );
-          })
+          products.map((p) => (
+            <div key={p.id} style={productCard}>
+              <h3>{p.name}</h3>
+              <p>{formatPrice(p.priceCents)}</p>
+              <p>{p.category}</p>
+              <p>Stock: {p.stock}</p>
+            </div>
+          ))
         )}
       </div>
     </div>
@@ -208,9 +143,13 @@ export default async function AdminProductsPage({
 function ImageUpload() {
   "use client";
 
+  const [preview, setPreview] = useState<string | null>(null);
+
   const handleUpload = async (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    setPreview(URL.createObjectURL(file));
 
     const formData = new FormData();
     formData.append("file", file);
@@ -227,10 +166,13 @@ function ImageUpload() {
   };
 
   return (
-    <>
-      <input type="file" accept="image/*" onChange={handleUpload} />
+    <div>
+      <input type="file" onChange={handleUpload} />
+
+      {preview && <img src={preview} style={{ width: 100 }} />}
+
       <input name="imageUrl" placeholder="URL image" style={input} required />
-    </>
+    </div>
   );
 }
 
@@ -240,52 +182,30 @@ function Card({ title, value }: any) {
   return (
     <div style={card}>
       <h3>{title}</h3>
-      <p style={valueStyle}>{value}</p>
+      <p>{value}</p>
     </div>
-  );
-}
-
-function Badge({ children, color }: any) {
-  return (
-    <span style={{ ...statusBadge, background: color }}>
-      {children}
-    </span>
   );
 }
 
 /* ========================= STYLE ========================= */
 
-const container = { padding: "40px", background: "#faf7f2", minHeight: "100vh" };
-const title = { fontSize: "28px", marginBottom: "24px" };
-const sectionTitle = { margin: "0 0 16px 0" };
+const container = { padding: 40 };
+const title = { fontSize: 28 };
 
-const grid3 = { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" };
+const grid3 = { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 };
 
-const card = { background: "white", padding: "20px", borderRadius: "12px" };
-const valueStyle = { fontSize: "24px", fontWeight: 700 };
+const card = { background: "#fff", padding: 20, borderRadius: 10 };
 
-const filterRow = { display: "flex", gap: "12px" };
+const filterRow = { display: "flex", gap: 10 };
 
-const formGrid = { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" };
+const formGrid = { display: "grid", gap: 10 };
 
-const input = { padding: "10px", borderRadius: "8px", border: "1px solid #ddd" };
+const input = { padding: 10, border: "1px solid #ddd" };
 
-const checkboxRow = { display: "flex", gap: "8px" };
+const checkboxRow = { display: "flex", gap: 5 };
 
-const primaryBtn = { background: "#a16207", color: "white", padding: "10px", borderRadius: "8px", border: "none" };
+const primaryBtn = { background: "#a16207", color: "#fff", padding: 10 };
 
-const listWrapper = { marginTop: "20px" };
+const listWrapper = { marginTop: 20 };
 
-const productCard = { background: "white", padding: "20px", borderRadius: "12px", marginBottom: "16px" };
-
-const productHeader = { display: "flex", justifyContent: "space-between" };
-
-const badgeRow = { display: "flex", gap: "6px" };
-
-const statusBadge = { padding: "6px 10px", borderRadius: "999px", color: "white", fontSize: "12px" };
-
-const mutedText = { color: "#777", fontSize: "12px" };
-
-const infoRow = { display: "flex", gap: "12px" };
-
-const description = { color: "#666" };
+const productCard = { background: "#fff", padding: 15, marginBottom: 10 };
