@@ -1,30 +1,43 @@
 import { PrismaClient } from "@prisma/client";
 
-let prisma: PrismaClient;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-function createPrismaClient() {
-  return new PrismaClient({
-    log: ["error"],
-  });
+/**
+ * 🔥 DETECTION BUILD (FIABLE VERCEL)
+ */
+const isBuild =
+  process.env.NEXT_PHASE === "phase-production-build" ||
+  process.env.VERCEL_ENV === "production" && process.env.NEXT_RUNTIME === undefined;
+
+/**
+ * 🔥 MOCK SAFE POUR BUILD
+ */
+function createMockPrisma(): PrismaClient {
+  return new Proxy(
+    {},
+    {
+      get() {
+        return () => {
+          console.warn("⛔ Prisma call blocked during build");
+          return null;
+        };
+      },
+    }
+  ) as PrismaClient;
 }
 
 /**
- * 🔥 CRITIQUE : empêche Prisma pendant build Vercel
+ * 🔥 INSTANCE
  */
-if (process.env.NODE_ENV === "production" && process.env.VERCEL) {
-  // 👉 pendant le build, Next n’a PAS DATABASE_URL
-  if (!process.env.DATABASE_URL) {
-    console.log("⛔ Prisma skipped (no DATABASE_URL during build)");
-    prisma = {} as PrismaClient;
-  } else {
-    prisma = createPrismaClient();
-  }
-} else {
-  // dev ou runtime
-  if (!(global as any).prisma) {
-    (global as any).prisma = createPrismaClient();
-  }
-  prisma = (global as any).prisma;
-}
+export const prisma: PrismaClient = isBuild
+  ? createMockPrisma()
+  : globalForPrisma.prisma ??
+    new PrismaClient({
+      log: ["error"],
+    });
 
-export { prisma };
+if (!isBuild && process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
