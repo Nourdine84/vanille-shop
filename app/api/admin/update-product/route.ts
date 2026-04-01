@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+/* =========================
+   UPDATE PRODUCT
+========================= */
 export async function POST(req: Request) {
   try {
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
+
     const formData = await req.formData();
 
     const id = formData.get("id");
@@ -18,6 +23,9 @@ export async function POST(req: Request) {
     const subCategory = formData.get("subCategory");
     const isActive = formData.get("isActive");
 
+    /* =========================
+       VALIDATION
+    ========================= */
     if (
       typeof id !== "string" ||
       typeof name !== "string" ||
@@ -28,18 +36,36 @@ export async function POST(req: Request) {
       typeof stock !== "string" ||
       typeof category !== "string"
     ) {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+      console.error("❌ Invalid payload");
+
+      return NextResponse.json(
+        { error: "Invalid payload" },
+        { status: 400 }
+      );
     }
 
-    await prisma.product.update({
+    const parsedPrice = Number(priceCents);
+    const parsedStock = Number(stock);
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      return NextResponse.json(
+        { error: "Prix invalide" },
+        { status: 400 }
+      );
+    }
+
+    /* =========================
+       UPDATE
+    ========================= */
+    const updated = await prisma.product.update({
       where: { id },
       data: {
         name: name.trim(),
         slug: slug.trim(),
         description: description.trim(),
         imageUrl: imageUrl.trim(),
-        priceCents: Number(priceCents),
-        stock: Number(stock),
+        priceCents: parsedPrice,
+        stock: parsedStock,
         category: category.trim(),
         subCategory:
           typeof subCategory === "string" && subCategory.trim()
@@ -49,11 +75,32 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/admin/products", req.url), {
-      status: 303,
-    });
-  } catch (error) {
-    console.error("UPDATE PRODUCT ERROR:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.log("✅ PRODUCT UPDATED:", updated.id);
+
+    /* =========================
+       REDIRECT ADMIN
+    ========================= */
+    return NextResponse.redirect(
+      new URL("/admin/products", req.url),
+      { status: 303 }
+    );
+
+  } catch (error: any) {
+    console.error("🔥 UPDATE PRODUCT ERROR:", error);
+
+    /* =========================
+       SAFE ERROR HANDLING
+    ========================= */
+    if (error?.code === "P2025") {
+      return NextResponse.json(
+        { error: "Produit introuvable" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

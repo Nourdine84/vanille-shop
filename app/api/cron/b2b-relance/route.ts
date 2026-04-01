@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import {
   sendB2BRelanceEmail,
   sendB2BRelanceV2Email,
   sendB2BRelanceV3Email,
 } from "@/lib/email";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX
+
     const now = new Date();
 
     const leads = await prisma.b2BRequest.findMany({
@@ -25,7 +29,9 @@ export async function GET() {
         (now.getTime() - new Date(lead.createdAt).getTime()) /
         (1000 * 60 * 60);
 
-      // 🔥 RELANCE 1
+      /* =========================
+         RELANCE 1
+      ========================= */
       if (ageHours > 24 && lead.relanceStep === 0) {
         await sendB2BRelanceEmail(lead);
 
@@ -37,7 +43,9 @@ export async function GET() {
         processed++;
       }
 
-      // 🔥 RELANCE 2
+      /* =========================
+         RELANCE 2
+      ========================= */
       else if (ageHours > 48 && lead.relanceStep === 1) {
         await sendB2BRelanceV2Email(lead);
 
@@ -49,7 +57,9 @@ export async function GET() {
         processed++;
       }
 
-      // 🔥 RELANCE 3 (conversion)
+      /* =========================
+         RELANCE 3
+      ========================= */
       else if (ageHours > 72 && lead.relanceStep === 2) {
         await sendB2BRelanceV3Email(lead);
 
@@ -62,13 +72,15 @@ export async function GET() {
       }
     }
 
+    console.log("🔁 CRON PROCESSED:", processed);
+
     return NextResponse.json({
       success: true,
       processed,
     });
 
   } catch (error) {
-    console.error("CRON V2 ERROR:", error);
+    console.error("🔥 CRON ERROR:", error);
 
     return NextResponse.json(
       { error: "cron failed" },

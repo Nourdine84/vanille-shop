@@ -1,10 +1,23 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { sendB2BEmail, sendB2BDevisEmail } from "@/lib/email";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX
+
+    let body: any;
+
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON" },
+        { status: 400 }
+      );
+    }
 
     const { name, email, company, quantity, message } = body;
 
@@ -25,7 +38,9 @@ export async function POST(req: Request) {
       },
     });
 
-    // 🔥 EMAIL INTERNE (toi)
+    /* =========================
+       EMAILS
+    ========================= */
     await sendB2BEmail({
       name,
       email,
@@ -34,7 +49,6 @@ export async function POST(req: Request) {
       message,
     });
 
-    // 🔥 EMAIL CLIENT AUTO (DEVIS)
     await sendB2BDevisEmail({
       name,
       email,
@@ -42,10 +56,12 @@ export async function POST(req: Request) {
       quantity,
     });
 
+    console.log("✅ B2B REQUEST CREATED:", email);
+
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error("B2B ERROR:", error);
+    console.error("🔥 B2B ERROR:", error);
 
     return NextResponse.json(
       { error: "Erreur serveur" },

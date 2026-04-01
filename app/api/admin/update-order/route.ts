@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { sendShippingEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+/* =========================
+   TYPES
+========================= */
 type OrderStatus =
   | "PENDING"
   | "PAID"
@@ -21,8 +24,13 @@ const allowedStatuses: OrderStatus[] = [
   "CANCELED",
 ];
 
+/* =========================
+   POST UPDATE ORDER
+========================= */
 export async function POST(req: Request) {
   try {
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
+
     const formData = await req.formData();
 
     const id = formData.get("id");
@@ -30,6 +38,9 @@ export async function POST(req: Request) {
     const trackingNumber = formData.get("trackingNumber");
     const carrier = formData.get("carrier");
 
+    /* =========================
+       VALIDATION
+    ========================= */
     if (typeof id !== "string" || typeof status !== "string") {
       console.error("❌ Invalid payload:", { id, status });
 
@@ -48,6 +59,9 @@ export async function POST(req: Request) {
       );
     }
 
+    /* =========================
+       CHECK EXIST
+    ========================= */
     const existingOrder = await prisma.order.findUnique({
       where: { id },
       select: {
@@ -66,6 +80,9 @@ export async function POST(req: Request) {
       );
     }
 
+    /* =========================
+       CLEAN DATA
+    ========================= */
     const cleanTracking =
       typeof trackingNumber === "string" && trackingNumber.trim()
         ? trackingNumber.trim()
@@ -76,6 +93,9 @@ export async function POST(req: Request) {
         ? carrier.trim()
         : null;
 
+    /* =========================
+       UPDATE ORDER
+    ========================= */
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: {
@@ -92,6 +112,9 @@ export async function POST(req: Request) {
       },
     });
 
+    /* =========================
+       📧 EMAIL SHIPPING (SAFE)
+    ========================= */
     const becameShipped =
       existingOrder.status !== "SHIPPED" &&
       updatedOrder.status === "SHIPPED" &&
@@ -106,6 +129,7 @@ export async function POST(req: Request) {
           trackingNumber: updatedOrder.trackingNumber!,
           carrier: updatedOrder.carrier,
         });
+
         console.log("📧 Shipping email sent:", updatedOrder.email);
       } catch (emailError) {
         console.error("🔥 SHIPPING EMAIL ERROR:", emailError);
@@ -114,9 +138,13 @@ export async function POST(req: Request) {
 
     console.log("✅ ORDER UPDATED:", id, status);
 
+    /* =========================
+       REDIRECT ADMIN
+    ========================= */
     return NextResponse.redirect(new URL("/admin", req.url), {
       status: 303,
     });
+
   } catch (error) {
     console.error("🔥 UPDATE ORDER ERROR:", error);
 

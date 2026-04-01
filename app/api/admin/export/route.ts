@@ -1,14 +1,28 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/* =========================
+   HELPERS
+========================= */
 function formatPrice(cents: number) {
   return (cents / 100).toFixed(2);
 }
 
+function escapeCSV(value: any) {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  return `"${str.replace(/"/g, '""')}"`; // ✅ évite bug CSV
+}
+
+/* =========================
+   EXPORT CSV
+========================= */
 export async function GET() {
   try {
+    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
+
     const orders = await prisma.order.findMany({
       orderBy: { createdAt: "desc" },
     });
@@ -22,11 +36,11 @@ export async function GET() {
     ];
 
     const rows = orders.map((o) => [
-      o.id,
-      new Date(o.createdAt).toISOString(),
-      o.email || "",
-      o.status,
-      formatPrice(o.totalCents),
+      escapeCSV(o.id),
+      escapeCSV(new Date(o.createdAt).toISOString()),
+      escapeCSV(o.email || ""),
+      escapeCSV(o.status),
+      escapeCSV(formatPrice(o.totalCents)),
     ]);
 
     const csv = [
@@ -34,15 +48,17 @@ export async function GET() {
       ...rows.map((r) => r.join(",")),
     ].join("\n");
 
+    console.log("📦 CSV GENERATED:", orders.length, "orders");
+
     return new NextResponse(csv, {
       headers: {
-        "Content-Type": "text/csv",
+        "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": "attachment; filename=orders.csv",
       },
     });
 
   } catch (error) {
-    console.error("CSV ERROR:", error);
+    console.error("🔥 CSV ERROR:", error);
 
     return NextResponse.json(
       { error: "Erreur export CSV" },
