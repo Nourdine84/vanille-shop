@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs"; // 🔥 FIX CRITIQUE
 
 type OrderItem = {
   name: string;
