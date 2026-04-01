@@ -1,13 +1,25 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { Order, OrderStatus } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { OrderStatus } from "@prisma/client";
 
-export const dynamic = "force-dynamic"; // 🔥 CRITIQUE VERCEL
+export const dynamic = "force-dynamic";
 
 type OrderItem = {
   name: string;
   quantity: number;
   priceCents: number;
+};
+
+type OrderSafe = {
+  id: string;
+  email: string | null;
+  status: OrderStatus;
+  totalCents: number;
+  createdAt: Date;
+  items: unknown;
+  trackingNumber: string | null;
+  carrier: string | null;
 };
 
 type SearchParams = {
@@ -20,8 +32,6 @@ export default async function AdminPage({
 }: {
   searchParams?: SearchParams;
 }) {
-  const { prisma } = await import("@/lib/prisma"); // ✅ SAFE VERCEL
-
   const isAdmin = cookies().get("admin");
 
   if (!isAdmin) {
@@ -49,10 +59,10 @@ export default async function AdminPage({
     : undefined;
 
   /* =========================
-     QUERY
+     QUERY SAFE (NO TYPE BUG)
   ========================= */
 
-  const orders: Order[] = await prisma.order.findMany({
+  const orders: OrderSafe[] = await prisma.order.findMany({
     where: {
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(query
@@ -86,14 +96,20 @@ export default async function AdminPage({
   const failedOrders = orders.filter((o) => o.status === "FAILED").length;
   const canceledOrders = orders.filter((o) => o.status === "CANCELED").length;
 
+  /* =========================
+     TOP PRODUCTS SAFE
+  ========================= */
+
   const productMap: Record<string, number> = {};
 
   orders.forEach((order) => {
     const items = Array.isArray(order.items)
-      ? (order.items as unknown as OrderItem[])
+      ? (order.items as OrderItem[])
       : [];
 
     items.forEach((item) => {
+      if (!item?.name || !item?.quantity) return;
+
       productMap[item.name] =
         (productMap[item.name] || 0) + item.quantity;
     });
@@ -153,7 +169,7 @@ export default async function AdminPage({
         ) : (
           orders.map((order) => {
             const items = Array.isArray(order.items)
-              ? (order.items as unknown as OrderItem[])
+              ? (order.items as OrderItem[])
               : [];
 
             return (
@@ -191,17 +207,10 @@ export default async function AdminPage({
                 >
                   <input type="hidden" name="id" value={order.id} />
 
-                  <select
-                    name="status"
-                    defaultValue={order.status}
-                    style={input}
-                  >
-                    <option value="PENDING">PENDING</option>
-                    <option value="PAID">PAID</option>
-                    <option value="SHIPPED">SHIPPED</option>
-                    <option value="DELIVERED">DELIVERED</option>
-                    <option value="FAILED">FAILED</option>
-                    <option value="CANCELED">CANCELED</option>
+                  <select name="status" defaultValue={order.status} style={input}>
+                    {validStatuses.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
 
                   <input
