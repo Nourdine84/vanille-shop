@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export async function GET() {
   try {
+    const { prisma } = await import("@/lib/prisma");
+
     const now = new Date();
     const start = new Date();
     start.setDate(now.getDate() - 30);
@@ -24,7 +26,7 @@ export async function GET() {
 
     const map: Record<string, number> = {};
 
-    orders.forEach((o) => {
+    orders.forEach((o: { createdAt: Date; totalCents: number }) => {
       const date = new Date(o.createdAt).toISOString().slice(0, 10);
       map[date] = (map[date] || 0) + o.totalCents;
     });
@@ -38,9 +40,6 @@ export async function GET() {
   } catch (error) {
     console.error("CHART ERROR:", error);
 
-    return NextResponse.json(
-      { data: [] },
-      { status: 500 }
-    );
+    return NextResponse.json({ data: [] }, { status: 500 });
   }
 }

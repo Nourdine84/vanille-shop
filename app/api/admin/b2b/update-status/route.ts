@@ -1,57 +1,30 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
-
-type Status = "NEW" | "CONTACTED" | "CLOSED";
-
-const allowedStatuses: Status[] = ["NEW", "CONTACTED", "CLOSED"];
+export const revalidate = 0;
 
 export async function POST(req: Request) {
   try {
-    const contentType = req.headers.get("content-type") || "";
+    const { prisma } = await import("@/lib/prisma");
 
-    let id: string | null = null;
-    let status: string | null = null;
+    const body = await req.json();
 
-    if (contentType.includes("application/json")) {
-      const body = await req.json().catch(() => null);
-      id = body?.id ?? null;
-      status = body?.status ?? null;
-    } else {
-      const formData = await req.formData();
-      id = (formData.get("id") as string) || null;
-      status = (formData.get("status") as string) || null;
-    }
+    const { id, status } = body;
 
-    if (!id || !status || !allowedStatuses.includes(status as Status)) {
+    if (!id || !status) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-    }
-
-    const existing = await prisma.b2BRequest.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      return NextResponse.json(
-        { error: "Request not found" },
-        { status: 404 }
-      );
     }
 
     await prisma.b2BRequest.update({
       where: { id },
-      data: { status: status as Status },
+      data: { status },
     });
 
-    return NextResponse.redirect(
-      new URL("/admin/b2b", req.url),
-      { status: 303 }
-    );
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("🔥 B2B UPDATE ERROR:", error);
+    console.error("B2B UPDATE ERROR:", error);
 
     return NextResponse.json(
       { error: "Server error" },

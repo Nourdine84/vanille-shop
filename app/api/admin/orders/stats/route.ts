@@ -1,9 +1,4 @@
-if (process.env.NEXT_PHASE === "phase-production-build") {
-  console.log("⛔ Skip Prisma during build");
-}
-
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,12 +7,18 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
+    const { prisma } = await import("@/lib/prisma");
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const [totalOrders, totalRevenue, monthRevenue] = await Promise.all([
       prisma.order.count(),
-      prisma.order.aggregate({ _sum: { totalCents: true } }),
+
+      prisma.order.aggregate({
+        _sum: { totalCents: true },
+      }),
+
       prisma.order.aggregate({
         where: {
           createdAt: { gte: startOfMonth },
@@ -36,7 +37,7 @@ export async function GET() {
     console.error("STATS ERROR:", error);
 
     return NextResponse.json(
-      { error: "Erreur stats" },
+      { totalOrders: 0, totalRevenue: 0, monthRevenue: 0 },
       { status: 500 }
     );
   }
