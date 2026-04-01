@@ -2,16 +2,8 @@
 
 const nextConfig = {
   reactStrictMode: true,
-
-  // 🔥 IMPORTANT VERCEL + PRISMA
   output: "standalone",
 
-  // 🔥 Évite certains comportements agressifs de cache/build
-  experimental: {
-    serverActions: true,
-  },
-
-  // 🔥 Images (safe large scope)
   images: {
     remotePatterns: [
       {
@@ -19,11 +11,6 @@ const nextConfig = {
         hostname: "**",
       },
     ],
-  },
-
-  // 🔥 OPTION SAFE (évite erreurs build CSS/externes)
-  webpack: (config) => {
-    return config;
   },
 };
 
