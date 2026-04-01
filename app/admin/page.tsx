@@ -64,7 +64,10 @@ export default async function AdminPage({
      QUERY SAFE
   ========================= */
 
-  const orders: OrderSafe[] = await prisma.order.findMany({
+  let orders: OrderSafe[] = [];
+
+try {
+  orders = await prisma.order.findMany({
     where: {
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(query
@@ -78,7 +81,9 @@ export default async function AdminPage({
     },
     orderBy: { createdAt: "desc" },
   });
-
+} catch (error) {
+  console.error("❌ PRISMA ERROR:", error);
+}
   /* =========================
      KPIs
   ========================= */
