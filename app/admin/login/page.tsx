@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const router = useRouter();
 
   const handleLogin = async () => {
     if (!password) {
@@ -21,8 +18,9 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json", // 🔥 FIX CRITIQUE
+          "Content-Type": "application/json",
         },
+        credentials: "include", // 🔥 FIX CRITIQUE COOKIE
         body: JSON.stringify({ password }),
       });
 
@@ -31,10 +29,12 @@ export default function AdminLoginPage() {
       console.log("LOGIN RESPONSE:", data);
 
       if (res.ok) {
-        router.push("/admin");
+        // 🔥 FIX SSR / COOKIE
+        window.location.href = "/admin";
       } else {
         alert("Mot de passe incorrect");
       }
+
     } catch (error) {
       console.error("LOGIN ERROR:", error);
       alert("Erreur serveur");
