@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
 import { sendShippingEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -29,8 +30,6 @@ const allowedStatuses: OrderStatus[] = [
 ========================= */
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
-
     const formData = await req.formData();
 
     const id = formData.get("id");

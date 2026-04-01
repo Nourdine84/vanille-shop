@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,8 +9,6 @@ export const dynamic = "force-dynamic";
 ========================= */
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
-
     const formData = await req.formData();
 
     const id = formData.get("id");
@@ -67,19 +66,18 @@ export async function POST(req: Request) {
         priceCents: parsedPrice,
         stock: parsedStock,
         category: category.trim(),
+
         subCategory:
           typeof subCategory === "string" && subCategory.trim()
             ? subCategory.trim()
             : null,
+
         isActive: isActive === "on",
       },
     });
 
     console.log("✅ PRODUCT UPDATED:", updated.id);
 
-    /* =========================
-       REDIRECT ADMIN
-    ========================= */
     return NextResponse.redirect(
       new URL("/admin/products", req.url),
       { status: 303 }
@@ -88,9 +86,6 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("🔥 UPDATE PRODUCT ERROR:", error);
 
-    /* =========================
-       SAFE ERROR HANDLING
-    ========================= */
     if (error?.code === "P2025") {
       return NextResponse.json(
         { error: "Produit introuvable" },

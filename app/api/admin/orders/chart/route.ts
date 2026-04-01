@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
+/* =========================
+   GET CHART DATA (30 DAYS)
+========================= */
 export async function GET() {
   try {
-    const { prisma } = await import("@/lib/prisma");
-
     const now = new Date();
     const start = new Date();
     start.setDate(now.getDate() - 30);
@@ -26,20 +28,30 @@ export async function GET() {
 
     const map: Record<string, number> = {};
 
-    orders.forEach((o: { createdAt: Date; totalCents: number }) => {
+    for (const o of orders) {
       const date = new Date(o.createdAt).toISOString().slice(0, 10);
-      map[date] = (map[date] || 0) + o.totalCents;
-    });
 
-    const data = Object.entries(map).map(([date, value]) => ({
-      date,
-      value: value / 100,
-    }));
+      map[date] = (map[date] || 0) + o.totalCents;
+    }
+
+    /* =========================
+       SORT BY DATE (IMPORTANT)
+    ========================= */
+    const data = Object.entries(map)
+      .map(([date, value]) => ({
+        date,
+        value: value / 100,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date)); // ✅ FIX UX
 
     return NextResponse.json({ data });
-  } catch (error) {
-    console.error("CHART ERROR:", error);
 
-    return NextResponse.json({ data: [] }, { status: 500 });
+  } catch (error) {
+    console.error("🔥 CHART ERROR:", error);
+
+    return NextResponse.json(
+      { data: [] },
+      { status: 500 }
+    );
   }
 }
