@@ -4,25 +4,26 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-let prisma: PrismaClient;
+/**
+ * 🔥 SAFE VERCEL BUILD DETECTION
+ */
+const isBuild =
+  process.env.VERCEL === "1" &&
+  process.env.NEXT_RUNTIME === undefined;
 
 /**
- * 🔥 Empêche Prisma pendant le build Vercel
+ * 🔥 Prisma instance
  */
-if (process.env.NEXT_PHASE === "phase-production-build") {
-  console.log("⛔ Prisma disabled during build");
-
-  prisma = {} as PrismaClient; // mock safe pour build
-} else {
-  prisma =
-    globalForPrisma.prisma ??
+export const prisma: PrismaClient = isBuild
+  ? ({} as PrismaClient) // ⛔ bloque Prisma pendant build
+  : globalForPrisma.prisma ??
     new PrismaClient({
-      log: ["error"],
+      log: ["error", "warn"],
     });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = prisma;
-  }
+/**
+ * 🔥 Dev cache (évite multi instances)
+ */
+if (!isBuild && process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
 }
-
-export { prisma };
