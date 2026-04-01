@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 export default function EditProductPage() {
-  const { id } = useParams();
-  const router = useRouter();
+    const params = useParams();
+    const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    const router = useRouter();
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
