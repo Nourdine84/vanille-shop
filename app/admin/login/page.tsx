@@ -5,18 +5,41 @@ import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const router = useRouter();
 
   const handleLogin = async () => {
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      body: JSON.stringify({ password }),
-    });
+    if (!password) {
+      alert("Entre un mot de passe");
+      return;
+    }
 
-    if (res.ok) {
-      router.push("/admin");
-    } else {
-      alert("Mot de passe incorrect");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json", // 🔥 FIX CRITIQUE
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await res.json();
+
+      console.log("LOGIN RESPONSE:", data);
+
+      if (res.ok) {
+        router.push("/admin");
+      } else {
+        alert("Mot de passe incorrect");
+      }
+    } catch (error) {
+      console.error("LOGIN ERROR:", error);
+      alert("Erreur serveur");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,6 +56,7 @@ export default function AdminLoginPage() {
           padding: "10px",
           marginTop: "20px",
           borderRadius: "8px",
+          border: "1px solid #ddd",
         }}
       />
 
@@ -40,15 +64,19 @@ export default function AdminLoginPage() {
 
       <button
         onClick={handleLogin}
+        disabled={loading}
         style={{
           marginTop: "20px",
           padding: "10px 20px",
           background: "#a16207",
           color: "white",
           borderRadius: "8px",
+          border: "none",
+          cursor: "pointer",
+          opacity: loading ? 0.7 : 1,
         }}
       >
-        Se connecter
+        {loading ? "Connexion..." : "Se connecter"}
       </button>
     </div>
   );
