@@ -1,23 +1,14 @@
-if (process.env.NEXT_PHASE === "phase-production-build") {
-  console.log("⛔ Skip Prisma during build");
-}
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
-
-type OrderStatus =
-  | "PENDING"
-  | "PAID"
-  | "SHIPPED"
-  | "DELIVERED"
-  | "FAILED"
-  | "CANCELED";
+export const revalidate = 0;
 
 export async function GET(req: Request) {
   try {
+    const { prisma } = await import("@/lib/prisma");
+
     const { searchParams } = new URL(req.url);
 
     const statusParam = searchParams.get("status");
@@ -29,35 +20,18 @@ export async function GET(req: Request) {
 
     let where: any = {};
 
-    const validStatuses: OrderStatus[] = [
-      "PENDING",
-      "PAID",
-      "SHIPPED",
-      "DELIVERED",
-      "FAILED",
-      "CANCELED",
-    ];
-
     if (!statusParam || statusParam === "ACTIVE") {
       where.status = {
         in: ["PENDING", "PAID", "SHIPPED"],
       };
-    } else if (
-      statusParam !== "ALL" &&
-      validStatuses.includes(statusParam as OrderStatus)
-    ) {
+    } else if (statusParam !== "ALL") {
       where.status = statusParam;
     }
 
     if (search) {
       where.OR = [
         { id: { contains: search } },
-        {
-          email: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
+        { email: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -77,16 +51,12 @@ export async function GET(req: Request) {
       page,
       totalPages: Math.ceil(total / PAGE_SIZE),
     });
+
   } catch (error) {
-    console.error("🔥 ADMIN ORDERS ERROR:", error);
+    console.error("ADMIN ORDERS ERROR:", error);
 
     return NextResponse.json(
-      {
-        orders: [],
-        total: 0,
-        page: 1,
-        totalPages: 1,
-      },
+      { orders: [], total: 0, page: 1, totalPages: 1 },
       { status: 500 }
     );
   }
