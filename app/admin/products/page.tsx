@@ -94,11 +94,7 @@ export default async function AdminProductsPage({
             style={input}
           />
 
-          <select
-            name="category"
-            defaultValue={category}
-            style={input}
-          >
+          <select name="category" defaultValue={category} style={input}>
             <option value="">Toutes les catégories</option>
             <option value="vanille">Vanille</option>
             <option value="epices">Épices</option>
@@ -120,22 +116,51 @@ export default async function AdminProductsPage({
           style={formGrid}
         >
           <input name="name" placeholder="Nom produit" style={input} required />
-          <input name="slug" placeholder="Slug (ex: vanille-gourmet-100g)" style={input} required />
-          <input name="description" placeholder="Description courte" style={input} required />
+          <input name="slug" placeholder="Slug" style={input} required />
+          <input name="description" placeholder="Description" style={input} required />
           <input name="imageUrl" placeholder="URL image" style={input} required />
-          <input name="priceCents" type="number" min="0" placeholder="Prix en centimes (ex: 1290)" style={input} required />
-          <input name="stock" type="number" min="0" placeholder="Stock" style={input} required />
+
+          <input
+            name="priceCents"
+            type="number"
+            min="0"
+            placeholder="Prix en centimes"
+            style={input}
+            required
+          />
+
+          <input
+            name="stock"
+            type="number"
+            min="0"
+            placeholder="Stock"
+            style={input}
+            required
+          />
+
+          {/* 🔥 UNIT */}
+          <select name="unit" style={input} defaultValue="g">
+            <option value="g">g</option>
+            <option value="kg">kg</option>
+            <option value="cl">cl</option>
+            <option value="unit">unité</option>
+          </select>
+
+          {/* 🔥 BADGE */}
+          <select name="badge" style={input}>
+            <option value="">Aucun badge</option>
+            <option value="BESTSELLER">🔥 Bestseller</option>
+            <option value="PREMIUM">💎 Premium</option>
+            <option value="NEW">🆕 Nouveau</option>
+            <option value="PROMO">🏷 Promo</option>
+          </select>
 
           <select name="category" defaultValue="vanille" style={input}>
             <option value="vanille">Vanille</option>
             <option value="epices">Épices</option>
           </select>
 
-          <input
-            name="subCategory"
-            placeholder="Sous-catégorie (optionnel)"
-            style={input}
-          />
+          <input name="subCategory" placeholder="Sous-catégorie" style={input} />
 
           <label style={checkboxRow}>
             <input type="checkbox" name="isActive" defaultChecked />
@@ -157,7 +182,7 @@ export default async function AdminProductsPage({
         {products.length === 0 ? (
           <div style={card}>Aucun produit trouvé.</div>
         ) : (
-          products.map((product) => {
+          products.map((product: any) => {
             const isOutOfStock = product.stock <= 0;
 
             return (
@@ -165,9 +190,7 @@ export default async function AdminProductsPage({
                 <div style={productHeader}>
                   <div>
                     <h3 style={{ margin: 0 }}>{product.name}</h3>
-                    <p style={mutedText}>
-                      /product/{product.slug}
-                    </p>
+                    <p style={mutedText}>/product/{product.slug}</p>
                   </div>
 
                   <div style={badgeRow}>
@@ -181,23 +204,26 @@ export default async function AdminProductsPage({
                     </span>
 
                     {isOutOfStock && (
-                      <span
-                        style={{
-                          ...statusBadge,
-                          background: "#dc2626",
-                        }}
-                      >
+                      <span style={{ ...statusBadge, background: "#dc2626" }}>
                         ÉPUISÉ
+                      </span>
+                    )}
+
+                    {product.badge && (
+                      <span style={{ ...statusBadge, background: "#f59e0b" }}>
+                        {product.badge}
                       </span>
                     )}
                   </div>
                 </div>
 
                 <div style={infoRow}>
-                  <span><strong>Prix :</strong> {formatPrice(product.priceCents)}</span>
+                  <span>
+                    <strong>Prix :</strong>{" "}
+                    {formatPrice(product.priceCents)} / {product.unit || "g"}
+                  </span>
                   <span><strong>Stock :</strong> {product.stock}</span>
                   <span><strong>Catégorie :</strong> {product.category}</span>
-                  <span><strong>Sous-catégorie :</strong> {product.subCategory || "—"}</span>
                 </div>
 
                 <p style={description}>{product.description}</p>
@@ -209,89 +235,40 @@ export default async function AdminProductsPage({
                 >
                   <input type="hidden" name="id" value={product.id} />
 
-                  <input
-                    name="name"
-                    defaultValue={product.name}
-                    style={input}
-                    required
-                  />
+                  <input name="name" defaultValue={product.name} style={input} />
+                  <input name="slug" defaultValue={product.slug} style={input} />
+                  <input name="description" defaultValue={product.description} style={input} />
+                  <input name="imageUrl" defaultValue={product.imageUrl} style={input} />
 
-                  <input
-                    name="slug"
-                    defaultValue={product.slug}
-                    style={input}
-                    required
-                  />
+                  <input name="priceCents" type="number" defaultValue={product.priceCents} style={input} />
+                  <input name="stock" type="number" defaultValue={product.stock} style={input} />
 
-                  <input
-                    name="description"
-                    defaultValue={product.description}
-                    style={input}
-                    required
-                  />
-
-                  <input
-                    name="imageUrl"
-                    defaultValue={product.imageUrl}
-                    style={input}
-                    required
-                  />
-
-                  <input
-                    name="priceCents"
-                    type="number"
-                    min="0"
-                    defaultValue={product.priceCents}
-                    style={input}
-                    required
-                  />
-
-                  <input
-                    name="stock"
-                    type="number"
-                    min="0"
-                    defaultValue={product.stock}
-                    style={input}
-                    required
-                  />
-
-                  <select
-                    name="category"
-                    defaultValue={product.category}
-                    style={input}
-                  >
-                    <option value="vanille">Vanille</option>
-                    <option value="epices">Épices</option>
+                  <select name="unit" defaultValue={product.unit || "g"} style={input}>
+                    <option value="g">g</option>
+                    <option value="kg">kg</option>
+                    <option value="cl">cl</option>
+                    <option value="unit">unité</option>
                   </select>
 
-                  <input
-                    name="subCategory"
-                    defaultValue={product.subCategory || ""}
-                    placeholder="Sous-catégorie"
-                    style={input}
-                  />
+                  <select name="badge" defaultValue={product.badge || ""} style={input}>
+                    <option value="">Aucun badge</option>
+                    <option value="BESTSELLER">🔥 Bestseller</option>
+                    <option value="PREMIUM">💎 Premium</option>
+                    <option value="NEW">🆕 Nouveau</option>
+                    <option value="PROMO">🏷 Promo</option>
+                  </select>
 
                   <label style={checkboxRow}>
-                    <input
-                      type="checkbox"
-                      name="isActive"
-                      defaultChecked={product.isActive}
-                    />
+                    <input type="checkbox" name="isActive" defaultChecked={product.isActive} />
                     Produit actif
                   </label>
 
-                  <div style={actionRow}>
-                    <button type="submit" style={primaryBtn}>
-                      Sauvegarder
-                    </button>
-                  </div>
+                  <button type="submit" style={primaryBtn}>
+                    Sauvegarder
+                  </button>
                 </form>
 
-                <form
-                  action="/api/admin/delete-product"
-                  method="POST"
-                  style={{ marginTop: "12px" }}
-                >
+                <form action="/api/admin/delete-product" method="POST">
                   <input type="hidden" name="id" value={product.id} />
                   <button type="submit" style={dangerBtn}>
                     Supprimer
@@ -308,20 +285,9 @@ export default async function AdminProductsPage({
 
 /* STYLES */
 
-const container = {
-  padding: "40px",
-  background: "#faf7f2",
-  minHeight: "100vh",
-};
-
-const title = {
-  fontSize: "28px",
-  marginBottom: "24px",
-};
-
-const sectionTitle = {
-  margin: "0 0 16px 0",
-};
+const container = { padding: "40px", background: "#faf7f2", minHeight: "100vh" };
+const title = { fontSize: "28px", marginBottom: "24px" };
+const sectionTitle = { margin: "0 0 16px 0" };
 
 const grid3 = {
   display: "grid",
@@ -334,122 +300,68 @@ const card = {
   background: "white",
   padding: "20px",
   borderRadius: "12px",
-  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
 };
 
-const cardTitle = {
-  margin: 0,
-  fontSize: "16px",
-};
+const cardTitle = { margin: 0 };
+const valueStyle = { fontSize: "24px", fontWeight: 700 };
 
-const valueStyle = {
-  fontSize: "24px",
-  fontWeight: 700,
-  marginTop: "10px",
-};
-
-const filterRow = {
-  display: "flex",
-  gap: "12px",
-  alignItems: "center",
-  flexWrap: "wrap" as const,
-};
+const filterRow = { display: "flex", gap: "12px" };
 
 const formGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(2, 1fr)",
   gap: "12px",
 };
 
 const input = {
-  padding: "12px",
-  borderRadius: "10px",
+  padding: "10px",
+  borderRadius: "8px",
   border: "1px solid #ddd",
-  background: "white",
 };
 
-const checkboxRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  padding: "10px 0",
-};
+const checkboxRow = { display: "flex", gap: "8px" };
 
 const primaryBtn = {
   background: "#a16207",
   color: "white",
+  padding: "10px",
+  borderRadius: "8px",
   border: "none",
-  borderRadius: "10px",
-  padding: "12px 16px",
-  cursor: "pointer",
-  fontWeight: 700,
 };
 
 const dangerBtn = {
   background: "#dc2626",
   color: "white",
+  padding: "10px",
+  borderRadius: "8px",
   border: "none",
-  borderRadius: "10px",
-  padding: "12px 16px",
-  cursor: "pointer",
-  fontWeight: 700,
 };
 
-const listWrapper = {
-  marginTop: "20px",
-};
+const listWrapper = { marginTop: "20px" };
 
 const productCard = {
   background: "white",
   padding: "20px",
   borderRadius: "12px",
   marginBottom: "16px",
-  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
 };
 
 const productHeader = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "12px",
-  marginBottom: "12px",
 };
 
-const badgeRow = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
-};
+const badgeRow = { display: "flex", gap: "6px" };
 
 const statusBadge = {
-  color: "white",
   padding: "6px 10px",
   borderRadius: "999px",
+  color: "white",
   fontSize: "12px",
-  fontWeight: 700,
 };
 
-const mutedText = {
-  color: "#777",
-  fontSize: "12px",
-  margin: "4px 0 0 0",
-};
+const mutedText = { color: "#777", fontSize: "12px" };
 
-const infoRow = {
-  display: "flex",
-  gap: "16px",
-  flexWrap: "wrap" as const,
-  marginBottom: "12px",
-  color: "#444",
-};
+const infoRow = { display: "flex", gap: "12px" };
 
-const description = {
-  color: "#666",
-  marginBottom: "16px",
-};
-
-const actionRow = {
-  display: "flex",
-  gap: "10px",
-  alignItems: "center",
-};
+const description = { color: "#666" };

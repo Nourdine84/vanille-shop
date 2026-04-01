@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,8 +34,6 @@ function getBaseUrl(req: Request) {
 ========================= */
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
-
     /* =========================
        SAFE JSON PARSE
     ========================= */

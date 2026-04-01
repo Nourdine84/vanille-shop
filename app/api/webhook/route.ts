@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { Resend } from "resend";
 
@@ -44,7 +45,6 @@ export async function POST(req: Request) {
        ✅ CHECKOUT SUCCESS
     ========================= */
     if (event.type === "checkout.session.completed") {
-      const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
 
       const session = event.data.object as Stripe.Checkout.Session;
       const orderId = session.metadata?.orderId;

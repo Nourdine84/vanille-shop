@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
+import { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
+/* =========================
+   GET ADMIN ORDERS
+========================= */
 export async function GET(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma");
-
     const { searchParams } = new URL(req.url);
 
     const statusParam = searchParams.get("status");
@@ -18,23 +21,40 @@ export async function GET(req: Request) {
     const PAGE_SIZE = 10;
     const skip = (page - 1) * PAGE_SIZE;
 
+    /* =========================
+       SAFE STATUS FILTER
+    ========================= */
+    const activeStatuses: OrderStatus[] = ["PENDING", "PAID", "SHIPPED"];
+
     let where: any = {};
 
     if (!statusParam || statusParam === "ACTIVE") {
-      where.status = {
-        in: ["PENDING", "PAID", "SHIPPED"],
-      };
+      where.status = { in: activeStatuses };
     } else if (statusParam !== "ALL") {
-      where.status = statusParam;
+      if (activeStatuses.includes(statusParam as OrderStatus) ||
+          ["DELIVERED", "FAILED", "CANCELED"].includes(statusParam)) {
+        where.status = statusParam as OrderStatus;
+      }
     }
 
+    /* =========================
+       SEARCH
+    ========================= */
     if (search) {
       where.OR = [
         { id: { contains: search } },
-        { email: { contains: search, mode: "insensitive" } },
+        {
+          email: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
       ];
     }
 
+    /* =========================
+       QUERY
+    ========================= */
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
@@ -45,6 +65,9 @@ export async function GET(req: Request) {
       prisma.order.count({ where }),
     ]);
 
+    /* =========================
+       RESPONSE
+    ========================= */
     return NextResponse.json({
       orders,
       total,
@@ -53,10 +76,15 @@ export async function GET(req: Request) {
     });
 
   } catch (error) {
-    console.error("ADMIN ORDERS ERROR:", error);
+    console.error("🔥 ADMIN ORDERS ERROR:", error);
 
     return NextResponse.json(
-      { orders: [], total: 0, page: 1, totalPages: 1 },
+      {
+        orders: [],
+        total: 0,
+        page: 1,
+        totalPages: 1,
+      },
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,8 +9,6 @@ export const dynamic = "force-dynamic";
 ========================= */
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
-
     const formData = await req.formData();
 
     const name = formData.get("name");
@@ -64,19 +63,18 @@ export async function POST(req: Request) {
         priceCents: parsedPrice,
         stock: parsedStock,
         category: category.trim(),
+
         subCategory:
           typeof subCategory === "string" && subCategory.trim()
             ? subCategory.trim()
             : null,
+
         isActive: isActive === "on",
       },
     });
 
     console.log("✅ PRODUCT CREATED:", product.id);
 
-    /* =========================
-       REDIRECT ADMIN
-    ========================= */
     return NextResponse.redirect(
       new URL("/admin/products", req.url),
       { status: 303 }

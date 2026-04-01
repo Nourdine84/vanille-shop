@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { Order, OrderStatus } from "@prisma/client";
+
+export const dynamic = "force-dynamic"; // 🔥 CRITIQUE VERCEL
 
 type OrderItem = {
   name: string;
@@ -19,18 +20,41 @@ export default async function AdminPage({
 }: {
   searchParams?: SearchParams;
 }) {
+  const { prisma } = await import("@/lib/prisma"); // ✅ SAFE VERCEL
+
   const isAdmin = cookies().get("admin");
 
   if (!isAdmin) {
     redirect("/admin/login");
   }
 
-  const statusFilter = searchParams?.status?.trim() || "";
+  /* =========================
+     FILTERS SAFE
+  ========================= */
+
+  const rawStatus = searchParams?.status?.trim() || "";
   const query = searchParams?.q?.trim() || "";
+
+  const validStatuses: OrderStatus[] = [
+    "PENDING",
+    "PAID",
+    "SHIPPED",
+    "DELIVERED",
+    "FAILED",
+    "CANCELED",
+  ];
+
+  const statusFilter = validStatuses.includes(rawStatus as OrderStatus)
+    ? (rawStatus as OrderStatus)
+    : undefined;
+
+  /* =========================
+     QUERY
+  ========================= */
 
   const orders: Order[] = await prisma.order.findMany({
     where: {
-      ...(statusFilter ? { status: statusFilter as OrderStatus } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
       ...(query
         ? {
             email: {
@@ -42,6 +66,10 @@ export default async function AdminPage({
     },
     orderBy: { createdAt: "desc" },
   });
+
+  /* =========================
+     KPIs
+  ========================= */
 
   const totalRevenue = orders.reduce(
     (acc, order) => acc + order.totalCents,
@@ -66,13 +94,18 @@ export default async function AdminPage({
       : [];
 
     items.forEach((item) => {
-      productMap[item.name] = (productMap[item.name] || 0) + item.quantity;
+      productMap[item.name] =
+        (productMap[item.name] || 0) + item.quantity;
     });
   });
 
   const topProducts = Object.entries(productMap)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <div style={container}>
@@ -198,6 +231,8 @@ export default async function AdminPage({
   );
 }
 
+/* ========================= COMPONENTS ========================= */
+
 function Card({ title, value }: { title: string; value: string }) {
   return (
     <div style={card}>
@@ -223,6 +258,8 @@ function Status({ status }: { status: OrderStatus }) {
     </span>
   );
 }
+
+/* ========================= STYLE ========================= */
 
 const container = {
   padding: "40px",

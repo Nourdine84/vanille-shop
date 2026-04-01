@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +16,6 @@ const allowed: Status[] = ["NEW", "CONTACTED", "CLOSED"];
 ========================= */
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
-
     const formData = await req.formData();
 
     const id = formData.get("id");
