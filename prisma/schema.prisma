@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("PRISMA_ACCELERATE_URL")
 }
 
 model User {
@@ -32,7 +32,6 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   badge       String?
-  unit        String?  @default("g")
 
   @@index([category])
   @@index([isActive])
