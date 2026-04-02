@@ -1,17 +1,25 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
+import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { Resend } from "resend";
 
 export const runtime = "nodejs";
 
 /* =========================
-   INIT
+   INIT SAFE
 ========================= */
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("❌ STRIPE_SECRET_KEY manquante");
+}
+
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  throw new Error("❌ STRIPE_WEBHOOK_SECRET manquant");
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* =========================
@@ -41,21 +49,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
+    console.log("📡 EVENT:", event.type);
+
     /* =========================
-       ✅ CHECKOUT SUCCESS
+       💰 CHECKOUT SUCCESS
     ========================= */
     if (event.type === "checkout.session.completed") {
-
       const session = event.data.object as Stripe.Checkout.Session;
       const orderId = session.metadata?.orderId;
 
       if (!orderId) {
-        console.error("❌ Missing orderId in metadata");
-        return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+        console.error("❌ Missing orderId");
+        return NextResponse.json({ received: true });
       }
 
       /* =========================
-         🔒 ID EMPOTENCE
+         FETCH ORDER
       ========================= */
       const existingOrder = await prisma.order.findUnique({
         where: { id: orderId },
@@ -63,63 +72,129 @@ export async function POST(req: Request) {
 
       if (!existingOrder) {
         console.error("❌ Order not found:", orderId);
-        return NextResponse.json({ error: "Order not found" }, { status: 404 });
-      }
-
-      if (existingOrder.status === "PAID") {
-        console.log("⚠️ Order already processed:", orderId);
         return NextResponse.json({ received: true });
       }
 
       /* =========================
-         🔄 UPDATE ORDER
+         IDEMPOTENCE
+      ========================= */
+      if (existingOrder.status === "PAID") {
+        console.log("⚠️ Already processed:", orderId);
+        return NextResponse.json({ received: true });
+      }
+
+      /* =========================
+         UPDATE ORDER
       ========================= */
       const order = await prisma.order.update({
         where: { id: orderId },
         data: {
           status: "PAID",
-          stripePaymentId: session.payment_intent as string,
+          stripePaymentId:
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : session.payment_intent?.id,
         },
       });
 
       console.log("✅ ORDER PAID:", order.id);
 
       /* =========================
-         📧 EMAIL CLIENT
+         SAFE PARSE ITEMS
       ========================= */
-      const email = session.customer_details?.email;
+      let items: any[] = [];
 
-      if (email && order.items) {
-        await sendOrderConfirmationEmail({
-          to: email,
-          orderId: order.id,
-          items: order.items as any,
-          totalCents: order.totalCents,
-        });
-
-        console.log("📧 CLIENT EMAIL SENT:", email);
+      if (Array.isArray(order.items)) {
+        items = order.items;
       } else {
-        console.warn("⚠️ No email or items for order:", order.id);
+        console.warn("⚠️ Invalid items format:", order.items);
       }
 
       /* =========================
-         📧 EMAIL ADMIN
+         UPDATE STOCK
+      ========================= */
+      try {
+        for (const item of items) {
+          const cleanId = item.id?.split("-")[0];
+
+          if (!cleanId) continue;
+
+          await prisma.product.update({
+            where: { id: cleanId },
+            data: {
+              stock: {
+                decrement: Number(item.quantity) || 1,
+              },
+            },
+          });
+        }
+
+        console.log("📦 STOCK UPDATED");
+      } catch (err) {
+        console.error("❌ STOCK ERROR:", err);
+      }
+
+      /* =========================
+         FORMAT ITEMS (TS SAFE)
+      ========================= */
+      const formattedItems = items.map((item: any) => ({
+        id: item.id || "",
+        name: item.name || "Produit",
+        quantity: Number(item.quantity) || 1,
+        priceCents: Number(item.priceCents) || 0,
+      }));
+
+      /* =========================
+         FIX NULL TYPES
+      ========================= */
+      const trackingNumber =
+        order.trackingNumber === null ? undefined : order.trackingNumber;
+
+      const carrier =
+        order.carrier === null ? undefined : order.carrier;
+
+      /* =========================
+         EMAIL CLIENT
+      ========================= */
+      const email = session.customer_details?.email;
+
+      if (email && formattedItems.length > 0) {
+        try {
+          await sendOrderConfirmationEmail({
+            to: email,
+            orderId: order.id,
+            items: formattedItems,
+            totalCents: order.totalCents,
+            trackingNumber,
+            carrier,
+          });
+
+          console.log("📧 CLIENT EMAIL SENT:", email);
+        } catch (err) {
+          console.error("❌ EMAIL CLIENT ERROR:", err);
+        }
+      }
+
+      /* =========================
+         EMAIL ADMIN
       ========================= */
       await sendAdminNotification(order, session);
-    } else {
-      console.log("ℹ️ Ignored event:", event.type);
     }
 
     return NextResponse.json({ received: true });
 
   } catch (error) {
     console.error("🔥 WEBHOOK ERROR:", error);
-    return NextResponse.json({ error: "Webhook error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Webhook error" },
+      { status: 500 }
+    );
   }
 }
 
 /* =========================
-   📧 ADMIN EMAIL
+   ADMIN EMAIL
 ========================= */
 
 async function sendAdminNotification(
@@ -141,27 +216,23 @@ async function sendAdminNotification(
       subject: `💰 Nouvelle commande — ${order.id.slice(0, 8)}`,
 
       html: `
-        <div style="font-family:Arial,Helvetica,sans-serif;background:#faf7f2;padding:30px;">
+        <div style="font-family:Arial;background:#faf7f2;padding:30px;">
           <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:16px;">
-
-            <h1 style="margin:0 0 20px 0;color:#a16207;">
+            
+            <h1 style="color:#a16207;margin-bottom:20px;">
               Vanille’Or
             </h1>
 
-            <h2 style="margin:0 0 15px 0;">
-              Nouvelle commande 💰
-            </h2>
+            <h2>Nouvelle commande 💰</h2>
 
             <p><strong>ID :</strong> ${order.id}</p>
-
             <p><strong>Total :</strong> ${total} €</p>
-
-            <p><strong>Email client :</strong> ${
+            <p><strong>Email :</strong> ${
               session.customer_details?.email || "-"
             }</p>
 
             <div style="margin-top:20px;padding:15px;background:#fffaf1;border-radius:12px;">
-              <p style="margin:0;">Commande prête à être traitée</p>
+              <p style="margin:0;">Commande prête à traiter</p>
             </div>
 
           </div>

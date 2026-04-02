@@ -1,342 +1,397 @@
-"use client";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { OrderStatus } from "@prisma/client";
 
-import React, { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/toast";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts";
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-/* =========================
-   TYPES
-========================= */
-type Order = {
+type SearchParams = {
+  status?: string;
+};
+
+type OrderItem = {
   id: string;
-  totalCents: number;
-  status: string;
-  createdAt: string;
-  email?: string;
-  items: {
-    name: string;
-    quantity: number;
-    priceCents: number;
-  }[];
-};
-
-type Stats = {
-  totalOrders: number;
-  totalRevenue: number;
-  monthRevenue: number;
-};
-
-type ChartItem = {
-  date: string;
-  value: number;
-};
-
-type ProductStat = {
   name: string;
   quantity: number;
-  revenue: number;
-  margin: number;
+  priceCents: number;
 };
 
-/* =========================
-   COMPONENT
-========================= */
-export default function AdminOrdersPage() {
+/* ================= UTIL ================= */
 
-  // ✅ FIX SSR ULTRA SAFE (IMPORTANT)
-  const toast = useToast();
-  const showToast = (...args: any[]) => {
-    if (toast && typeof toast.showToast === "function") {
-      toast.showToast(...args);
-    }
-  };
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+}
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [chartData, setChartData] = useState<ChartItem[]>([]);
-  const [topProducts, setTopProducts] = useState<ProductStat[]>([]);
-  const [topRevenueProducts, setTopRevenueProducts] = useState<ProductStat[]>([]);
-  const [averageCart, setAverageCart] = useState(0);
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
 
-  const [filter, setFilter] = useState("ACTIVE");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+/* ================= PAGE ================= */
 
-  /* =========================
-     FETCH
-  ========================= */
-  const fetchOrders = async () => {
-    try {
-      const res = await fetch(
-        `/api/admin/orders?status=${filter}&search=${search}&page=${page}`
-      );
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
+  const isAdmin = cookies().get("admin")?.value === "true";
 
-      const data = await res.json();
+  if (!isAdmin) {
+    redirect("/admin/login");
+  }
 
-      setOrders(data.orders || []);
-      setTotalPages(data.totalPages || 1);
+  /* ================= FILTER ================= */
 
-      const productMap: Record<string, { quantity: number; revenue: number }> = {};
+  const statusRaw = searchParams?.status?.trim() || "";
 
-      let total = 0;
+  const status = Object.values(OrderStatus).includes(
+    statusRaw as OrderStatus
+  )
+    ? (statusRaw as OrderStatus)
+    : undefined;
 
-      data.orders.forEach((order: Order) => {
-        total += order.totalCents;
+  let orders: any[] = [];
 
-        order.items?.forEach((item) => {
-          if (!productMap[item.name]) {
-            productMap[item.name] = {
-              quantity: 0,
-              revenue: 0,
-            };
-          }
+  try {
+    orders = await prisma.order.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("❌ ADMIN ORDERS ERROR:", error);
+    orders = [];
+  }
 
-          productMap[item.name].quantity += item.quantity;
-          productMap[item.name].revenue +=
-            item.priceCents * item.quantity;
-        });
-      });
+  /* ================= KPI ================= */
 
-      const enriched = Object.entries(productMap).map(
-        ([name, data]) => {
-          const revenue = data.revenue / 100;
-          const margin = revenue * 0.6;
-
-          return {
-            name,
-            quantity: data.quantity,
-            revenue,
-            margin,
-          };
-        }
-      );
-
-      setTopProducts(
-        [...enriched].sort((a, b) => b.quantity - a.quantity).slice(0, 5)
-      );
-
-      setTopRevenueProducts(
-        [...enriched].sort((a, b) => b.revenue - a.revenue).slice(0, 5)
-      );
-
-      if (data.orders.length > 0) {
-        setAverageCart(total / data.orders.length / 100);
-      }
-
-    } catch {
-      showToast("Erreur chargement commandes", "error");
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const res = await fetch("/api/admin/orders/stats");
-      const data = await res.json();
-      setStats(data);
-    } catch {
-      showToast("Erreur stats", "error");
-    }
-  };
-
-  const fetchChart = async () => {
-    try {
-      const res = await fetch("/api/admin/orders/chart");
-      const data = await res.json();
-      setChartData(data.data || []);
-    } catch {
-      showToast("Erreur graphique", "error");
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    fetchStats();
-    fetchChart();
-  }, [filter, search, page]);
-
-  const updateStatus = async (id: string, status: string) => {
-    try {
-      await fetch(`/api/admin/orders/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-
-      showToast("Statut mis à jour", "success");
-      fetchOrders();
-    } catch {
-      showToast("Erreur update", "error");
-    }
-  };
+  const pendingCount = orders.filter((o) => o.status === "PENDING").length;
+  const paidCount = orders.filter((o) => o.status === "PAID").length;
+  const shippedCount = orders.filter((o) => o.status === "SHIPPED").length;
 
   return (
-    <div className="container py-10">
-      <h1 style={title}>Dashboard commandes</h1>
+    <div style={container}>
+      <h1 style={title}>🧾 Commandes</h1>
 
-      {stats && (
-        <div style={kpiGrid}>
-          <div style={kpiCard}>
-            <p>Total commandes</p>
-            <strong>{stats.totalOrders}</strong>
-          </div>
-
-          <div style={kpiCard}>
-            <p>CA total</p>
-            <strong>{(stats.totalRevenue / 100).toFixed(2)} €</strong>
-          </div>
-
-          <div style={kpiCard}>
-            <p>CA du mois</p>
-            <strong>{(stats.monthRevenue / 100).toFixed(2)} €</strong>
-          </div>
-
-          <div style={kpiCard}>
-            <p>Panier moyen</p>
-            <strong>{averageCart.toFixed(2)} €</strong>
-          </div>
-        </div>
-      )}
-
-      {chartData.length > 0 && (
-        <div style={chartBox}>
-          <h3>Évolution du CA (30 jours)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <XAxis dataKey="date" />
-              <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#a16207" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {topRevenueProducts.length > 0 && (
-        <div style={chartBox}>
-          <h3>Top produits (CA)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topRevenueProducts}>
-              <XAxis dataKey="name" />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#a16207" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {topProducts.length > 0 && (
-        <div style={chartBox}>
-          <h3>Top produits (volume)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topProducts}>
-              <XAxis dataKey="name" />
-              <Tooltip />
-              <Bar dataKey="quantity" fill="#111" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {topRevenueProducts.length > 0 && (
-        <div style={topBox}>
-          <h3>Marge estimée (top produits)</h3>
-          {topRevenueProducts.map((p, i) => (
-            <div key={i}>
-              {p.name} — {p.margin.toFixed(2)} €
-            </div>
-          ))}
-        </div>
-      )}
-
-      <a href="/api/admin/orders/export" style={exportBtn}>
-        Export CSV
-      </a>
-
-      <input
-        placeholder="Rechercher..."
-        value={search}
-        onChange={(e) => {
-          setPage(1);
-          setSearch(e.target.value);
-        }}
-        style={searchInput}
-      />
-
-      <div style={filters}>
-        {["ACTIVE", "PENDING", "PAID", "FAILED"].map((f) => (
-          <button
-            key={f}
-            onClick={() => {
-              setPage(1);
-              setFilter(f);
-            }}
-            style={{
-              ...filterBtn,
-              background: filter === f ? "#111" : "#eee",
-              color: filter === f ? "white" : "#111",
-            }}
-          >
-            {f}
-          </button>
-        ))}
+      {/* KPI */}
+      <div style={grid3}>
+        <Card title="En attente" value={pendingCount} />
+        <Card title="Payées" value={paidCount} />
+        <Card title="Expédiées" value={shippedCount} />
       </div>
 
-      {orders.map((order) => (
-        <div key={order.id} style={card}>
-          <strong>#{order.id.slice(0, 8)}</strong>
-          <p style={date}>{new Date(order.createdAt).toLocaleString()}</p>
-          <p>{order.email || "Pas d’email"}</p>
-          <strong>{(order.totalCents / 100).toFixed(2)} €</strong>
-
-          <select
-            value={order.status}
-            onChange={(e) => updateStatus(order.id, e.target.value)}
-          >
-            <option value="PENDING">PENDING</option>
-            <option value="PAID">PAID</option>
-            <option value="SHIPPED">SHIPPED</option>
-            <option value="DELIVERED">DELIVERED</option>
-            <option value="FAILED">FAILED</option>
+      {/* FILTRE */}
+      <div style={card}>
+        <form method="GET" style={filterRow}>
+          <select name="status" defaultValue={status} style={input}>
+            <option value="">Tous les statuts</option>
+            {Object.values(OrderStatus).map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
           </select>
-        </div>
-      ))}
 
-      <div style={pagination}>
-        <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
-          ←
-        </button>
-
-        <span>Page {page} / {totalPages}</span>
-
-        <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-          →
-        </button>
+          <button type="submit" style={primaryBtn}>
+            Filtrer
+          </button>
+        </form>
       </div>
+
+      {/* LISTE */}
+      {orders.length === 0 ? (
+        <div style={card}>Aucune commande trouvée.</div>
+      ) : (
+        <div style={listWrapper}>
+          {orders.map((order) => {
+            const items = Array.isArray(order.items)
+              ? (order.items as OrderItem[])
+              : [];
+
+            return (
+              <div key={order.id} style={orderCard}>
+                {/* HEADER */}
+                <div style={orderHeader}>
+                  <div>
+                    <h3 style={{ margin: 0 }}>
+                      Commande {order.id.slice(0, 8)}
+                    </h3>
+                    <p style={mutedText}>
+                      {formatDate(order.createdAt)}
+                    </p>
+                  </div>
+
+                  <div style={headerRight}>
+                    <StatusBadge status={order.status} />
+                    <strong>{formatPrice(order.totalCents)}</strong>
+                  </div>
+                </div>
+
+                {/* TRACKING BLOCK 🔥 */}
+                {order.trackingNumber && (
+                  <div style={trackingBox}>
+                    📦 Tracking : <strong>{order.trackingNumber}</strong>
+                    {order.carrier && (
+                      <> — {order.carrier.toUpperCase()}</>
+                    )}
+                  </div>
+                )}
+
+                {/* META */}
+                <div style={metaGrid}>
+                  <div>
+                    <span style={metaLabel}>Email</span>
+                    <p style={metaValue}>
+                      {order.email || "Non renseigné"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span style={metaLabel}>Paiement Stripe</span>
+                    <p style={metaValue}>
+                      {order.stripePaymentId || "En attente"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span style={metaLabel}>Tracking</span>
+                    <p style={metaValue}>
+                      {order.trackingNumber || "Non renseigné"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* ITEMS */}
+                <div style={itemsBox}>
+                  <h4 style={itemsTitle}>Articles</h4>
+
+                  {items.length === 0 ? (
+                    <p style={mutedText}>Aucun article enregistré.</p>
+                  ) : (
+                    items.map((item, index) => (
+                      <div key={`${item.id}-${index}`} style={itemRow}>
+                        <span>{item.name}</span>
+                        <span>
+                          {item.quantity} × {formatPrice(item.priceCents)}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* UPDATE */}
+                <form
+                  action="/api/admin/orders/update-status"
+                  method="POST"
+                  style={statusForm}
+                >
+                  <input type="hidden" name="orderId" value={order.id} />
+
+                  <select
+                    name="status"
+                    defaultValue={order.status}
+                    style={input}
+                  >
+                    {Object.values(OrderStatus).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* TRACKING INPUT */}
+                  <input
+                    name="trackingNumber"
+                    placeholder="Tracking"
+                    defaultValue={order.trackingNumber || ""}
+                    style={input}
+                  />
+
+                  {/* CARRIER */}
+                  <select
+                    name="carrier"
+                    defaultValue={order.carrier || ""}
+                    style={input}
+                  >
+                    <option value="">Transporteur</option>
+                    <option value="colissimo">Colissimo</option>
+                    <option value="chronopost">Chronopost</option>
+                    <option value="dhl">DHL</option>
+                  </select>
+
+                  <button type="submit" style={secondaryBtn}>
+                    Mettre à jour
+                  </button>
+                </form>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-/* =========================
-   STYLES
-========================= */
+/* ================= COMPONENTS ================= */
 
+function Card({ title, value }: { title: string; value: number }) {
+  return (
+    <div style={card}>
+      <h3 style={cardTitle}>{title}</h3>
+      <p style={valueStyle}>{value}</p>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: OrderStatus }) {
+  const colors: Record<OrderStatus, string> = {
+    PENDING: "#f59e0b",
+    PAID: "#16a34a",
+    SHIPPED: "#2563eb",
+    DELIVERED: "#7c3aed",
+    FAILED: "#dc2626",
+    CANCELED: "#6b7280",
+  };
+
+  return (
+    <span style={{ ...statusBadge, background: colors[status] }}>
+      {status}
+    </span>
+  );
+}
+
+/* ================= STYLES ================= */
+
+const container = { padding: "30px" };
 const title = { fontSize: "28px", marginBottom: "20px" };
-const kpiGrid = { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "20px", marginBottom: "30px" };
-const kpiCard = { background: "white", padding: "20px", borderRadius: "12px", textAlign: "center" as const };
-const chartBox = { background: "white", padding: "20px", borderRadius: "12px", marginBottom: "30px" };
-const topBox = { background: "white", padding: "20px", borderRadius: "12px", marginBottom: "30px" };
-const exportBtn = { display: "inline-block", marginBottom: "20px", padding: "10px", background: "#111", color: "white", borderRadius: "8px", textDecoration: "none" };
-const searchInput = { padding: "10px", width: "100%", marginBottom: "20px" };
-const filters = { display: "flex", gap: "10px", marginBottom: "20px" };
-const filterBtn = { padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer" };
-const card = { background: "white", padding: "20px", borderRadius: "12px", marginBottom: "15px" };
-const date = { fontSize: "12px", color: "#666" };
-const pagination = { marginTop: "20px", display: "flex", gap: "10px" };
+
+const grid3 = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3,1fr)",
+  gap: "20px",
+  marginBottom: "20px",
+};
+
+const card = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+};
+
+const cardTitle = { margin: 0 };
+
+const valueStyle = {
+  fontSize: "24px",
+  fontWeight: 700,
+};
+
+const filterRow = { display: "flex", gap: "10px" };
+
+const input = {
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid #ddd",
+};
+
+const primaryBtn = {
+  background: "#a16207",
+  color: "white",
+  padding: "10px 14px",
+  borderRadius: "8px",
+  border: "none",
+};
+
+const secondaryBtn = {
+  background: "#2563eb",
+  color: "white",
+  padding: "10px 14px",
+  borderRadius: "8px",
+  border: "none",
+};
+
+const listWrapper = {
+  marginTop: "20px",
+  display: "grid",
+  gap: "16px",
+};
+
+const orderCard = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "14px",
+  boxShadow: "0 4px 14px rgba(0,0,0,0.05)",
+};
+
+const orderHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  marginBottom: "16px",
+};
+
+const headerRight = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+};
+
+const mutedText = {
+  color: "#777",
+  fontSize: "13px",
+};
+
+const statusBadge = {
+  color: "white",
+  fontSize: "12px",
+  fontWeight: 700,
+  padding: "6px 10px",
+  borderRadius: "999px",
+};
+
+const trackingBox = {
+  background: "#eef2ff",
+  padding: "10px",
+  borderRadius: "8px",
+  marginBottom: "10px",
+  fontSize: "14px",
+};
+
+const metaGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3,1fr)",
+  gap: "16px",
+  marginBottom: "16px",
+};
+
+const metaLabel = {
+  display: "block",
+  color: "#777",
+  fontSize: "12px",
+  marginBottom: "4px",
+};
+
+const metaValue = { margin: 0 };
+
+const itemsBox = {
+  background: "#faf7f2",
+  padding: "14px",
+  borderRadius: "10px",
+  marginBottom: "16px",
+};
+
+const itemsTitle = { margin: "0 0 10px 0" };
+
+const itemRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "6px 0",
+  borderBottom: "1px solid #eee",
+};
+
+const statusForm = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+  alignItems: "center",
+};

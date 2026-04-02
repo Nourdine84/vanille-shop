@@ -31,81 +31,109 @@ export default function CartPage() {
       <div style={wrapper}>
         <h1 style={title}>Votre panier</h1>
 
-        {/* PANIER VIDE */}
+        {/* EMPTY */}
         {cart.length === 0 && (
           <div style={emptyBox}>
-            <p>Votre panier est vide</p>
+            <p style={{ marginBottom: 10 }}>
+              Votre panier est vide
+            </p>
+
             <Link href="/products" style={ctaPrimary}>
               Voir les produits
             </Link>
           </div>
         )}
 
-        {/* LISTE */}
-        {cart.map((item) => (
-          <div key={item.id} style={card}>
-            <img
-              src={item.imageUrl || "/images/product-vanille.jpg"}
-              style={img}
-            />
+        {/* LIST */}
+        {cart.map((item) => {
+          const isMax = item.quantity >= 99;
 
-            <div style={{ flex: 1 }}>
-              <h3>{item.name}</h3>
+          return (
+            <div key={item.id} style={card}>
+              <img
+                src={item.imageUrl || "/images/product-vanille.jpg"}
+                alt={item.name}
+                style={img}
+              />
 
-              <p style={{ color: "#666" }}>
-                {formatPrice(item.priceCents)}
-              </p>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: 0 }}>{item.name}</h3>
 
-              {/* QUANTITY */}
-              <div style={qtyBox}>
-                <button
-                  onClick={() =>
-                    updateQuantity(item.id, Math.max(1, item.quantity - 1))
-                  }
-                >
-                  -
-                </button>
+                <p style={priceText}>
+                  {formatPrice(item.priceCents)}
+                </p>
 
-                <span>{item.quantity}</span>
+                {/* QUANTITY */}
+                <div style={qtyBox}>
+                  <button
+                    style={qtyBtn}
+                    onClick={() =>
+                      updateQuantity(
+                        item.id,
+                        Math.max(1, item.quantity - 1)
+                      )
+                    }
+                  >
+                    −
+                  </button>
 
-                <button
-                  onClick={() =>
-                    updateQuantity(item.id, item.quantity + 1)
-                  }
-                >
-                  +
-                </button>
+                  <span>{item.quantity}</span>
+
+                  <button
+                    style={qtyBtn}
+                    disabled={isMax}
+                    onClick={() =>
+                      updateQuantity(item.id, item.quantity + 1)
+                    }
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* REMOVE */}
-            <button
-              onClick={() => removeFromCart(item.id)}
-              style={removeBtn}
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+              {/* REMOVE */}
+              <button
+                onClick={() => removeFromCart(item.id)}
+                style={removeBtn}
+              >
+                ✕
+              </button>
+            </div>
+          );
+        })}
 
         {/* TOTAL */}
         {cart.length > 0 && (
           <div style={summary}>
             <h2>Total : {formatPrice(total)}</h2>
 
-            <button style={checkoutBtn} onClick={handleCheckout}>
+            <button
+              style={checkoutBtn}
+              onClick={handleCheckout}
+            >
               Passer au paiement
             </button>
           </div>
         )}
       </div>
 
-      {/* 🔥 POPUP PANIER VIDE */}
+      {/* POPUP */}
       {showEmptyPopup && (
-        <div style={popupOverlay}>
-          <div style={popup}>
-            <h3>Panier vide</h3>
-            <p>Ajoutez des produits avant de continuer</p>
+        <div
+          style={popupOverlay}
+          onClick={() => setShowEmptyPopup(false)}
+        >
+          <div
+            style={popup}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginBottom: 10 }}>
+              Panier vide
+            </h3>
+
+            <p style={{ color: "#666" }}>
+              Ajoutez des produits avant de continuer
+            </p>
 
             <button
               onClick={() => setShowEmptyPopup(false)}
@@ -121,6 +149,7 @@ export default function CartPage() {
 }
 
 /* 🎨 STYLES */
+
 const container = {
   background: "#faf7f2",
   minHeight: "100vh",
@@ -135,6 +164,7 @@ const wrapper = {
 const title = {
   textAlign: "center" as const,
   marginBottom: "40px",
+  fontSize: "32px",
 };
 
 const card = {
@@ -145,6 +175,7 @@ const card = {
   borderRadius: "16px",
   marginBottom: "20px",
   alignItems: "center",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
 };
 
 const img = {
@@ -154,6 +185,11 @@ const img = {
   borderRadius: "10px",
 };
 
+const priceText = {
+  color: "#666",
+  marginTop: "4px",
+};
+
 const qtyBox = {
   display: "flex",
   gap: "10px",
@@ -161,11 +197,20 @@ const qtyBox = {
   marginTop: "10px",
 };
 
+const qtyBtn = {
+  padding: "6px 12px",
+  borderRadius: "6px",
+  border: "1px solid #ddd",
+  cursor: "pointer",
+  background: "white",
+};
+
 const removeBtn = {
   background: "transparent",
   border: "none",
   fontSize: "18px",
   cursor: "pointer",
+  color: "#dc2626",
 };
 
 const summary = {
@@ -182,6 +227,8 @@ const checkoutBtn = {
   border: "none",
   cursor: "pointer",
   fontWeight: "600",
+  width: "100%",
+  maxWidth: "300px",
 };
 
 const emptyBox = {
@@ -199,6 +246,8 @@ const ctaPrimary = {
   padding: "12px 20px",
   borderRadius: "10px",
   textDecoration: "none",
+  border: "none",
+  cursor: "pointer",
 };
 
 const popupOverlay = {
@@ -208,6 +257,7 @@ const popupOverlay = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  zIndex: 1000,
 };
 
 const popup = {
@@ -215,4 +265,5 @@ const popup = {
   padding: "30px",
   borderRadius: "16px",
   textAlign: "center" as const,
+  maxWidth: "300px",
 };
