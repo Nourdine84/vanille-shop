@@ -1,10 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 
 export default function ProductForm() {
+  const [loading, setLoading] = useState(false);
+
   return (
-    <form action="/api/admin/products" method="POST" style={formGrid}>
+    <form
+      action="/api/admin/products"
+      method="POST"
+      style={formGrid}
+      onSubmit={() => setLoading(true)}
+    >
       <input name="name" placeholder="Nom produit" style={input} required />
       <input name="slug" placeholder="Slug" style={input} required />
 
@@ -15,7 +23,7 @@ export default function ProductForm() {
         required
       />
 
-      {/* ✅ Upload image CLIENT */}
+      {/* IMAGE */}
       <ImageUploadField />
 
       <input
@@ -36,6 +44,7 @@ export default function ProductForm() {
         required
       />
 
+      {/* CATEGORY */}
       <select name="category" defaultValue="vanille" style={input}>
         <option value="vanille">Vanille</option>
         <option value="epices">Épices</option>
@@ -47,21 +56,32 @@ export default function ProductForm() {
         style={input}
       />
 
+      {/* 🔥 BADGE */}
+      <select name="badge" style={input} defaultValue="">
+        <option value="">Aucun badge</option>
+        <option value="BESTSELLER">🔥 Bestseller</option>
+        <option value="NEW">🆕 Nouveau</option>
+        <option value="PREMIUM">💎 Premium</option>
+        <option value="PROMO">🏷 Promo</option>
+      </select>
+
+      {/* ACTIVE */}
       <label style={checkboxRow}>
         <input type="checkbox" name="isActive" defaultChecked />
         Produit actif
       </label>
 
       <div style={{ gridColumn: "1 / -1" }}>
-        <button type="submit" style={primaryBtn}>
-          Créer le produit
+        <button type="submit" style={primaryBtn} disabled={loading}>
+          {loading ? "Création..." : "Créer le produit"}
         </button>
       </div>
     </form>
   );
 }
 
-/* styles */
+/* ================= STYLE ================= */
+
 const formGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(2, 1fr)",
@@ -86,4 +106,5 @@ const primaryBtn = {
   padding: "10px",
   borderRadius: "8px",
   border: "none",
+  cursor: "pointer",
 };
