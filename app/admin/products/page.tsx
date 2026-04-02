@@ -9,6 +9,8 @@ export const runtime = "nodejs";
 type SearchParams = {
   q?: string;
   category?: string;
+  success?: string;
+  error?: string;
 };
 
 function formatPrice(priceCents: number) {
@@ -28,37 +30,29 @@ export default async function AdminProductsPage({
 
   const query = searchParams?.q?.trim() || "";
   const category = searchParams?.category?.trim() || "";
+  const success = searchParams?.success;
+  const error = searchParams?.error;
 
   let products: any[] = [];
 
   try {
     products = await prisma.product.findMany({
       where: {
-        ...(query
-          ? {
-              OR: [
-                {
-                  name: { contains: query, mode: "insensitive" },
-                },
-                {
-                  slug: { contains: query, mode: "insensitive" },
-                },
-              ],
-            }
-          : {}),
-        ...(category
-          ? {
-              category: {
-                equals: category,
-                mode: "insensitive",
-              },
-            }
-          : {}),
+        ...(query && {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { slug: { contains: query, mode: "insensitive" } },
+          ],
+        }),
+        ...(category && {
+          category: { equals: category, mode: "insensitive" },
+        }),
       },
       orderBy: { createdAt: "desc" },
     });
-  } catch (error) {
-    console.error("❌ PRISMA PRODUCTS ERROR:", error);
+  } catch (e) {
+    console.error("❌ PRISMA PRODUCTS ERROR:", e);
+    products = [];
   }
 
   const totalProducts = products.length;
@@ -69,25 +63,21 @@ export default async function AdminProductsPage({
     <div style={container}>
       <h1 style={title}>🛠 Gestion des produits</h1>
 
-      {/* KPI */}
+      {success && <div style={successPopup}>✅ Opération réussie</div>}
+      {error && <div style={errorPopup}>❌ Une erreur est survenue</div>}
+
       <div style={grid3}>
         <Card title="Produits" value={totalProducts} />
         <Card title="Actifs" value={activeProducts} />
         <Card title="Épuisés" value={outOfStockProducts} />
       </div>
 
-      {/* FILTRES */}
       <div style={card}>
         <form method="GET" style={filterRow}>
-          <input
-            name="q"
-            placeholder="Rechercher nom ou slug"
-            defaultValue={query}
-            style={input}
-          />
+          <input name="q" placeholder="Rechercher" defaultValue={query} style={input} />
 
           <select name="category" defaultValue={category} style={input}>
-            <option value="">Toutes les catégories</option>
+            <option value="">Toutes</option>
             <option value="vanille">Vanille</option>
             <option value="epices">Épices</option>
           </select>
@@ -98,223 +88,255 @@ export default async function AdminProductsPage({
         </form>
       </div>
 
-      {/* CREATE */}
       <div style={card}>
         <h2 style={sectionTitle}>➕ Ajouter un produit</h2>
-
-        {/* ✅ CLIENT COMPONENT */}
         <ProductForm />
       </div>
 
-      {/* LISTE */}
       <div style={listWrapper}>
         <h2 style={sectionTitle}>📦 Catalogue</h2>
 
         {products.length === 0 ? (
-          <div style={card}>Aucun produit trouvé.</div>
+          <div style={card}>Aucun produit</div>
         ) : (
-          products.map((product) => {
-            const isOutOfStock = product.stock <= 0;
+          <div style={productGrid}>
+            {products.map((product) => {
+              const isOut = product.stock <= 0;
 
-            return (
-              <div key={product.id} style={productCard}>
-                <div style={productHeader}>
-                  <div>
-                    <h3 style={{ margin: 0 }}>{product.name}</h3>
-                    <p style={mutedText}>/product/{product.slug}</p>
-                  </div>
+              return (
+                <div
+                  key={product.id}
+                  style={productCard}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-6px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 12px 28px rgba(0,0,0,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(0,0,0,0.06)";
+                  }}
+                >
+                  <div
+                    style={imageWrapper}
+                    onMouseEnter={(e) => {
+                      const img = e.currentTarget.querySelector("img");
+                      if (img) (img as HTMLImageElement).style.transform = "scale(1.05)";
+                    }}
+                    onMouseLeave={(e) => {
+                      const img = e.currentTarget.querySelector("img");
+                      if (img) (img as HTMLImageElement).style.transform = "scale(1)";
+                    }}
+                  >
+                    {product.imageUrl ? (
+                      <img src={product.imageUrl} style={productImage} />
+                    ) : (
+                      <div style={noImage}>No image</div>
+                    )}
 
-                  <div style={badgeRow}>
-                    <Badge color={product.isActive ? "#16a34a" : "#6b7280"}>
-                      {product.isActive ? "ACTIF" : "INACTIF"}
-                    </Badge>
-
-                    {isOutOfStock && (
-                      <Badge color="#dc2626">ÉPUISÉ</Badge>
+                    {product.badge && (
+                      <div style={badgeOverlay}>{product.badge}</div>
                     )}
                   </div>
+
+                  <div style={content}>
+                    <h3 style={name}>{product.name}</h3>
+
+                    <p style={categoryText}>{product.category}</p>
+
+                    <p style={price}>
+                      {formatPrice(product.priceCents)}
+                    </p>
+
+                    <div style={statusRow}>
+                      <span
+                        style={{
+                          ...dot,
+                          background: product.isActive ? "#16a34a" : "#6b7280",
+                        }}
+                      />
+                      {product.isActive ? "Actif" : "Inactif"}
+                    </div>
+
+                    <p
+                      style={{
+                        color: isOut ? "#dc2626" : "#16a34a",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {isOut ? "Rupture" : `Stock: ${product.stock}`}
+                    </p>
+
+                    <a
+                      href={`/admin/products/${product.id}`}
+                      style={editBtn}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.opacity = "1")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.opacity = "0.9")
+                      }
+                    >
+                      ✏️ Modifier
+                    </a>
+                  </div>
                 </div>
-
-                {product.imageUrl ? (
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    style={productImage}
-                  />
-                ) : null}
-
-                <div style={infoRow}>
-                  <span>
-                    <strong>Prix :</strong> {formatPrice(product.priceCents)}
-                  </span>
-                  <span>
-                    <strong>Stock :</strong> {product.stock}
-                  </span>
-                  <span>
-                    <strong>Catégorie :</strong> {product.category}
-                  </span>
-                </div>
-
-                <p style={description}>{product.description}</p>
-
-                <div style={actionButtons}>
-                  <a href={`/admin/products/${product.id}`} style={editBtn}>
-                    ✏️ Modifier
-                  </a>
-                </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-/* ================= COMPONENTS ================= */
-
 function Card({ title, value }: { title: string; value: number }) {
   return (
     <div style={card}>
-      <h3 style={cardTitle}>{title}</h3>
-      <p style={valueStyle}>{value}</p>
+      <h3>{title}</h3>
+      <p style={{ fontSize: 22, fontWeight: 700 }}>{value}</p>
     </div>
-  );
-}
-
-function Badge({
-  children,
-  color,
-}: {
-  children: React.ReactNode;
-  color: string;
-}) {
-  return (
-    <span style={{ ...statusBadge, background: color }}>
-      {children}
-    </span>
   );
 }
 
 /* ================= STYLES ================= */
 
-const container = {
-  padding: "40px",
-  background: "#faf7f2",
-  minHeight: "100vh",
+const container = { padding: 30 };
+
+const title = { fontSize: 28, marginBottom: 20 };
+
+const successPopup = {
+  background: "#16a34a",
+  color: "white",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 16,
 };
 
-const title = {
-  fontSize: "28px",
-  marginBottom: "24px",
-};
-
-const sectionTitle = {
-  margin: "0 0 16px 0",
+const errorPopup = {
+  background: "#dc2626",
+  color: "white",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 16,
 };
 
 const grid3 = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, 1fr)",
-  gap: "20px",
-  marginBottom: "20px",
+  gridTemplateColumns: "repeat(3,1fr)",
+  gap: 20,
+  marginBottom: 20,
 };
 
 const card = {
   background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-};
-
-const cardTitle = {
-  margin: 0,
-};
-
-const valueStyle = {
-  fontSize: "24px",
-  fontWeight: 700,
+  padding: 20,
+  borderRadius: 12,
 };
 
 const filterRow = {
   display: "flex",
-  gap: "12px",
+  gap: 10,
 };
 
 const input = {
-  padding: "10px",
-  borderRadius: "8px",
+  padding: 10,
+  borderRadius: 8,
   border: "1px solid #ddd",
 };
 
 const primaryBtn = {
   background: "#a16207",
   color: "white",
-  padding: "10px",
-  borderRadius: "8px",
+  padding: 10,
+  borderRadius: 8,
   border: "none",
 };
 
-const listWrapper = {
-  marginTop: "20px",
+const listWrapper = { marginTop: 20 };
+
+const sectionTitle = { marginBottom: 15 };
+
+const productGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))",
+  gap: 20,
 };
 
 const productCard = {
   background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  marginBottom: "16px",
+  borderRadius: 14,
+  overflow: "hidden",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+  transition: "all 0.25s ease",
+  cursor: "pointer",
 };
 
-const productHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-};
-
-const badgeRow = {
-  display: "flex",
-  gap: "6px",
-};
-
-const statusBadge = {
-  padding: "6px 10px",
-  borderRadius: "999px",
-  color: "white",
-  fontSize: "12px",
-};
-
-const mutedText = {
-  color: "#777",
-  fontSize: "12px",
-};
-
-const infoRow = {
-  display: "flex",
-  gap: "12px",
-  marginTop: "12px",
-  flexWrap: "wrap" as const,
-};
-
-const description = {
-  color: "#666",
-  marginTop: "12px",
-};
+const imageWrapper = { position: "relative" as const };
 
 const productImage = {
   width: "100%",
-  maxWidth: "220px",
-  borderRadius: "10px",
-  marginTop: "12px",
+  height: 180,
+  objectFit: "cover" as const,
+  transition: "transform 0.3s ease",
 };
 
-const actionButtons = {
-  marginTop: "16px",
+const noImage = {
+  height: 180,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "#eee",
+};
+
+const badgeOverlay = {
+  position: "absolute" as const,
+  top: 10,
+  left: 10,
+  background: "#f59e0b",
+  color: "white",
+  padding: "6px 10px",
+  borderRadius: 999,
+  fontSize: 12,
+};
+
+const content = { padding: 15 };
+
+const name = { margin: "0 0 5px 0" };
+
+const categoryText = {
+  color: "#777",
+  fontSize: 12,
+  marginBottom: 10,
+};
+
+const price = {
+  fontWeight: "bold",
+  marginBottom: 10,
+};
+
+const statusRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  marginBottom: 8,
+};
+
+const dot = {
+  width: 8,
+  height: 8,
+  borderRadius: "50%",
 };
 
 const editBtn = {
   display: "inline-block",
+  marginTop: 10,
   background: "#2563eb",
   color: "white",
-  padding: "10px 14px",
-  borderRadius: "8px",
+  padding: "8px 10px",
+  borderRadius: 8,
   textDecoration: "none",
+  transition: "0.2s",
+  opacity: 0.9,
 };

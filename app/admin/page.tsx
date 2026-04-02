@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export default async function ProductsPage() {
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+export default async function AdminDashboard() {
   const isAdmin = cookies().get("admin")?.value === "true";
 
   if (!isAdmin) {
@@ -17,167 +21,172 @@ export default async function ProductsPage() {
   try {
     products = await prisma.product.findMany({
       orderBy: { createdAt: "desc" },
+      take: 5, // 🔥 derniers produits seulement
     });
   } catch (error) {
-    console.error("❌ PRISMA PRODUCTS ERROR:", error);
+    console.error("❌ DASHBOARD ERROR:", error);
+    products = [];
   }
+
+  const totalProducts = products.length;
+  const activeProducts = products.filter((p) => p.isActive).length;
+  const outOfStockProducts = products.filter((p) => p.stock <= 0).length;
 
   return (
     <div style={container}>
-      <div style={header}>
-        <h1 style={title}>🛍️ Produits Vanille’Or</h1>
+      <h1 style={title}>📊 Dashboard</h1>
 
-        <a href="/admin/products/new" style={addBtn}>
-          + Ajouter produit
-        </a>
+      {/* KPI */}
+      <div style={grid3}>
+        <Card title="Produits récents" value={totalProducts} />
+        <Card title="Actifs" value={activeProducts} />
+        <Card title="Épuisés" value={outOfStockProducts} />
       </div>
 
-      {products.length === 0 ? (
-        <div style={emptyState}>
-          Aucun produit pour le moment
-        </div>
-      ) : (
-        <div style={grid}>
-          {products.map((p) => (
-            <div key={p.id} style={card}>
-              
-              <img
-                src={p.imageUrl || "/placeholder.jpg"}
-                alt={p.name}
-                style={image}
-              />
+      {/* PRODUITS RÉCENTS */}
+      <div style={card}>
+        <h2 style={sectionTitle}>🆕 Derniers produits</h2>
 
-              <h3 style={name}>{p.name}</h3>
+        {products.length === 0 ? (
+          <p>Aucun produit</p>
+        ) : (
+          products.map((product) => (
+            <div key={product.id} style={productRow}>
+              <div>
+                <strong>{product.name}</strong>
+                <p style={mutedText}>{product.slug}</p>
+              </div>
 
-              <p style={price}>
-                {(p.priceCents / 100).toFixed(2)} €
-              </p>
+              <div style={rowRight}>
+                {product.badge && (
+                  <span style={badge}>{product.badge}</span>
+                )}
 
-              <p style={category}>
-                {p.category || "Non catégorisé"}
-              </p>
+                <span>{formatPrice(product.priceCents)}</span>
 
-              <div style={actions}>
-                <button style={editBtn}>✏️ Modifier</button>
-
-                <button
-                  style={deleteBtn}
-                  onClick={async () => {
-                    await fetch("/api/admin/products", {
-                      method: "DELETE",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ id: p.id }),
-                    });
-
-                    location.reload();
+                <span
+                  style={{
+                    color: product.stock <= 0 ? "#dc2626" : "#16a34a",
                   }}
                 >
-                  🗑 Supprimer
-                </button>
+                  {product.stock <= 0 ? "Rupture" : "OK"}
+                </span>
               </div>
             </div>
-          ))}
+          ))
+        )}
+      </div>
+
+      {/* ACTION RAPIDE */}
+      <div style={card}>
+        <h2 style={sectionTitle}>⚡ Actions rapides</h2>
+
+        <div style={actions}>
+          <a href="/admin/products" style={actionBtn}>
+            ➕ Ajouter un produit
+          </a>
+
+          <a href="/admin/products" style={actionBtnSecondary}>
+            📦 Voir les produits
+          </a>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-/* ========================= STYLE ========================= */
+/* ================= COMPONENTS ================= */
+
+function Card({ title, value }: { title: string; value: number }) {
+  return (
+    <div style={card}>
+      <h3 style={cardTitle}>{title}</h3>
+      <p style={valueStyle}>{value}</p>
+    </div>
+  );
+}
+
+/* ================= STYLES ================= */
 
 const container = {
-  padding: "40px",
-  background: "#f8f5f0",
-  minHeight: "100vh",
-};
-
-const header = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "30px",
+  padding: "30px",
 };
 
 const title = {
   fontSize: "28px",
-  fontWeight: 700,
+  marginBottom: "20px",
 };
 
-const addBtn = {
-  background: "#a16207",
-  color: "white",
-  padding: "12px 20px",
-  borderRadius: "10px",
-  textDecoration: "none",
-  fontWeight: 600,
-};
-
-const grid = {
+const grid3 = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+  gridTemplateColumns: "repeat(3, 1fr)",
   gap: "20px",
+  marginBottom: "20px",
 };
 
 const card = {
   background: "white",
-  padding: "16px",
-  borderRadius: "14px",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
+  padding: "20px",
+  borderRadius: "12px",
+  marginBottom: "20px",
 };
 
-const image = {
-  width: "100%",
-  height: "180px",
-  objectFit: "cover" as const,
-  borderRadius: "10px",
-  marginBottom: "10px",
+const cardTitle = {
+  margin: 0,
 };
 
-const name = {
-  fontSize: "16px",
-  fontWeight: 600,
-};
-
-const price = {
-  color: "#a16207",
+const valueStyle = {
+  fontSize: "22px",
   fontWeight: 700,
-  marginTop: "5px",
 };
 
-const category = {
+const sectionTitle = {
+  marginBottom: "15px",
+};
+
+const productRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "10px 0",
+  borderBottom: "1px solid #eee",
+};
+
+const rowRight = {
+  display: "flex",
+  gap: "15px",
+  alignItems: "center",
+};
+
+const badge = {
+  background: "#f59e0b",
+  color: "white",
+  padding: "4px 8px",
+  borderRadius: "8px",
   fontSize: "12px",
+};
+
+const mutedText = {
   color: "#777",
+  fontSize: "12px",
 };
 
 const actions = {
   display: "flex",
-  justifyContent: "space-between",
-  marginTop: "12px",
+  gap: "10px",
 };
 
-const editBtn = {
+const actionBtn = {
+  background: "#a16207",
+  color: "white",
+  padding: "10px 14px",
+  borderRadius: "8px",
+  textDecoration: "none",
+};
+
+const actionBtnSecondary = {
   background: "#2563eb",
   color: "white",
-  border: "none",
-  padding: "8px 10px",
+  padding: "10px 14px",
   borderRadius: "8px",
-  cursor: "pointer",
-};
-
-const deleteBtn = {
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  padding: "8px 10px",
-  borderRadius: "8px",
-  cursor: "pointer",
-};
-
-const emptyState = {
-  background: "white",
-  padding: "30px",
-  borderRadius: "12px",
-  textAlign: "center" as const,
+  textDecoration: "none",
 };

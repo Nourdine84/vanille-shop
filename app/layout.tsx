@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
 import MiniCart from "@/components/mini-cart";
+import "react-quill/dist/quill.snow.css";
 
 export const metadata: Metadata = {
   title: "Vanille’Or - Vanille premium de Madagascar",
