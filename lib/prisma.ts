@@ -5,29 +5,36 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /**
- * 🔥 DETECTION BUILD (évite crash Vercel)
+ * 🔥 DETECTION BUILD
  */
 const isBuild =
   process.env.NEXT_PHASE === "phase-production-build";
 
 /**
- * 🔥 URL PRIORITAIRE
+ * 🔥 FACTORY PRISMA (SAFE)
  */
-const databaseUrl =
-  process.env.PRISMA_ACCELERATE_URL ||
-  process.env.DATABASE_URL;
+function createPrismaClient() {
+  // ⚡ Runtime → Accelerate
+  if (process.env.PRISMA_ACCELERATE_URL) {
+    return new PrismaClient({
+      datasourceUrl: process.env.PRISMA_ACCELERATE_URL,
+      log: ["error"],
+    });
+  }
+
+  // fallback local/dev
+  return new PrismaClient({
+    log: ["error"],
+  });
+}
 
 /**
- * 🔥 INSTANCE PRISMA
+ * 🔥 INSTANCE UNIQUE
  */
 export const prisma =
   isBuild
     ? ({} as PrismaClient)
-    : globalForPrisma.prisma ??
-      new PrismaClient({
-        datasourceUrl: databaseUrl,
-        log: ["error"],
-      });
+    : globalForPrisma.prisma ?? createPrismaClient();
 
 /**
  * 🔥 CACHE DEV
