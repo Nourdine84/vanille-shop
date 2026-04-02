@@ -122,3 +122,4 @@ export async function POST(req: Request) {
     );
   }
 }
+console.log("DATABASE_URL =", process.env.DATABASE_URL);
