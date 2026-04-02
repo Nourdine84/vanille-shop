@@ -1,12 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { useState } from "react";
+import ProductForm from "@/components/admin/ProductForm";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-/* ========================= TYPES ========================= */
 
 type SearchParams = {
   q?: string;
@@ -16,8 +14,6 @@ type SearchParams = {
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
-
-/* ========================= PAGE ========================= */
 
 export default async function AdminProductsPage({
   searchParams,
@@ -41,8 +37,12 @@ export default async function AdminProductsPage({
         ...(query
           ? {
               OR: [
-                { name: { contains: query, mode: "insensitive" } },
-                { slug: { contains: query, mode: "insensitive" } },
+                {
+                  name: { contains: query, mode: "insensitive" },
+                },
+                {
+                  slug: { contains: query, mode: "insensitive" },
+                },
               ],
             }
           : {}),
@@ -58,7 +58,7 @@ export default async function AdminProductsPage({
       orderBy: { createdAt: "desc" },
     });
   } catch (error) {
-    console.error("❌ PRISMA ERROR:", error);
+    console.error("❌ PRISMA PRODUCTS ERROR:", error);
   }
 
   const totalProducts = products.length;
@@ -76,136 +76,245 @@ export default async function AdminProductsPage({
         <Card title="Épuisés" value={outOfStockProducts} />
       </div>
 
-      {/* FILTER */}
+      {/* FILTRES */}
       <div style={card}>
         <form method="GET" style={filterRow}>
-          <input name="q" placeholder="Recherche" defaultValue={query} style={input} />
+          <input
+            name="q"
+            placeholder="Rechercher nom ou slug"
+            defaultValue={query}
+            style={input}
+          />
+
           <select name="category" defaultValue={category} style={input}>
-            <option value="">Toutes</option>
+            <option value="">Toutes les catégories</option>
             <option value="vanille">Vanille</option>
             <option value="epices">Épices</option>
           </select>
-          <button style={primaryBtn}>Filtrer</button>
+
+          <button type="submit" style={primaryBtn}>
+            Filtrer
+          </button>
         </form>
       </div>
 
       {/* CREATE */}
       <div style={card}>
-        <h2>➕ Ajouter un produit</h2>
+        <h2 style={sectionTitle}>➕ Ajouter un produit</h2>
 
-        <form action="/api/admin/products" method="POST" style={formGrid}>
-          <input name="name" placeholder="Nom" style={input} required />
-          <input name="slug" placeholder="Slug" style={input} required />
-          <input name="description" placeholder="Description" style={input} required />
-
-          <ImageUpload />
-
-          <input name="priceCents" type="number" placeholder="Prix centimes" style={input} required />
-          <input name="stock" type="number" placeholder="Stock" style={input} required />
-
-          <select name="category" style={input}>
-            <option value="vanille">Vanille</option>
-            <option value="epices">Épices</option>
-          </select>
-
-          <label style={checkboxRow}>
-            <input type="checkbox" name="isActive" defaultChecked />
-            Actif
-          </label>
-
-          <button style={primaryBtn}>Créer</button>
-        </form>
+        {/* ✅ CLIENT COMPONENT */}
+        <ProductForm />
       </div>
 
-      {/* LIST */}
+      {/* LISTE */}
       <div style={listWrapper}>
-        <h2>📦 Catalogue</h2>
+        <h2 style={sectionTitle}>📦 Catalogue</h2>
 
         {products.length === 0 ? (
-          <div style={card}>Aucun produit</div>
+          <div style={card}>Aucun produit trouvé.</div>
         ) : (
-          products.map((p) => (
-            <div key={p.id} style={productCard}>
-              <h3>{p.name}</h3>
-              <p>{formatPrice(p.priceCents)}</p>
-              <p>{p.category}</p>
-              <p>Stock: {p.stock}</p>
-            </div>
-          ))
+          products.map((product) => {
+            const isOutOfStock = product.stock <= 0;
+
+            return (
+              <div key={product.id} style={productCard}>
+                <div style={productHeader}>
+                  <div>
+                    <h3 style={{ margin: 0 }}>{product.name}</h3>
+                    <p style={mutedText}>/product/{product.slug}</p>
+                  </div>
+
+                  <div style={badgeRow}>
+                    <Badge color={product.isActive ? "#16a34a" : "#6b7280"}>
+                      {product.isActive ? "ACTIF" : "INACTIF"}
+                    </Badge>
+
+                    {isOutOfStock && (
+                      <Badge color="#dc2626">ÉPUISÉ</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    style={productImage}
+                  />
+                ) : null}
+
+                <div style={infoRow}>
+                  <span>
+                    <strong>Prix :</strong> {formatPrice(product.priceCents)}
+                  </span>
+                  <span>
+                    <strong>Stock :</strong> {product.stock}
+                  </span>
+                  <span>
+                    <strong>Catégorie :</strong> {product.category}
+                  </span>
+                </div>
+
+                <p style={description}>{product.description}</p>
+
+                <div style={actionButtons}>
+                  <a href={`/admin/products/${product.id}`} style={editBtn}>
+                    ✏️ Modifier
+                  </a>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
   );
 }
 
-/* ========================= CLIENT COMPONENT ========================= */
+/* ================= COMPONENTS ================= */
 
-function ImageUpload() {
-  "use client";
-
-  const [preview, setPreview] = useState<string | null>(null);
-
-  const handleUpload = async (e: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setPreview(URL.createObjectURL(file));
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-
-    const input = document.querySelector<HTMLInputElement>("input[name='imageUrl']");
-    if (input) input.value = data.url;
-  };
-
-  return (
-    <div>
-      <input type="file" onChange={handleUpload} />
-
-      {preview && <img src={preview} style={{ width: 100 }} />}
-
-      <input name="imageUrl" placeholder="URL image" style={input} required />
-    </div>
-  );
-}
-
-/* ========================= COMPONENTS ========================= */
-
-function Card({ title, value }: any) {
+function Card({ title, value }: { title: string; value: number }) {
   return (
     <div style={card}>
-      <h3>{title}</h3>
-      <p>{value}</p>
+      <h3 style={cardTitle}>{title}</h3>
+      <p style={valueStyle}>{value}</p>
     </div>
   );
 }
 
-/* ========================= STYLE ========================= */
+function Badge({
+  children,
+  color,
+}: {
+  children: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <span style={{ ...statusBadge, background: color }}>
+      {children}
+    </span>
+  );
+}
 
-const container = { padding: 40 };
-const title = { fontSize: 28 };
+/* ================= STYLES ================= */
 
-const grid3 = { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 };
+const container = {
+  padding: "40px",
+  background: "#faf7f2",
+  minHeight: "100vh",
+};
 
-const card = { background: "#fff", padding: 20, borderRadius: 10 };
+const title = {
+  fontSize: "28px",
+  marginBottom: "24px",
+};
 
-const filterRow = { display: "flex", gap: 10 };
+const sectionTitle = {
+  margin: "0 0 16px 0",
+};
 
-const formGrid = { display: "grid", gap: 10 };
+const grid3 = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "20px",
+  marginBottom: "20px",
+};
 
-const input = { padding: 10, border: "1px solid #ddd" };
+const card = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+};
 
-const checkboxRow = { display: "flex", gap: 5 };
+const cardTitle = {
+  margin: 0,
+};
 
-const primaryBtn = { background: "#a16207", color: "#fff", padding: 10 };
+const valueStyle = {
+  fontSize: "24px",
+  fontWeight: 700,
+};
 
-const listWrapper = { marginTop: 20 };
+const filterRow = {
+  display: "flex",
+  gap: "12px",
+};
 
-const productCard = { background: "#fff", padding: 15, marginBottom: 10 };
+const input = {
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid #ddd",
+};
+
+const primaryBtn = {
+  background: "#a16207",
+  color: "white",
+  padding: "10px",
+  borderRadius: "8px",
+  border: "none",
+};
+
+const listWrapper = {
+  marginTop: "20px",
+};
+
+const productCard = {
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+  marginBottom: "16px",
+};
+
+const productHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+};
+
+const badgeRow = {
+  display: "flex",
+  gap: "6px",
+};
+
+const statusBadge = {
+  padding: "6px 10px",
+  borderRadius: "999px",
+  color: "white",
+  fontSize: "12px",
+};
+
+const mutedText = {
+  color: "#777",
+  fontSize: "12px",
+};
+
+const infoRow = {
+  display: "flex",
+  gap: "12px",
+  marginTop: "12px",
+  flexWrap: "wrap" as const,
+};
+
+const description = {
+  color: "#666",
+  marginTop: "12px",
+};
+
+const productImage = {
+  width: "100%",
+  maxWidth: "220px",
+  borderRadius: "10px",
+  marginTop: "12px",
+};
+
+const actionButtons = {
+  marginTop: "16px",
+};
+
+const editBtn = {
+  display: "inline-block",
+  background: "#2563eb",
+  color: "white",
+  padding: "10px 14px",
+  borderRadius: "8px",
+  textDecoration: "none",
+};
