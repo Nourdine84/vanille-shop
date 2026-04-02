@@ -5,10 +5,20 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /**
- * 🔥 FACTORY PRISMA (SAFE PROD + DEV)
+ * 🔥 FACTORY PRISMA (SAFE PROD + VERCEL FIX)
  */
 function createPrismaClient() {
-  // ✅ PRIORITÉ : Accelerate (prod)
+  const databaseUrl = process.env.DATABASE_URL;
+
+  // ✅ priorité DATABASE_URL (FIX PRINCIPAL)
+  if (databaseUrl) {
+    return new PrismaClient({
+      datasourceUrl: databaseUrl,
+      log: ["error"],
+    });
+  }
+
+  // ⚠️ fallback Accelerate (optionnel)
   if (process.env.PRISMA_ACCELERATE_URL) {
     return new PrismaClient({
       datasourceUrl: process.env.PRISMA_ACCELERATE_URL,
@@ -16,20 +26,20 @@ function createPrismaClient() {
     });
   }
 
-  // ✅ fallback classique (local/dev)
+  // fallback ultime (dev local)
   return new PrismaClient({
     log: ["error"],
   });
 }
 
 /**
- * 🔥 INSTANCE UNIQUE (NO BUILD HACK)
+ * 🔥 INSTANCE UNIQUE
  */
 export const prisma =
   globalForPrisma.prisma ?? createPrismaClient();
 
 /**
- * 🔥 CACHE DEV (évite multi instances)
+ * 🔥 CACHE DEV
  */
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
