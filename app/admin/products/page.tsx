@@ -1,183 +1,302 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import ProductForm from "@/components/admin/ProductForm";
-import ProductCard from "@/components/admin/ProductCard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-type SearchParams = {
-  q?: string;
-  category?: string;
-  success?: string;
-  error?: string;
-};
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-export default async function AdminProductsPage({
-  searchParams,
+export default async function ProductDetailPage({
+  params,
 }: {
-  searchParams?: SearchParams;
+  params: { slug: string };
 }) {
-  const isAdmin = cookies().get("admin")?.value === "true";
+  const product = await prisma.product.findUnique({
+    where: { slug: params.slug },
+  });
 
-  if (!isAdmin) {
-    redirect("/admin/login");
+  if (!product) {
+    notFound();
   }
 
-  const query = searchParams?.q?.trim() || "";
-  const category = searchParams?.category?.trim() || "";
-  const success = searchParams?.success;
-  const error = searchParams?.error;
-
-  let products: any[] = [];
-
-  try {
-    products = await prisma.product.findMany({
-      where: {
-        ...(query && {
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { slug: { contains: query, mode: "insensitive" } },
-          ],
-        }),
-        ...(category && {
-          category: { equals: category, mode: "insensitive" },
-        }),
-      },
-      orderBy: { createdAt: "desc" },
-    });
-  } catch (e) {
-    console.error("❌ PRISMA PRODUCTS ERROR:", e);
-    products = [];
-  }
-
-  const totalProducts = products.length;
-  const activeProducts = products.filter((p) => p.isActive).length;
-  const outOfStockProducts = products.filter((p) => p.stock <= 0).length;
+  const isOutOfStock = product.stock <= 0;
 
   return (
-    <div style={container}>
-      <h1 style={title}>🛠 Gestion des produits</h1>
-
-      {success && <div style={successPopup}>✅ Opération réussie</div>}
-      {error && <div style={errorPopup}>❌ Une erreur est survenue</div>}
-
-      <div style={grid3}>
-        <Card title="Produits" value={totalProducts} />
-        <Card title="Actifs" value={activeProducts} />
-        <Card title="Épuisés" value={outOfStockProducts} />
+    <div style={page}>
+      <div style={breadcrumb}>
+        <Link href="/" style={breadcrumbLink}>
+          Accueil
+        </Link>
+        <span>/</span>
+        <Link href="/products" style={breadcrumbLink}>
+          Produits
+        </Link>
+        <span>/</span>
+        <span style={breadcrumbCurrent}>{product.name}</span>
       </div>
 
-      <div style={card}>
-        <form method="GET" style={filterRow}>
-          <input name="q" placeholder="Rechercher" defaultValue={query} style={input} />
+      <div style={layout}>
+        <div style={imagePanel}>
+          {product.badge ? <div style={badge}>{product.badge}</div> : null}
 
-          <select name="category" defaultValue={category} style={input}>
-            <option value="">Toutes</option>
-            <option value="vanille">Vanille</option>
-            <option value="epices">Épices</option>
-          </select>
+          {product.imageUrl ? (
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              style={image}
+            />
+          ) : (
+            <div style={imageFallback}>Image bientôt disponible</div>
+          )}
+        </div>
 
-          <button type="submit" style={primaryBtn}>
-            Filtrer
-          </button>
-        </form>
-      </div>
+        <div style={contentPanel}>
+          <p style={category}>{product.category}</p>
+          <h1 style={title}>{product.name}</h1>
 
-      <div style={card}>
-        <h2 style={sectionTitle}>➕ Ajouter un produit</h2>
-        <ProductForm />
-      </div>
+          {product.subCategory ? (
+            <p style={subCategory}>{product.subCategory}</p>
+          ) : null}
 
-      <div style={listWrapper}>
-        <h2 style={sectionTitle}>📦 Catalogue</h2>
+          <p style={price}>{formatPrice(product.priceCents)}</p>
 
-        {products.length === 0 ? (
-          <div style={card}>Aucun produit</div>
-        ) : (
-          <div style={productGrid}>
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div style={statusRow}>
+            <span
+              style={{
+                ...statusDot,
+                background: product.isActive ? "#16a34a" : "#6b7280",
+              }}
+            />
+            <span style={statusText}>
+              {product.isActive ? "Produit actif" : "Produit indisponible"}
+            </span>
           </div>
-        )}
+
+          <p
+            style={{
+              ...stock,
+              color: isOutOfStock ? "#dc2626" : "#16a34a",
+            }}
+          >
+            {isOutOfStock ? "Rupture de stock" : `En stock : ${product.stock}`}
+          </p>
+
+          <div style={descriptionBox}>
+            <h2 style={sectionTitle}>Description</h2>
+            <p style={description}>{product.description}</p>
+          </div>
+
+          <div style={ctaRow}>
+            <button
+              type="button"
+              disabled={isOutOfStock}
+              style={{
+                ...primaryBtn,
+                opacity: isOutOfStock ? 0.6 : 1,
+                cursor: isOutOfStock ? "not-allowed" : "pointer",
+              }}
+            >
+              {isOutOfStock ? "Indisponible" : "Ajouter au panier"}
+            </button>
+
+            <Link href="/products" style={secondaryBtn}>
+              Voir le catalogue
+            </Link>
+          </div>
+
+          <div style={reassuranceBox}>
+            <div style={reassuranceItem}>✔ VanilleOr sélection premium</div>
+            <div style={reassuranceItem}>✔ Expédition soignée</div>
+            <div style={reassuranceItem}>✔ Qualité pensée pour particuliers et pros</div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function Card({ title, value }: { title: string; value: number }) {
-  return (
-    <div style={card}>
-      <h3>{title}</h3>
-      <p style={{ fontSize: 22, fontWeight: 700 }}>{value}</p>
-    </div>
-  );
-}
-
-/* STYLES */
-
-const container = { padding: 30 };
-const title = { fontSize: 28, marginBottom: 20 };
-
-const successPopup = {
-  background: "#16a34a",
-  color: "white",
-  padding: 12,
-  borderRadius: 10,
-  marginBottom: 16,
+const page = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  padding: "40px 20px 60px",
 };
 
-const errorPopup = {
-  background: "#dc2626",
-  color: "white",
-  padding: 12,
-  borderRadius: 10,
-  marginBottom: 16,
-};
-
-const grid3 = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3,1fr)",
-  gap: 20,
-  marginBottom: 20,
-};
-
-const card = {
-  background: "white",
-  padding: 20,
-  borderRadius: 12,
-};
-
-const filterRow = {
+const breadcrumb = {
   display: "flex",
-  gap: 10,
+  gap: "8px",
+  flexWrap: "wrap" as const,
+  marginBottom: "24px",
+  color: "#777",
+  fontSize: "14px",
 };
 
-const input = {
-  padding: 10,
-  borderRadius: 8,
-  border: "1px solid #ddd",
+const breadcrumbLink = {
+  color: "#a16207",
+  textDecoration: "none",
+};
+
+const breadcrumbCurrent = {
+  color: "#222",
+  fontWeight: 600,
+};
+
+const layout = {
+  display: "grid",
+  gridTemplateColumns: "1.1fr 1fr",
+  gap: "36px",
+};
+
+const imagePanel = {
+  position: "relative" as const,
+  background: "white",
+  borderRadius: "18px",
+  padding: "20px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+  minHeight: "520px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const badge = {
+  position: "absolute" as const,
+  top: "18px",
+  left: "18px",
+  background: "#f59e0b",
+  color: "white",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const image = {
+  width: "100%",
+  maxHeight: "480px",
+  objectFit: "contain" as const,
+  borderRadius: "12px",
+};
+
+const imageFallback = {
+  width: "100%",
+  height: "480px",
+  borderRadius: "12px",
+  background: "#f3f3f3",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#777",
+};
+
+const contentPanel = {
+  display: "flex",
+  flexDirection: "column" as const,
+};
+
+const category = {
+  color: "#a16207",
+  fontWeight: 700,
+  marginBottom: "8px",
+  textTransform: "capitalize" as const,
+};
+
+const title = {
+  fontSize: "40px",
+  lineHeight: 1.15,
+  margin: "0 0 10px",
+};
+
+const subCategory = {
+  color: "#666",
+  marginBottom: "18px",
+};
+
+const price = {
+  fontSize: "30px",
+  fontWeight: 800,
+  margin: "0 0 18px",
+};
+
+const statusRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  marginBottom: "10px",
+};
+
+const statusDot = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "50%",
+};
+
+const statusText = {
+  color: "#444",
+};
+
+const stock = {
+  fontWeight: 700,
+  marginBottom: "24px",
+};
+
+const descriptionBox = {
+  background: "white",
+  borderRadius: "14px",
+  padding: "20px",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+  marginBottom: "24px",
+};
+
+const sectionTitle = {
+  margin: "0 0 10px",
+  fontSize: "18px",
+};
+
+const description = {
+  color: "#444",
+  lineHeight: 1.7,
+  margin: 0,
+};
+
+const ctaRow = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap" as const,
+  marginBottom: "24px",
 };
 
 const primaryBtn = {
   background: "#a16207",
   color: "white",
-  padding: 10,
-  borderRadius: 8,
+  padding: "14px 20px",
+  borderRadius: "12px",
   border: "none",
+  fontWeight: 700,
+  fontSize: "15px",
 };
 
-const listWrapper = { marginTop: 20 };
-const sectionTitle = { marginBottom: 15 };
+const secondaryBtn = {
+  display: "inline-block",
+  background: "white",
+  color: "#222",
+  padding: "14px 20px",
+  borderRadius: "12px",
+  textDecoration: "none",
+  fontWeight: 700,
+  border: "1px solid #ddd",
+};
 
-const productGrid = {
+const reassuranceBox = {
+  background: "#faf7f2",
+  borderRadius: "14px",
+  padding: "18px",
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))",
-  gap: 20,
+  gap: "10px",
+};
+
+const reassuranceItem = {
+  color: "#444",
 };

@@ -1,557 +1,316 @@
-"use client";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
-import { useEffect, useMemo, useState } from "react";
-import { useCart } from "@/lib/cart-store";
-import { useUIStore } from "@/components/ui-provider";
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-type Product = {
-  id: string;
-  name: string;
-  description: string;
-  priceCents: number;
-  imageUrl?: string;
-  stock: number;
-  slug?: string;
-};
-
-type PackOption = {
-  label: string;
-  multiplier: number;
-  description: string;
-};
+/* ================= UTILS ================= */
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-const PACKS: PackOption[] = [
-  { label: "100g", multiplier: 1, description: "Format découverte" },
-  { label: "250g", multiplier: 2.2, description: "Le plus équilibré" },
-  { label: "500g", multiplier: 4, description: "Pour usage régulier" },
-  { label: "1kg", multiplier: 7.5, description: "Format professionnel" },
-];
+/* ================= PAGE ================= */
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
-  const [mounted, setMounted] = useState(false);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [qty, setQty] = useState(1);
-  const [selectedPack, setSelectedPack] = useState<PackOption>(PACKS[0]);
-  const [loading, setLoading] = useState(true);
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const product = await prisma.product.findUnique({
+    where: { slug: params.slug },
+  });
 
-  const { addToCart } = useCart();
-  const { openCart } = useUIStore();
+  if (!product) return notFound();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadProduct() {
-      try {
-        setLoading(true);
-
-        const res = await fetch(`/api/products/${params.slug}`);
-        const data = await res.json();
-
-        if (!active) return;
-        setProduct(data);
-      } catch (error) {
-        console.error("❌ Product fetch error:", error);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    loadProduct();
-
-    return () => {
-      active = false;
-    };
-  }, [params.slug]);
-
-  const currentPrice = useMemo(() => {
-    if (!product) return 0;
-    return Math.round(product.priceCents * selectedPack.multiplier);
-  }, [product, selectedPack]);
-
-  if (!mounted || loading) {
-    return <div style={loadingBox}>Chargement...</div>;
-  }
-
-  if (!product) {
-    return <div style={loadingBox}>Produit introuvable</div>;
-  }
-
-  const isOut = product.stock <= 0;
+  const isOutOfStock = product.stock <= 0;
 
   return (
     <div style={page}>
-      <div style={container}>
-        <section style={hero}>
-          <div style={mediaCol}>
-            <div style={imageWrap}>
-              <img
-                src={product.imageUrl || "/images/product-vanille.jpg"}
-                alt={product.name}
-                style={image}
-              />
+      {/* BREADCRUMB */}
+      <div style={breadcrumb}>
+        <Link href="/" style={breadcrumbLink}>Accueil</Link>
+        <span>/</span>
+        <Link href="/products" style={breadcrumbLink}>Produits</Link>
+        <span>/</span>
+        <span style={breadcrumbCurrent}>{product.name}</span>
+      </div>
 
-              {isOut && <div style={badgeOut}>Épuisé</div>}
-              {!isOut && product.stock <= 5 && (
-                <div style={badgeStock}>Stock limité</div>
-              )}
-            </div>
+      <div style={layout}>
+        {/* IMAGE */}
+        <div style={imagePanel}>
+          {product.badge && <div style={badge}>{product.badge}</div>}
+
+          {product.imageUrl ? (
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              style={image}
+              loading="lazy"
+            />
+          ) : (
+            <div style={imageFallback}>Image bientôt disponible</div>
+          )}
+        </div>
+
+        {/* CONTENT */}
+        <div style={contentPanel}>
+          <p style={category}>{product.category}</p>
+
+          <h1 style={title}>{product.name}</h1>
+
+          {product.subCategory && (
+            <p style={subCategory}>{product.subCategory}</p>
+          )}
+
+          <p style={price}>{formatPrice(product.priceCents)}</p>
+
+          {/* STATUS */}
+          <div style={statusRow}>
+            <span
+              style={{
+                ...statusDot,
+                background: product.isActive ? "#16a34a" : "#6b7280",
+              }}
+            />
+            <span style={statusText}>
+              {product.isActive ? "Produit disponible" : "Produit indisponible"}
+            </span>
           </div>
 
-          <div style={contentCol}>
-            <p style={eyebrow}>Vanille’Or • Sélection premium</p>
+          {/* STOCK */}
+          <p
+            style={{
+              ...stock,
+              color: isOutOfStock ? "#dc2626" : "#16a34a",
+            }}
+          >
+            {isOutOfStock
+              ? "Rupture de stock"
+              : `En stock : ${product.stock}`}
+          </p>
 
-            <h1 style={title}>{product.name}</h1>
+          {/* DESCRIPTION */}
+          <div style={descriptionBox}>
+            <h2 style={sectionTitle}>Description</h2>
+            <p style={description}>
+              {product.description || "Description à venir."}
+            </p>
+          </div>
 
-            <p style={subtitle}>Vanille premium de Madagascar</p>
-
-            <p style={price}>{formatPrice(currentPrice)}</p>
-
-            <p style={desc}>{product.description}</p>
-
-            <div style={trustRow}>
-              <span style={trustItem}>🌿 Origine Madagascar</span>
-              <span style={trustItem}>👨‍🍳 Qualité professionnelle</span>
-              <span style={trustItem}>🚚 Livraison rapide</span>
-            </div>
-
-            <div style={sectionCard}>
-              <p style={sectionLabel}>Choisissez votre format</p>
-
-              <div style={packGrid}>
-                {PACKS.map((pack) => (
-                  <button
-                    key={pack.label}
-                    type="button"
-                    onClick={() => setSelectedPack(pack)}
-                    style={{
-                      ...packBtn,
-                      border:
-                        selectedPack.label === pack.label
-                          ? "2px solid #a16207"
-                          : "1px solid #ddd",
-                      background:
-                        selectedPack.label === pack.label ? "#fffaf1" : "white",
-                    }}
-                  >
-                    <strong style={packTitle}>{pack.label}</strong>
-                    <span style={packDesc}>{pack.description}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {!isOut && (
-              <div style={sectionCard}>
-                <p style={sectionLabel}>Quantité</p>
-
-                <div style={qtyRow}>
-                  <button
-                    type="button"
-                    onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-                    style={qtyBtn}
-                    aria-label="Diminuer la quantité"
-                  >
-                    −
-                  </button>
-
-                  <span style={qtyValue}>{qty}</span>
-
-                  <button
-                    type="button"
-                    onClick={() => setQty((prev) => prev + 1)}
-                    style={qtyBtn}
-                    aria-label="Augmenter la quantité"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            )}
-
+          {/* CTA */}
+          <div style={ctaRow}>
             <button
               type="button"
-              disabled={isOut}
-              onClick={() => {
-                if (isOut) return;
-
-                addToCart({
-                  id: `${product.id}-${selectedPack.label}`,
-                  name: `${product.name} • ${selectedPack.label}`,
-                  priceCents: currentPrice,
-                  quantity: qty,
-                  imageUrl: product.imageUrl || "/images/product-vanille.jpg",
-                });
-
-                openCart();
-              }}
+              disabled={isOutOfStock}
               style={{
-                ...cta,
-                background: isOut ? "#999" : "#a16207",
-                cursor: isOut ? "not-allowed" : "pointer",
+                ...primaryBtn,
+                opacity: isOutOfStock ? 0.6 : 1,
+                cursor: isOutOfStock ? "not-allowed" : "pointer",
               }}
             >
-              {isOut ? "Indisponible" : "Ajouter au panier"}
+              {isOutOfStock ? "Indisponible" : "Ajouter au panier"}
             </button>
 
-            <p style={shipping}>🚚 Livraison offerte dès 50€</p>
+            <Link href="/products" style={secondaryBtn}>
+              Voir le catalogue
+            </Link>
           </div>
-        </section>
 
-        <section style={section}>
-          <h2 style={sectionTitle}>Pourquoi choisir Vanille’Or ?</h2>
-
-          <div style={featureGrid}>
-            <div style={featureCard}>
-              <h3 style={featureTitle}>Sélection premium</h3>
-              <p style={featureText}>
-                Nous retenons uniquement des produits à fort potentiel aromatique
-                pour garantir une expérience riche, intense et régulière.
-              </p>
-            </div>
-
-            <div style={featureCard}>
-              <h3 style={featureTitle}>Lien direct avec Madagascar</h3>
-              <p style={featureText}>
-                Une relation de confiance avec les producteurs pour préserver la
-                qualité, la traçabilité et la cohérence du produit.
-              </p>
-            </div>
-
-            <div style={featureCard}>
-              <h3 style={featureTitle}>Pensé pour les pros et passionnés</h3>
-              <p style={featureText}>
-                Du format découverte aux besoins plus importants, notre gamme
-                accompagne aussi bien les particuliers que les professionnels.
-              </p>
-            </div>
+          {/* REASSURANCE */}
+          <div style={reassuranceBox}>
+            <div style={reassuranceItem}>✔ VanilleOr sélection premium</div>
+            <div style={reassuranceItem}>✔ Expédition rapide & sécurisée</div>
+            <div style={reassuranceItem}>✔ Qualité adaptée particuliers & pros</div>
           </div>
-        </section>
-
-        <section style={section}>
-          <h2 style={sectionTitle}>Une vanille d’exception</h2>
-
-          <p style={story}>
-            Issue des meilleures récoltes de Madagascar, cette vanille a été
-            pensée pour répondre à une exigence simple : offrir un produit noble,
-            intense et fiable, capable de sublimer aussi bien une pâtisserie
-            maison qu’une création plus ambitieuse.
-          </p>
-
-          <p style={story}>
-            Dans l’esprit de Vanille’Or, chaque référence doit porter une vraie
-            promesse : celle d’une qualité premium, accessible, enracinée dans
-            le savoir-faire malgache et l’histoire de cette épice devenue
-            incontournable depuis Raymond Albius.
-          </p>
-        </section>
-
-        <section style={section}>
-          <h2 style={sectionTitle}>Utilisations conseillées</h2>
-
-          <ul style={list}>
-            <li>Pâtisserie haut de gamme</li>
-            <li>Crèmes, desserts, glaces et viennoiseries</li>
-            <li>Infusions, préparations gourmandes et cuisine créative</li>
-            <li>Usage professionnel pour artisans, restaurateurs et épiceries</li>
-          </ul>
-        </section>
-
-        <section style={finalBox}>
-          <h2 style={finalTitle}>Prêt à sublimer vos créations ?</h2>
-          <p style={finalText}>
-            Sélectionnez votre format, ajustez la quantité, puis ajoutez ce
-            produit à votre panier pour finaliser votre commande.
-          </p>
-          <button
-            type="button"
-            onClick={() => openCart()}
-            style={finalBtn}
-          >
-            Voir mon panier
-          </button>
-        </section>
+        </div>
       </div>
     </div>
   );
 }
 
-const page = {
-  background: "#f8f5ef",
-  minHeight: "100vh",
-};
+/* ================= STYLES ================= */
 
-const container = {
+const page = {
   maxWidth: "1200px",
   margin: "0 auto",
-  padding: "40px 20px 80px",
+  padding: "40px 20px 60px",
 };
 
-const loadingBox = {
-  padding: "60px 20px",
-  textAlign: "center" as const,
-  minHeight: "60vh",
-  background: "#f8f5ef",
+const breadcrumb = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+  marginBottom: "24px",
+  color: "#777",
+  fontSize: "14px",
 };
 
-const hero = {
+const breadcrumbLink = {
+  color: "#a16207",
+  textDecoration: "none",
+};
+
+const breadcrumbCurrent = {
+  color: "#222",
+  fontWeight: 600,
+};
+
+const layout = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "40px",
-  alignItems: "start",
+  gridTemplateColumns: "1.1fr 1fr",
+  gap: "36px",
 };
 
-const mediaCol = {};
-
-const imageWrap = {
+const imagePanel = {
   position: "relative" as const,
+  background: "white",
+  borderRadius: "18px",
+  padding: "20px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+  minHeight: "520px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const badge = {
+  position: "absolute" as const,
+  top: "18px",
+  left: "18px",
+  background: "#f59e0b",
+  color: "white",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: 700,
 };
 
 const image = {
   width: "100%",
-  maxHeight: "650px",
-  objectFit: "cover" as const,
-  borderRadius: "24px",
-  boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
+  maxHeight: "480px",
+  objectFit: "contain" as const,
+  borderRadius: "12px",
 };
 
-const badgeOut = {
-  position: "absolute" as const,
-  top: "16px",
-  right: "16px",
-  background: "#dc2626",
-  color: "white",
-  padding: "8px 14px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: 700,
+const imageFallback = {
+  width: "100%",
+  height: "480px",
+  borderRadius: "12px",
+  background: "#f3f3f3",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#777",
 };
 
-const badgeStock = {
-  position: "absolute" as const,
-  top: "16px",
-  left: "16px",
-  background: "#a16207",
-  color: "white",
-  padding: "8px 14px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const contentCol = {
+const contentPanel = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "16px",
 };
 
-const eyebrow = {
-  margin: 0,
+const category = {
   color: "#a16207",
   fontWeight: 700,
-  letterSpacing: "0.3px",
+  marginBottom: "8px",
+  textTransform: "capitalize" as const,
 };
 
 const title = {
-  margin: 0,
   fontSize: "40px",
-  lineHeight: 1.1,
-  color: "#111",
+  lineHeight: 1.15,
+  margin: "0 0 10px",
 };
 
-const subtitle = {
-  margin: 0,
-  color: "#6b7280",
-  fontSize: "16px",
+const subCategory = {
+  color: "#666",
+  marginBottom: "18px",
 };
 
 const price = {
-  margin: 0,
   fontSize: "30px",
   fontWeight: 800,
-  color: "#a16207",
+  margin: "0 0 18px",
 };
 
-const desc = {
-  margin: 0,
-  color: "#444",
-  lineHeight: 1.7,
-};
-
-const trustRow = {
-  display: "flex",
-  flexWrap: "wrap" as const,
-  gap: "10px",
-};
-
-const trustItem = {
-  background: "white",
-  border: "1px solid #eee",
-  padding: "10px 12px",
-  borderRadius: "12px",
-  fontSize: "14px",
-};
-
-const sectionCard = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "18px",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.04)",
-};
-
-const sectionLabel = {
-  margin: "0 0 12px 0",
-  fontWeight: 700,
-  color: "#111",
-};
-
-const packGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "10px",
-};
-
-const packBtn = {
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "flex-start",
-  gap: "4px",
-  borderRadius: "12px",
-  padding: "12px",
-  cursor: "pointer",
-  color: "#111",
-};
-
-const packTitle = {
-  fontSize: "15px",
-};
-
-const packDesc = {
-  fontSize: "12px",
-  color: "#6b7280",
-};
-
-const qtyRow = {
+const statusRow = {
   display: "flex",
   alignItems: "center",
-  gap: "14px",
+  gap: "8px",
+  marginBottom: "10px",
 };
 
-const qtyBtn = {
-  width: "42px",
-  height: "42px",
-  borderRadius: "10px",
-  border: "1px solid #ddd",
+const statusDot = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "50%",
+};
+
+const statusText = {
+  color: "#444",
+};
+
+const stock = {
+  fontWeight: 700,
+  marginBottom: "24px",
+};
+
+const descriptionBox = {
   background: "white",
-  cursor: "pointer",
-  fontSize: "18px",
-  fontWeight: 700,
-  color: "#111",
-};
-
-const qtyValue = {
-  minWidth: "22px",
-  textAlign: "center" as const,
-  fontWeight: 700,
-  fontSize: "18px",
-};
-
-const cta = {
-  border: "none",
-  color: "white",
-  padding: "16px 20px",
   borderRadius: "14px",
-  fontWeight: 700,
-  fontSize: "16px",
-};
-
-const shipping = {
-  margin: 0,
-  color: "#6b7280",
-  fontSize: "14px",
-};
-
-const section = {
-  marginTop: "70px",
+  padding: "20px",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+  marginBottom: "24px",
 };
 
 const sectionTitle = {
-  fontSize: "28px",
-  marginBottom: "18px",
-  color: "#111",
+  margin: "0 0 10px",
+  fontSize: "18px",
 };
 
-const featureGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "20px",
-};
-
-const featureCard = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "22px",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.04)",
-};
-
-const featureTitle = {
-  marginTop: 0,
-  marginBottom: "10px",
-  color: "#111",
-};
-
-const featureText = {
+const description = {
+  color: "#444",
+  lineHeight: 1.7,
   margin: 0,
-  color: "#555",
-  lineHeight: 1.7,
 };
 
-const story = {
-  color: "#444",
-  lineHeight: 1.8,
-  marginBottom: "14px",
+const ctaRow = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap" as const,
+  marginBottom: "24px",
 };
 
-const list = {
-  color: "#444",
-  lineHeight: 2,
-  paddingLeft: "20px",
-};
-
-const finalBox = {
-  marginTop: "80px",
-  background: "white",
-  borderRadius: "22px",
-  padding: "32px",
-  textAlign: "center" as const,
-  boxShadow: "0 15px 35px rgba(0,0,0,0.05)",
-};
-
-const finalTitle = {
-  marginTop: 0,
-  color: "#111",
-};
-
-const finalText = {
-  color: "#666",
-  maxWidth: "700px",
-  margin: "0 auto 20px",
-  lineHeight: 1.7,
-};
-
-const finalBtn = {
+const primaryBtn = {
   background: "#a16207",
   color: "white",
-  border: "none",
-  padding: "14px 24px",
+  padding: "14px 20px",
   borderRadius: "12px",
+  border: "none",
   fontWeight: 700,
-  cursor: "pointer",
+  fontSize: "15px",
+};
+
+const secondaryBtn = {
+  display: "inline-block",
+  background: "white",
+  color: "#222",
+  padding: "14px 20px",
+  borderRadius: "12px",
+  textDecoration: "none",
+  fontWeight: 700,
+  border: "1px solid #ddd",
+};
+
+const reassuranceBox = {
+  background: "#faf7f2",
+  borderRadius: "14px",
+  padding: "18px",
+  display: "grid",
+  gap: "10px",
+};
+
+const reassuranceItem = {
+  color: "#444",
 };

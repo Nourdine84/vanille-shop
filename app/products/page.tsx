@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useUIStore } from "@/components/ui-provider";
 
+/* ================= TYPES ================= */
+
 type Product = {
   id: string;
   name: string;
@@ -15,30 +17,41 @@ type Product = {
   slug: string;
 };
 
+/* ================= UTILS ================= */
+
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
+/* ================= PAGE ================= */
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
   const { addToCart } = useCart();
   const { openCart } = useUIStore();
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data: Product[]) => {
+    async function load() {
+      try {
+        const res = await fetch("/api/products");
+        const data = await res.json();
+
         setProducts(data);
 
         const q: Record<string, number> = {};
-        data.forEach((p) => (q[p.id] = 1));
+        data.forEach((p: Product) => (q[p.id] = 1));
         setQuantities(q);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("❌ Fetch products error:", err);
-      });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
   }, []);
 
   const increase = (id: string) => {
@@ -55,10 +68,12 @@ export default function ProductsPage() {
     }));
   };
 
+  /* ================= RENDER ================= */
+
   return (
     <div style={{ background: "#f8f5ef", minHeight: "100vh" }}>
       
-      {/* 🔥 HERO PREMIUM */}
+      {/* HERO */}
       <section style={heroSection}>
         <h1 style={heroTitle}>Nos produits</h1>
         <p style={heroSubtitle}>
@@ -66,94 +81,99 @@ export default function ProductsPage() {
         </p>
       </section>
 
-      {/* 🧱 GRID PRODUITS */}
       <div style={container}>
-        <div style={grid}>
-          {products.map((product, index) => {
-            const isOutOfStock = product.stock === 0;
-            const quantity = quantities[product.id] || 1;
+        {loading ? (
+          <div style={loadingStyle}>Chargement des produits...</div>
+        ) : (
+          <div style={grid}>
+            {products.map((product, index) => {
+              const isOutOfStock = product.stock === 0;
+              const quantity = quantities[product.id] || 1;
 
-            return (
-              <div key={product.id} style={card}>
-                
-                {/* BADGES */}
-                {index === 0 && !isOutOfStock && (
-                  <div style={badgeBest}>Best Seller</div>
-                )}
-
-                {isOutOfStock && (
-                  <div style={badgeOut}>Épuisé</div>
-                )}
-
-                {/* IMAGE */}
-                <img
-                  src={product.imageUrl || "/images/product-vanille.jpg"}
-                  alt={product.name}
-                  style={image}
-                />
-
-                {/* CONTENT */}
-                <div style={{ padding: "10px 5px" }}>
-                  <h2 style={title}>{product.name}</h2>
-
-                  <p style={desc}>{product.description}</p>
-
-                  <p style={price}>
-                    {formatPrice(product.priceCents)}
-                  </p>
-
-                  {!isOutOfStock && (
-                    <div style={qtyRow}>
-                      <button onClick={() => decrease(product.id)} style={qtyBtn}>−</button>
-                      <span>{quantity}</span>
-                      <button onClick={() => increase(product.id)} style={qtyBtn}>+</button>
-                    </div>
+              return (
+                <div key={product.id} style={card}>
+                  
+                  {/* BADGES */}
+                  {index === 0 && !isOutOfStock && (
+                    <div style={badgeBest}>Best Seller</div>
                   )}
 
-                  {/* ACTIONS */}
-                  <div style={actions}>
-                    <button
-                      disabled={isOutOfStock}
-                      onClick={() => {
-                        if (isOutOfStock) return;
+                  {isOutOfStock && (
+                    <div style={badgeOut}>Épuisé</div>
+                  )}
 
-                        addToCart({
-                          id: product.id,
-                          name: product.name,
-                          priceCents: product.priceCents,
-                          quantity: quantity,
+                  {/* IMAGE */}
+                  <img
+                    src={product.imageUrl || "/images/product-vanille.jpg"}
+                    alt={product.name}
+                    style={image}
+                    loading="lazy"
+                  />
 
-                          // 🔥 CRITIQUE POUR MINI CART
-                          imageUrl:
-                            product.imageUrl ||
-                            "/images/product-vanille.jpg",
-                        });
+                  {/* CONTENT */}
+                  <div style={content}>
+                    <h2 style={title}>{product.name}</h2>
 
-                        setTimeout(() => openCart(), 150);
-                      }}
-                      style={{
-                        ...btnPrimary,
-                        background: isOutOfStock ? "#aaa" : "#a16207",
-                      }}
-                    >
-                      {isOutOfStock ? "Indisponible" : "Ajouter"}
-                    </button>
+                    <p style={desc}>{product.description}</p>
 
-                    <Link href={`/product/${product.slug}`} style={btnSecondary}>
-                      Voir
-                    </Link>
+                    <p style={price}>
+                      {formatPrice(product.priceCents)}
+                    </p>
+
+                    {!isOutOfStock && (
+                      <div style={qtyRow}>
+                        <button onClick={() => decrease(product.id)} style={qtyBtn}>−</button>
+                        <span>{quantity}</span>
+                        <button onClick={() => increase(product.id)} style={qtyBtn}>+</button>
+                      </div>
+                    )}
+
+                    {/* ACTIONS */}
+                    <div style={actions}>
+                      <button
+                        disabled={isOutOfStock}
+                        onClick={() => {
+                          if (isOutOfStock) return;
+
+                          addToCart({
+                            id: product.id,
+                            name: product.name,
+                            priceCents: product.priceCents,
+                            quantity,
+                            imageUrl:
+                              product.imageUrl ||
+                              "/images/product-vanille.jpg",
+                          });
+
+                          setTimeout(() => openCart(), 120);
+                        }}
+                        style={{
+                          ...btnPrimary,
+                          background: isOutOfStock ? "#aaa" : "#a16207",
+                        }}
+                      >
+                        {isOutOfStock ? "Indisponible" : "Ajouter"}
+                      </button>
+
+                      <Link
+                        href={`/products/${product.slug}`}
+                        style={btnSecondary}
+                      >
+                        Voir
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* 🎨 DESIGN PREMIUM */
+/* ================= STYLE ================= */
 
 const heroSection = {
   textAlign: "center" as const,
@@ -176,6 +196,12 @@ const container = {
   padding: "20px",
 };
 
+const loadingStyle = {
+  textAlign: "center" as const,
+  padding: "40px",
+  color: "#777",
+};
+
 const grid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -188,6 +214,7 @@ const card = {
   padding: "15px",
   boxShadow: "0 15px 40px rgba(0,0,0,0.06)",
   position: "relative" as const,
+  transition: "0.2s",
 };
 
 const image = {
@@ -195,6 +222,10 @@ const image = {
   height: "260px",
   objectFit: "cover" as const,
   borderRadius: "14px",
+};
+
+const content = {
+  padding: "10px 5px",
 };
 
 const title = {

@@ -24,25 +24,27 @@ const allowedStatuses: OrderStatus[] = [
 ];
 
 /* =========================
-   UPDATE ORDER STATUS
+   UPDATE ORDER
 ========================= */
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
+    const prisma = (await import("@/lib/prisma")).prisma as any;
 
     const formData = await req.formData();
 
-    const id = formData.get("id");
-    const status = formData.get("status");
+    const orderId = formData.get("orderId")?.toString();
+    const status = formData.get("status")?.toString();
+    const trackingNumber = formData.get("trackingNumber")?.toString();
+    const carrier = formData.get("carrier")?.toString();
 
     /* =========================
        VALIDATION
     ========================= */
-    if (typeof id !== "string" || typeof status !== "string") {
-      console.error("❌ Invalid payload:", { id, status });
+    if (!orderId || !status) {
+      console.error("❌ Missing fields:", { orderId, status });
 
       return NextResponse.json(
-        { error: "Invalid payload" },
+        { error: "Missing fields" },
         { status: 400 }
       );
     }
@@ -60,12 +62,12 @@ export async function POST(req: Request) {
        CHECK EXIST
     ========================= */
     const existing = await prisma.order.findUnique({
-      where: { id },
+      where: { id: orderId },
       select: { id: true },
     });
 
     if (!existing) {
-      console.error("❌ Order not found:", id);
+      console.error("❌ Order not found:", orderId);
 
       return NextResponse.json(
         { error: "Order not found" },
@@ -74,31 +76,41 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       UPDATE
+       UPDATE DATA (SMART)
     ========================= */
+    const updateData: any = {
+      status: status as OrderStatus,
+    };
+
+    if (trackingNumber) {
+      updateData.trackingNumber = trackingNumber;
+    }
+
+    if (carrier) {
+      updateData.carrier = carrier;
+    }
+
     await prisma.order.update({
-      where: { id },
-      data: {
-        status: status as OrderStatus,
-      },
+      where: { id: orderId },
+      data: updateData,
     });
 
-    console.log("✅ ORDER STATUS UPDATED:", id, status);
+    console.log("✅ ORDER UPDATED:", orderId, updateData);
 
     /* =========================
-       REDIRECT
+       REDIRECT UX CLEAN
     ========================= */
     return NextResponse.redirect(
-      new URL("/admin/orders", req.url),
+      new URL("/admin/orders?success=1", req.url),
       { status: 303 }
     );
 
   } catch (error) {
     console.error("🔥 UPDATE ORDER ERROR:", error);
 
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
+    return NextResponse.redirect(
+      new URL("/admin/orders?error=1", req.url),
+      { status: 303 }
     );
   }
 }
