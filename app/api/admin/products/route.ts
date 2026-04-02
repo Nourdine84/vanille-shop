@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    /**
+     * 🔥 BLOQUE PRISMA AU BUILD (Vercel)
+     */
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      return NextResponse.json({ ok: true });
+    }
+
+    /**
+     * 🔥 IMPORT DYNAMIQUE PRISMA (FIX BUILD)
+     */
+    const { prisma } = await import("@/lib/prisma");
+
     /* =========================
        PARSE FORM DATA
     ========================= */
@@ -94,8 +105,6 @@ export async function POST(req: Request) {
         data,
       });
 
-      console.log("✅ PRODUCT UPDATED:", id);
-
       return NextResponse.json(updated);
     }
 
@@ -105,8 +114,6 @@ export async function POST(req: Request) {
     const created = await prisma.product.create({
       data,
     });
-
-    console.log("✅ PRODUCT CREATED:", created.id);
 
     return NextResponse.json(created);
 
@@ -122,6 +129,3 @@ export async function POST(req: Request) {
     );
   }
 }
-console.log("DATABASE_URL =", process.env.DATABASE_URL);
-await prisma.$connect();
-console.log("✅ Prisma connecté");
