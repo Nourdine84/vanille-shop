@@ -4,60 +4,37 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* =========================
-   GET ALL PRODUCTS
-========================= */
-export async function GET() {
-  try {
-    const products = await prisma.product.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(products);
-  } catch (error) {
-    console.error("🔥 GET PRODUCTS ERROR:", error);
-
-    return NextResponse.json(
-      { error: "Erreur serveur" },
-      { status: 500 }
-    );
-  }
-}
-
-/* =========================
-   CREATE / UPDATE PRODUCT
-========================= */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    /* =========================
+       PARSE FORM DATA
+    ========================= */
+    const formData = await req.formData();
 
-    const {
-      id,
-      name,
-      slug,
-      description,
-      priceCents,
-      imageUrl,
-      stock,
-      category,
-      subCategory,
-      isActive,
-    } = body;
+    const id = formData.get("id")?.toString() || null;
+    const name = formData.get("name")?.toString() || "";
+    const slug = formData.get("slug")?.toString() || "";
+    const description = formData.get("description")?.toString() || "";
+    const imageUrl = formData.get("imageUrl")?.toString() || "";
+    const category = formData.get("category")?.toString() || "vanille";
+    const subCategory = formData.get("subCategory")?.toString() || "";
+
+    const priceCents = Number(formData.get("priceCents") || 0);
+    const stock = Number(formData.get("stock") || 0);
+
+    const isActive = formData.get("isActive") === "on";
 
     /* =========================
        VALIDATION
     ========================= */
-    if (!name || !slug || !priceCents) {
+    if (!name.trim() || !slug.trim() || priceCents <= 0) {
       return NextResponse.json(
-        { error: "Champs obligatoires manquants" },
+        { error: "Champs obligatoires invalides" },
         { status: 400 }
       );
     }
 
-    const parsedPrice = Number(priceCents);
-    const parsedStock = Number(stock ?? 0);
-
-    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+    if (isNaN(priceCents)) {
       return NextResponse.json(
         { error: "Prix invalide" },
         { status: 400 }
@@ -67,24 +44,26 @@ export async function POST(req: Request) {
     /* =========================
        NORMALISATION
     ========================= */
-    const safeData = {
-      name: String(name).trim(),
-      slug: String(slug).trim().toLowerCase(),
-      description: description?.trim() || "",
-      priceCents: parsedPrice,
-      imageUrl: imageUrl?.trim() || "",
-      stock: parsedStock,
-      category: category?.trim().toLowerCase() || "vanille",
-      subCategory: subCategory?.trim() || "",
-      isActive: isActive ?? true,
+    const cleanSlug = slug.trim().toLowerCase();
+
+    const data = {
+      name: name.trim(),
+      slug: cleanSlug,
+      description: description.trim(),
+      priceCents,
+      imageUrl: imageUrl.trim(),
+      stock,
+      category: category.trim().toLowerCase(),
+      subCategory: subCategory.trim(),
+      isActive,
     };
 
     /* =========================
-       CHECK SLUG UNIQUE
+       CHECK SLUG UNIQUE (CREATE)
     ========================= */
     if (!id) {
       const existing = await prisma.product.findUnique({
-        where: { slug: safeData.slug },
+        where: { slug: cleanSlug },
       });
 
       if (existing) {
@@ -99,10 +78,23 @@ export async function POST(req: Request) {
        UPDATE
     ========================= */
     if (id) {
+      const existingProduct = await prisma.product.findUnique({
+        where: { id },
+      });
+
+      if (!existingProduct) {
+        return NextResponse.json(
+          { error: "Produit introuvable" },
+          { status: 404 }
+        );
+      }
+
       const updated = await prisma.product.update({
         where: { id },
-        data: safeData,
+        data,
       });
+
+      console.log("✅ PRODUCT UPDATED:", id);
 
       return NextResponse.json(updated);
     }
@@ -111,8 +103,10 @@ export async function POST(req: Request) {
        CREATE
     ========================= */
     const created = await prisma.product.create({
-      data: safeData,
+      data,
     });
+
+    console.log("✅ PRODUCT CREATED:", created.id);
 
     return NextResponse.json(created);
 
@@ -122,7 +116,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error: "Erreur serveur",
-        message: error?.message,
+        message: error?.message || "unknown",
       },
       { status: 500 }
     );
