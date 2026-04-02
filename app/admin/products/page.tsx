@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ProductForm from "@/components/admin/ProductForm";
+import ProductCard from "@/components/admin/ProductCard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -100,90 +101,9 @@ export default async function AdminProductsPage({
           <div style={card}>Aucun produit</div>
         ) : (
           <div style={productGrid}>
-            {products.map((product) => {
-              const isOut = product.stock <= 0;
-
-              return (
-                <div
-                  key={product.id}
-                  style={productCard}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-6px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 12px 28px rgba(0,0,0,0.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow =
-                      "0 4px 12px rgba(0,0,0,0.06)";
-                  }}
-                >
-                  <div
-                    style={imageWrapper}
-                    onMouseEnter={(e) => {
-                      const img = e.currentTarget.querySelector("img");
-                      if (img) (img as HTMLImageElement).style.transform = "scale(1.05)";
-                    }}
-                    onMouseLeave={(e) => {
-                      const img = e.currentTarget.querySelector("img");
-                      if (img) (img as HTMLImageElement).style.transform = "scale(1)";
-                    }}
-                  >
-                    {product.imageUrl ? (
-                      <img src={product.imageUrl} style={productImage} />
-                    ) : (
-                      <div style={noImage}>No image</div>
-                    )}
-
-                    {product.badge && (
-                      <div style={badgeOverlay}>{product.badge}</div>
-                    )}
-                  </div>
-
-                  <div style={content}>
-                    <h3 style={name}>{product.name}</h3>
-
-                    <p style={categoryText}>{product.category}</p>
-
-                    <p style={price}>
-                      {formatPrice(product.priceCents)}
-                    </p>
-
-                    <div style={statusRow}>
-                      <span
-                        style={{
-                          ...dot,
-                          background: product.isActive ? "#16a34a" : "#6b7280",
-                        }}
-                      />
-                      {product.isActive ? "Actif" : "Inactif"}
-                    </div>
-
-                    <p
-                      style={{
-                        color: isOut ? "#dc2626" : "#16a34a",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {isOut ? "Rupture" : `Stock: ${product.stock}`}
-                    </p>
-
-                    <a
-                      href={`/admin/products/${product.id}`}
-                      style={editBtn}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.opacity = "1")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.opacity = "0.9")
-                      }
-                    >
-                      ✏️ Modifier
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
         )}
       </div>
@@ -200,10 +120,9 @@ function Card({ title, value }: { title: string; value: number }) {
   );
 }
 
-/* ================= STYLES ================= */
+/* STYLES */
 
 const container = { padding: 30 };
-
 const title = { fontSize: 28, marginBottom: 20 };
 
 const successPopup = {
@@ -255,88 +174,10 @@ const primaryBtn = {
 };
 
 const listWrapper = { marginTop: 20 };
-
 const sectionTitle = { marginBottom: 15 };
 
 const productGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))",
   gap: 20,
-};
-
-const productCard = {
-  background: "white",
-  borderRadius: 14,
-  overflow: "hidden",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-  transition: "all 0.25s ease",
-  cursor: "pointer",
-};
-
-const imageWrapper = { position: "relative" as const };
-
-const productImage = {
-  width: "100%",
-  height: 180,
-  objectFit: "cover" as const,
-  transition: "transform 0.3s ease",
-};
-
-const noImage = {
-  height: 180,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "#eee",
-};
-
-const badgeOverlay = {
-  position: "absolute" as const,
-  top: 10,
-  left: 10,
-  background: "#f59e0b",
-  color: "white",
-  padding: "6px 10px",
-  borderRadius: 999,
-  fontSize: 12,
-};
-
-const content = { padding: 15 };
-
-const name = { margin: "0 0 5px 0" };
-
-const categoryText = {
-  color: "#777",
-  fontSize: 12,
-  marginBottom: 10,
-};
-
-const price = {
-  fontWeight: "bold",
-  marginBottom: 10,
-};
-
-const statusRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  marginBottom: 8,
-};
-
-const dot = {
-  width: 8,
-  height: 8,
-  borderRadius: "50%",
-};
-
-const editBtn = {
-  display: "inline-block",
-  marginTop: 10,
-  background: "#2563eb",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: 8,
-  textDecoration: "none",
-  transition: "0.2s",
-  opacity: 0.9,
 };
