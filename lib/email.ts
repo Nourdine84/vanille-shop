@@ -94,27 +94,22 @@ function getTrackingLink(carrier?: string | null, tracking?: string) {
 }
 
 /* =========================
-   LAYOUT PREMIUM (LOGO)
+   LAYOUT PREMIUM
 ========================= */
 
 function layout(content: string) {
   return `
-    <div style="font-family:Arial,Helvetica,sans-serif;background:#faf7f2;padding:40px;">
+    <div style="font-family:Arial;background:#faf7f2;padding:40px;">
       <div style="max-width:600px;margin:0 auto;background:white;padding:30px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.05);">
         
-        <!-- LOGO -->
         <div style="text-align:center;margin-bottom:20px;">
-          <img 
-            src="${BASE_URL}/logo.png" 
-            alt="Vanille’Or"
-            style="height:60px;object-fit:contain;"
-          />
+          <img src="${BASE_URL}/logo.png" style="height:60px;" />
         </div>
 
         ${content}
 
-        <div style="margin-top:30px;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
-          Vanille’Or — Vanille premium de Madagascar
+        <div style="margin-top:30px;text-align:center;font-size:12px;color:#999;">
+          Vanille’Or — Premium Madagascar
         </div>
       </div>
     </div>
@@ -122,7 +117,7 @@ function layout(content: string) {
 }
 
 /* =========================
-   ORDER CONFIRMATION PREMIUM
+   ORDER EMAIL
 ========================= */
 
 export async function sendOrderConfirmationEmail({
@@ -140,77 +135,48 @@ export async function sendOrderConfirmationEmail({
       .map(
         (item) => `
         <tr>
-          <td style="padding:10px 0;">${safe(item.name)}</td>
-          <td style="text-align:center;">x${item.quantity}</td>
-          <td style="text-align:right;font-weight:600;">
+          <td>${safe(item.name)}</td>
+          <td>x${item.quantity}</td>
+          <td style="text-align:right;">
             ${formatPrice(item.priceCents * item.quantity)}
           </td>
-        </tr>
-      `
+        </tr>`
       )
       .join("");
 
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `✨ Commande confirmée Vanille’Or #${orderId.slice(0, 8)}`,
-
+      subject: `Commande confirmée #${orderId.slice(0, 8)}`,
       html: layout(`
-        <h2 style="text-align:center;">Merci pour votre commande ✨</h2>
+        <h2>Merci pour votre commande</h2>
 
-        <p style="text-align:center;color:#666;">
-          Référence : <strong>#${orderId.slice(0, 8)}</strong>
-        </p>
-
-        <table style="width:100%;margin-top:20px;">
+        <table style="width:100%;">
           ${itemsHtml}
         </table>
 
-        <h3 style="text-align:right;margin-top:20px;">
-          Total : ${formatPrice(totalCents)}
-        </h3>
+        <h3>Total : ${formatPrice(totalCents)}</h3>
 
         ${
           trackingNumber
-            ? `
-          <div style="margin-top:30px;padding:20px;background:#fffaf1;border-radius:12px;text-align:center;">
-            <p>📦 Expédition en cours</p>
-            <strong>${trackingNumber}</strong>
-
-            ${
-              trackingLink
-                ? `
-              <div style="margin-top:10px;">
-                <a href="${trackingLink}" 
-                   style="background:#a16207;color:white;padding:10px 18px;border-radius:8px;text-decoration:none;">
-                  Suivre mon colis
-                </a>
-              </div>
-            `
-                : ""
-            }
-          </div>
-        `
+            ? `<p>Tracking : ${trackingNumber}</p>`
             : ""
         }
 
-        <div style="text-align:center;margin-top:30px;">
-          <a href="${BASE_URL}/products"
-             style="background:#a16207;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;">
-            Voir nos produits
-          </a>
-        </div>
+        ${
+          trackingLink
+            ? `<a href="${trackingLink}">Suivre mon colis</a>`
+            : ""
+        }
       `),
     });
-
-    console.log("📧 ORDER EMAIL SENT:", to);
-  } catch (error) {
-    console.error("❌ EMAIL ORDER ERROR:", error);
+  } catch (err) {
+    console.error("EMAIL ORDER ERROR", err);
   }
 }
 
 /* =========================
-   SHIPPING EMAIL PREMIUM
+   SHIPPING EMAIL
 ========================= */
 
 export async function sendShippingEmail({
@@ -220,43 +186,31 @@ export async function sendShippingEmail({
   carrier,
 }: SendShippingEmailParams) {
   try {
-    const trackingLink = getTrackingLink(carrier, trackingNumber);
+    const link = getTrackingLink(carrier, trackingNumber);
 
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `📦 Expédition Vanille’Or #${orderId.slice(0, 8)}`,
-
+      subject: `Expédition commande #${orderId.slice(0, 8)}`,
       html: layout(`
-        <h2>Votre commande est en route 📦</h2>
+        <h2>Votre commande est expédiée</h2>
 
-        <p><strong>Commande :</strong> #${orderId.slice(0, 8)}</p>
-        <p><strong>Transporteur :</strong> ${safe(carrier)}</p>
-        <p><strong>Suivi :</strong> ${safe(trackingNumber)}</p>
+        <p>Tracking : ${trackingNumber}</p>
 
         ${
-          trackingLink
-            ? `
-          <div style="margin-top:20px;text-align:center;">
-            <a href="${trackingLink}" 
-               style="background:#a16207;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;">
-              Suivre mon colis
-            </a>
-          </div>
-        `
+          link
+            ? `<a href="${link}">Suivre</a>`
             : ""
         }
       `),
     });
-
-    console.log("📧 SHIPPING EMAIL SENT:", to);
-  } catch (error) {
-    console.error("❌ EMAIL SHIPPING ERROR:", error);
+  } catch (err) {
+    console.error(err);
   }
 }
 
 /* =========================
-   B2B EMAIL (inchangé mais clean)
+   B2B EMAIL
 ========================= */
 
 export async function sendB2BEmail({
@@ -270,20 +224,108 @@ export async function sendB2BEmail({
     await resend.emails.send({
       from: FROM_EMAIL,
       to: [B2B_RECEIVER],
-      subject: "🔥 Nouveau lead B2B",
+      subject: "Nouveau lead B2B",
       html: layout(`
-        <h2>Nouvelle demande B2B</h2>
-
-        <p><strong>Nom :</strong> ${safe(name)}</p>
-        <p><strong>Email :</strong> ${safe(email)}</p>
-        <p><strong>Entreprise :</strong> ${safe(company)}</p>
-        <p><strong>Quantité :</strong> ${safe(quantity)}</p>
-        <p><strong>Message :</strong><br/>${safe(message)}</p>
+        <p>${safe(name)}</p>
+        <p>${safe(email)}</p>
+        <p>${safe(company)}</p>
+        <p>${safe(quantity)}</p>
+        <p>${safe(message)}</p>
       `),
     });
-
-    console.log("📧 B2B EMAIL SENT:", email);
-  } catch (error) {
-    console.error("❌ EMAIL B2B ERROR:", error);
+  } catch (err) {
+    console.error(err);
   }
+}
+
+/* =========================
+   DEVIS B2B (FIX FINAL)
+========================= */
+
+export async function sendB2BDevisEmail({
+  name,
+  email,
+  company,
+  quantity,
+}: {
+  name: string;
+  email: string;
+  company?: string;
+  quantity: string;
+}) {
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: "Votre devis Vanille’Or",
+      html: layout(`
+        <h2>Bonjour ${safe(name)}</h2>
+
+        ${
+          company
+            ? `<p>Entreprise : ${safe(company)}</p>`
+            : ""
+        }
+
+        <p>Quantité : ${safe(quantity)}</p>
+      `),
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+/* =========================
+   RELANCES B2B
+========================= */
+
+export async function sendB2BRelanceEmail({
+  name,
+  email,
+  quantity,
+}: {
+  name: string;
+  email: string;
+  quantity: string;
+}) {
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: "Relance Vanille’Or",
+    html: layout(`<p>${safe(name)} - ${safe(quantity)}</p>`),
+  });
+}
+
+export async function sendB2BRelanceV2Email({
+  name,
+  email,
+  quantity,
+}: {
+  name: string;
+  email: string;
+  quantity: string;
+}) {
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: "Relance 2",
+    html: layout(`<p>${safe(name)} - ${safe(quantity)}</p>`),
+  });
+}
+
+export async function sendB2BRelanceV3Email({
+  name,
+  email,
+  quantity,
+}: {
+  name: string;
+  email: string;
+  quantity: string;
+}) {
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: "Relance finale",
+    html: layout(`<p>${safe(name)} - ${safe(quantity)}</p>`),
+  });
 }
