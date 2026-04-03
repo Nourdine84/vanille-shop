@@ -1,12 +1,39 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import CrossSell from "@/components/cross-sell";
 
 /* =========================
+   TYPES
+========================= */
+
+type CartItem = {
+  id: string;
+  name: string;
+  priceCents: number;
+  quantity: number;
+  imageUrl?: string;
+};
+
+type CheckoutApiResponse = {
+  url?: string;
+  error?: string;
+};
+
+/* =========================
+   UTILS
+========================= */
+
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+/* =========================
    MODAL ERREUR
 ========================= */
+
 function ErrorModal({
   open,
   message,
@@ -19,9 +46,9 @@ function ErrorModal({
   if (!open) return null;
 
   return (
-    <div style={overlay}>
-      <div style={modal}>
-        <h2 style={{ marginBottom: "10px" }}>❌ Paiement échoué</h2>
+    <div style={overlay} onClick={onClose}>
+      <div style={modal} onClick={(e) => e.stopPropagation()}>
+        <h2 style={modalTitle}>❌ Paiement échoué</h2>
 
         <p style={modalText}>{message}</p>
 
@@ -38,31 +65,36 @@ function ErrorModal({
 }
 
 /* =========================
-   TYPES
+   COMPONENTS
 ========================= */
-type CartItem = {
-  id: string;
-  name: string;
-  priceCents: number;
-  quantity: number;
-  imageUrl?: string;
-};
 
-/* =========================
-   UTILS
-========================= */
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+function PriceRow({
+  label,
+  value,
+  bold = false,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+}) {
+  return (
+    <div style={row}>
+      <span>{label}</span>
+      <span style={{ fontWeight: bold ? 700 : 400 }}>{value}</span>
+    </div>
+  );
 }
 
 /* =========================
    PAGE
 ========================= */
+
 export default function CheckoutPage() {
   const { cart } = useCart();
 
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -70,35 +102,48 @@ export default function CheckoutPage() {
   useEffect(() => {
     setMounted(true);
 
-    const params = new URLSearchParams(window.location.search);
+    const checkMobile = () => {
+      if (typeof window !== "undefined") {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
 
-    if (params.get("error")) {
-      setErrorMessage("Le paiement a été annulé ou refusé.");
-      setErrorOpen(true);
+    checkMobile();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", checkMobile);
+
+      const params = new URLSearchParams(window.location.search);
+
+      if (params.get("error")) {
+        setErrorMessage("Le paiement a été annulé ou refusé.");
+        setErrorOpen(true);
+      }
     }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("resize", checkMobile);
+      }
+    };
   }, []);
 
-  if (!mounted) return null;
-
-  /* =========================
-     CALCULS
-  ========================= */
-  const subtotal = cart.reduce(
-    (acc: number, item: CartItem) =>
-      acc + item.priceCents * item.quantity,
-    0
-  );
+  const subtotal = useMemo(() => {
+    return cart.reduce(
+      (acc: number, item: CartItem) => acc + item.priceCents * item.quantity,
+      0
+    );
+  }, [cart]);
 
   const freeShippingThreshold = 5000;
   const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
   const total = subtotal + shippingCost;
 
-  /* =========================
-     CHECKOUT
-  ========================= */
   const handleCheckout = async () => {
+    if (loading) return;
+
     if (!cart.length) {
-      setErrorMessage("Votre panier est vide");
+      setErrorMessage("Votre panier est vide.");
       setErrorOpen(true);
       return;
     }
@@ -106,7 +151,7 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/create-checkout-session", {
+      const res = await fetch("/api/checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,23 +162,30 @@ export default function CheckoutPage() {
         }),
       });
 
-      const data = await res.json();
+      let data: CheckoutApiResponse = {};
+
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Réponse serveur invalide.");
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || "Erreur paiement");
+        throw new Error(data.error || "Erreur lors de la création du paiement.");
       }
 
-      if (data.url) {
+      if (!data.url) {
+        throw new Error("Lien de paiement introuvable.");
+      }
+
+      if (typeof window !== "undefined") {
         window.location.href = data.url;
-      } else {
-        throw new Error("Erreur Stripe");
       }
     } catch (error: any) {
-      console.error(error);
+      console.error("❌ CHECKOUT ERROR:", error);
 
       setErrorMessage(
-        error?.message ||
-          "Une erreur est survenue lors du paiement."
+        error?.message || "Une erreur est survenue lors du paiement."
       );
       setErrorOpen(true);
     } finally {
@@ -141,19 +193,27 @@ export default function CheckoutPage() {
     }
   };
 
-  /* =========================
-     EMPTY STATE
-  ========================= */
+  if (!mounted) return null;
+
   if (cart.length === 0) {
     return (
-      <div style={page}>
-        <div style={container}>
-          <h1 style={title}>Votre panier est vide</h1>
-          <p style={{ textAlign: "center" }}>
-            Ajoutez des produits avant de passer au paiement.
-          </p>
+      <>
+        <ErrorModal
+          open={errorOpen}
+          message={errorMessage}
+          onClose={() => setErrorOpen(false)}
+        />
+
+        <div style={page}>
+          <div style={container}>
+            <h1 style={title}>Votre panier est vide</h1>
+
+            <p style={emptyText}>
+              Ajoutez des produits avant de passer au paiement.
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -167,37 +227,43 @@ export default function CheckoutPage() {
 
       <div style={page}>
         <div style={container}>
-          <h1 style={title}>
-            Finalisation de votre commande
-          </h1>
+          <h1 style={title}>Finalisation de votre commande</h1>
 
-          <div style={grid}>
-            
+          <div
+            style={{
+              ...grid,
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 400px",
+              gap: isMobile ? "20px" : "40px",
+            }}
+          >
             {/* PRODUITS */}
             <div>
               <div style={card}>
-                <h2>Votre sélection</h2>
+                <h2 style={sectionTitle}>Votre sélection</h2>
 
                 {cart.map((item: CartItem) => (
-                  <div key={item.id} style={itemRow}>
+                  <div
+                    key={item.id}
+                    style={{
+                      ...itemRow,
+                      alignItems: isMobile ? "flex-start" : "center",
+                    }}
+                  >
                     <img
-                      src={
-                        item.imageUrl ||
-                        "/images/product-vanille.jpg"
-                      }
+                      src={item.imageUrl || "/images/product-vanille.jpg"}
                       alt={item.name}
-                      style={image}
+                      style={{
+                        ...image,
+                        width: isMobile ? "72px" : "80px",
+                        height: isMobile ? "72px" : "80px",
+                      }}
                     />
 
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={name}>{item.name}</p>
-                      <p style={qty}>
-                        Quantité : {item.quantity}
-                      </p>
+                      <p style={qty}>Quantité : {item.quantity}</p>
                       <p style={price}>
-                        {formatPrice(
-                          item.priceCents * item.quantity
-                        )}
+                        {formatPrice(item.priceCents * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -205,10 +271,16 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* RÉSUMÉ + CROSS SELL */}
+            {/* RÉSUMÉ */}
             <div>
-              <div style={summary}>
-                <h2>Résumé</h2>
+              <div
+                style={{
+                  ...summary,
+                  position: isMobile ? "relative" : "sticky",
+                  top: isMobile ? 0 : "20px",
+                }}
+              >
+                <h2 style={sectionTitle}>Résumé</h2>
 
                 <PriceRow
                   label="Sous-total"
@@ -224,7 +296,7 @@ export default function CheckoutPage() {
                   }
                 />
 
-                <hr />
+                <hr style={divider} />
 
                 <PriceRow
                   label="Total"
@@ -238,16 +310,19 @@ export default function CheckoutPage() {
                   style={{
                     ...cta,
                     background: loading ? "#999" : "#a16207",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.85 : 1,
                   }}
                 >
-                  {loading
-                    ? "Redirection..."
-                    : "Payer en sécurité 🔒"}
+                  {loading ? "Redirection..." : "Payer en sécurité 🔒"}
                 </button>
+
+                <p style={secureText}>Paiement sécurisé via Stripe</p>
               </div>
 
-              {/* 🔥 CROSS SELL */}
-              <CrossSell />
+              <div style={{ marginTop: "20px" }}>
+                <CrossSell />
+              </div>
             </div>
           </div>
         </div>
@@ -257,29 +332,7 @@ export default function CheckoutPage() {
 }
 
 /* =========================
-   COMPONENTS
-========================= */
-function PriceRow({
-  label,
-  value,
-  bold = false,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
-  return (
-    <div style={row}>
-      <span>{label}</span>
-      <span style={{ fontWeight: bold ? 700 : 400 }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/* =========================
-   STYLE
+   STYLES
 ========================= */
 
 const page = {
@@ -291,36 +344,44 @@ const page = {
 const container = {
   maxWidth: "1100px",
   margin: "0 auto",
-  padding: "30px 20px",
+  padding: "30px 16px 40px",
 };
 
 const title = {
   textAlign: "center" as const,
   marginBottom: "30px",
   fontSize: "28px",
+  color: "#111",
+};
+
+const emptyText = {
+  textAlign: "center" as const,
+  color: "#666",
+  marginTop: "8px",
 };
 
 const grid = {
   display: "grid",
-  gridTemplateColumns: "1fr 400px",
   gap: "40px",
+  alignItems: "start",
 };
-
-/* 🔥 responsive inline safe */
-if (typeof window !== "undefined" && window.innerWidth < 768) {
-  (grid as any).display = "block";
-}
 
 const card = {
   background: "white",
   padding: "20px",
   borderRadius: "16px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
 };
 
 const summary = {
   ...card,
-  position: "sticky" as const,
-  top: "20px",
+};
+
+const sectionTitle = {
+  marginTop: 0,
+  marginBottom: "18px",
+  fontSize: "22px",
+  color: "#111",
 };
 
 const itemRow = {
@@ -330,30 +391,43 @@ const itemRow = {
 };
 
 const image = {
-  width: "80px",
-  height: "80px",
   borderRadius: "10px",
   objectFit: "cover" as const,
+  flexShrink: 0,
 };
 
 const name = {
   fontWeight: 600,
+  margin: 0,
+  color: "#111",
+  lineHeight: 1.4,
 };
 
 const qty = {
   color: "#666",
   fontSize: "14px",
+  margin: "6px 0",
 };
 
 const price = {
   color: "#a16207",
   fontWeight: 600,
+  margin: 0,
 };
 
 const row = {
   display: "flex",
   justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
   margin: "10px 0",
+  color: "#222",
+};
+
+const divider = {
+  border: "none",
+  borderTop: "1px solid #eee",
+  margin: "16px 0",
 };
 
 const cta = {
@@ -364,7 +438,15 @@ const cta = {
   color: "white",
   border: "none",
   fontSize: "16px",
-  cursor: "pointer",
+  fontWeight: 600,
+};
+
+const secureText = {
+  marginTop: "12px",
+  marginBottom: 0,
+  textAlign: "center" as const,
+  color: "#666",
+  fontSize: "13px",
 };
 
 /* MODAL */
@@ -377,21 +459,28 @@ const overlay = {
   justifyContent: "center",
   alignItems: "center",
   zIndex: 999,
+  padding: "16px",
 };
 
 const modal = {
   background: "white",
   padding: "25px",
   borderRadius: "16px",
-  width: "90%",
+  width: "100%",
   maxWidth: "350px",
   textAlign: "center" as const,
+  boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
+};
+
+const modalTitle = {
+  marginBottom: "10px",
 };
 
 const modalText = {
   fontSize: "14px",
   color: "#666",
   marginBottom: "20px",
+  lineHeight: 1.5,
 };
 
 const primaryBtn = {
@@ -402,6 +491,8 @@ const primaryBtn = {
   borderRadius: "10px",
   border: "none",
   marginBottom: "10px",
+  cursor: "pointer",
+  fontWeight: 600,
 };
 
 const secondaryBtn = {
@@ -410,4 +501,6 @@ const secondaryBtn = {
   background: "#f3f4f6",
   borderRadius: "10px",
   border: "none",
+  cursor: "pointer",
+  color: "#111",
 };

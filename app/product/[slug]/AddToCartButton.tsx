@@ -17,7 +17,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
   const { openCart } = useUIStore();
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product?.id) return;
 
     addToCart({
       id: product.id,
@@ -29,23 +29,27 @@ export default function AddToCartButton({ product }: { product: Product }) {
 
     showToast("Ajouté au panier 🛒");
 
-    setTimeout(() => openCart(), 200);
+    setTimeout(() => {
+      openCart();
+    }, 200);
   };
 
   return (
     <button
       onClick={handleAddToCart}
-      style={{
-        background: "#a16207",
-        color: "white",
-        padding: "14px 20px",
-        borderRadius: "10px",
-        border: "none",
-        cursor: "pointer",
-        fontWeight: 600,
-      }}
+      style={btn}
     >
       Ajouter au panier
     </button>
   );
 }
+
+const btn = {
+  background: "#a16207",
+  color: "white",
+  padding: "14px 20px",
+  borderRadius: "12px",
+  border: "none",
+  cursor: "pointer",
+  fontWeight: 700,
+};
