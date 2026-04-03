@@ -4,12 +4,21 @@ import { useCart } from "@/lib/cart-store";
 import { useState } from "react";
 import Link from "next/link";
 
+/* =========================
+   UTILS
+========================= */
+
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
+/* =========================
+   PAGE
+========================= */
+
 export default function CartPage() {
-  const { cart, updateQuantity, removeFromCart } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+
   const [showEmptyPopup, setShowEmptyPopup] = useState(false);
 
   const total = cart.reduce(
@@ -17,8 +26,14 @@ export default function CartPage() {
     0
   );
 
+  const isEmpty = cart.length === 0;
+
+  /* =========================
+     ACTIONS
+  ========================= */
+
   const handleCheckout = () => {
-    if (cart.length === 0) {
+    if (isEmpty) {
       setShowEmptyPopup(true);
       return;
     }
@@ -26,13 +41,17 @@ export default function CartPage() {
     window.location.href = "/checkout";
   };
 
+  /* =========================
+     RENDER
+  ========================= */
+
   return (
     <div style={container}>
       <div style={wrapper}>
         <h1 style={title}>Votre panier</h1>
 
         {/* EMPTY */}
-        {cart.length === 0 && (
+        {isEmpty && (
           <div style={emptyBox}>
             <p style={{ marginBottom: 10 }}>
               Votre panier est vide
@@ -45,74 +64,88 @@ export default function CartPage() {
         )}
 
         {/* LIST */}
-        {cart.map((item) => {
-          const isMax = item.quantity >= 99;
+        {!isEmpty &&
+          cart.map((item) => {
+            const isMax = item.quantity >= 99;
 
-          return (
-            <div key={item.id} style={card}>
-              <img
-                src={item.imageUrl || "/images/product-vanille.jpg"}
-                alt={item.name}
-                style={img}
-              />
+            return (
+              <div key={item.id} style={card}>
+                <img
+                  src={item.imageUrl || "/images/product-vanille.jpg"}
+                  alt={item.name}
+                  style={img}
+                />
 
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: 0 }}>{item.name}</h3>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0 }}>{item.name}</h3>
 
-                <p style={priceText}>
-                  {formatPrice(item.priceCents)}
-                </p>
+                  <p style={priceText}>
+                    {formatPrice(item.priceCents)}
+                  </p>
 
-                {/* QUANTITY */}
-                <div style={qtyBox}>
-                  <button
-                    style={qtyBtn}
-                    onClick={() =>
-                      updateQuantity(
-                        item.id,
-                        Math.max(1, item.quantity - 1)
-                      )
-                    }
-                  >
-                    −
-                  </button>
+                  {/* QUANTITY */}
+                  <div style={qtyBox}>
+                    <button
+                      style={qtyBtn}
+                      onClick={() =>
+                        updateQuantity(
+                          item.id,
+                          Math.max(1, item.quantity - 1)
+                        )
+                      }
+                    >
+                      −
+                    </button>
 
-                  <span>{item.quantity}</span>
+                    <span>{item.quantity}</span>
 
-                  <button
-                    style={qtyBtn}
-                    disabled={isMax}
-                    onClick={() =>
-                      updateQuantity(item.id, item.quantity + 1)
-                    }
-                  >
-                    +
-                  </button>
+                    <button
+                      style={{
+                        ...qtyBtn,
+                        opacity: isMax ? 0.5 : 1,
+                        cursor: isMax ? "not-allowed" : "pointer",
+                      }}
+                      disabled={isMax}
+                      onClick={() =>
+                        updateQuantity(item.id, item.quantity + 1)
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
+
+                {/* REMOVE */}
+                <button
+                  onClick={() => removeFromCart(item.id)}
+                  style={removeBtn}
+                >
+                  ✕
+                </button>
               </div>
+            );
+          })}
 
-              {/* REMOVE */}
-              <button
-                onClick={() => removeFromCart(item.id)}
-                style={removeBtn}
-              >
-                ✕
-              </button>
-            </div>
-          );
-        })}
-
-        {/* TOTAL */}
-        {cart.length > 0 && (
+        {/* SUMMARY */}
+        {!isEmpty && (
           <div style={summary}>
             <h2>Total : {formatPrice(total)}</h2>
 
-            <button
-              style={checkoutBtn}
-              onClick={handleCheckout}
-            >
-              Passer au paiement
-            </button>
+            <div style={ctaRow}>
+              <button
+                style={checkoutBtn}
+                onClick={handleCheckout}
+              >
+                Passer au paiement
+              </button>
+
+              <button
+                style={clearBtn}
+                onClick={clearCart}
+              >
+                Vider le panier
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -148,7 +181,9 @@ export default function CartPage() {
   );
 }
 
-/* 🎨 STYLES */
+/* =========================
+   STYLES
+========================= */
 
 const container = {
   background: "#faf7f2",
@@ -218,8 +253,14 @@ const summary = {
   textAlign: "center" as const,
 };
 
+const ctaRow = {
+  display: "flex",
+  gap: "12px",
+  justifyContent: "center",
+  flexWrap: "wrap" as const,
+};
+
 const checkoutBtn = {
-  marginTop: "15px",
   background: "#a16207",
   color: "white",
   padding: "16px",
@@ -227,8 +268,18 @@ const checkoutBtn = {
   border: "none",
   cursor: "pointer",
   fontWeight: "600",
-  width: "100%",
-  maxWidth: "300px",
+  width: "200px",
+};
+
+const clearBtn = {
+  background: "#eee",
+  color: "#333",
+  padding: "16px",
+  borderRadius: "12px",
+  border: "none",
+  cursor: "pointer",
+  fontWeight: "600",
+  width: "200px",
 };
 
 const emptyBox = {

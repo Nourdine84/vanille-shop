@@ -26,13 +26,31 @@ let listeners: ((cart: CartItem[]) => void)[] = [];
 ========================= */
 
 function notify() {
-  listeners.forEach((l) => l(globalCart));
+  listeners.forEach((l) => l([...globalCart]));
 }
 
 function save(cart: CartItem[]) {
   globalCart = cart;
-  localStorage.setItem("cart", JSON.stringify(cart));
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }
+
   notify();
+}
+
+function loadFromStorage() {
+  if (typeof window === "undefined") return;
+
+  try {
+    const stored = localStorage.getItem("cart");
+    if (stored) {
+      globalCart = JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error("❌ CART LOAD ERROR:", error);
+    globalCart = [];
+  }
 }
 
 /* =========================
@@ -40,24 +58,18 @@ function save(cart: CartItem[]) {
 ========================= */
 
 export function useCart() {
-  const [cart, setCart] = useState<CartItem[]>(globalCart);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  /* 🔄 Sync global → local */
+  /* 🔄 Init + Sync */
   useEffect(() => {
+    loadFromStorage();
+    setCart([...globalCart]);
+
     listeners.push(setCart);
 
     return () => {
       listeners = listeners.filter((l) => l !== setCart);
     };
-  }, []);
-
-  /* 💾 Load initial */
-  useEffect(() => {
-    const stored = localStorage.getItem("cart");
-    if (stored) {
-      globalCart = JSON.parse(stored);
-      notify();
-    }
   }, []);
 
   /* =========================
@@ -72,7 +84,6 @@ export function useCart() {
     if (existing) {
       const newQty = existing.quantity + item.quantity;
 
-      // ❌ Supprime si quantité <= 0
       if (newQty <= 0) {
         newCart = globalCart.filter((i) => i.id !== item.id);
       } else {
@@ -83,7 +94,6 @@ export function useCart() {
         );
       }
     } else {
-      // 🔒 sécurité
       if (item.quantity <= 0) return;
 
       newCart = [...globalCart, item];
@@ -113,7 +123,11 @@ export function useCart() {
 
   const clearCart = () => {
     globalCart = [];
-    localStorage.removeItem("cart");
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cart");
+    }
+
     notify();
   };
 

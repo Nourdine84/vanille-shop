@@ -1,14 +1,29 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
 /* ================= UTILS ================= */
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+async function getProduct(slug: string) {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/products`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const products = await res.json();
+
+    return products.find((p: any) => p.slug === slug);
+  } catch (error) {
+    console.error("❌ PRODUCT FETCH ERROR:", error);
+    return null;
+  }
 }
 
 /* ================= PAGE ================= */
@@ -18,9 +33,7 @@ export default async function ProductDetailPage({
 }: {
   params: { slug: string };
 }) {
-  const product = await prisma.product.findUnique({
-    where: { slug: params.slug },
-  });
+  const product = await getProduct(params.slug);
 
   if (!product) return notFound();
 
@@ -47,7 +60,6 @@ export default async function ProductDetailPage({
               src={product.imageUrl}
               alt={product.name}
               style={image}
-              loading="lazy"
             />
           ) : (
             <div style={imageFallback}>Image bientôt disponible</div>
