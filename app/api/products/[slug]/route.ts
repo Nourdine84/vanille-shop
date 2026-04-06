@@ -1,24 +1,42 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { slug: string } }
 ) {
   try {
+    const { prisma } = await import("@/lib/prisma");
+
+    const slug = params.slug?.toLowerCase();
+
+    if (!slug) {
+      return NextResponse.json(
+        { error: "Slug manquant" },
+        { status: 400 }
+      );
+    }
+
     const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     });
 
-    if (!product) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!product || !product.isActive) {
+      return NextResponse.json(
+        { error: "Produit introuvable" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(product);
-  } catch (error) {
-    console.error("❌ API product error:", error);
+
+  } catch (error: any) {
+    console.error("❌ GET PRODUCT ERROR:", error);
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Erreur récupération produit" },
       { status: 500 }
     );
   }
