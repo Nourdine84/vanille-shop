@@ -29,12 +29,14 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
 
   const freeShippingThreshold = 5000;
   const remaining = Math.max(0, freeShippingThreshold - subtotal);
+  const isFreeShipping = subtotal >= freeShippingThreshold;
 
   return (
     <>
       <div style={styles.overlay} onClick={handleClose} />
 
       <aside style={styles.cart}>
+        {/* HEADER */}
         <div style={styles.header}>
           <h2 style={styles.headerTitle}>Votre panier</h2>
           <button onClick={handleClose} style={styles.closeBtn}>
@@ -42,16 +44,23 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
           </button>
         </div>
 
+        {/* SHIPPING BOX */}
         <div style={styles.shippingBox}>
-          {subtotal >= freeShippingThreshold ? (
-            <span>🚚 Livraison offerte</span>
+          {isFreeShipping ? (
+            <span>🚚 Livraison offerte 🎉</span>
           ) : (
-            <span>
-              Encore <strong>{formatPrice(remaining)}</strong> pour la livraison offerte
-            </span>
+            <>
+              <span>
+                Encore <strong>{formatPrice(remaining)}</strong> pour la livraison offerte
+              </span>
+              <div style={styles.shippingHint}>
+                🎯 Ajoutez un produit pour économiser la livraison
+              </div>
+            </>
           )}
         </div>
 
+        {/* LIST */}
         <div style={styles.list}>
           {cart.length === 0 ? (
             <p style={styles.empty}>Votre panier est vide</p>
@@ -59,7 +68,7 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
             cart.map((item) => (
               <div key={item.id} style={styles.itemRow}>
                 <img
-                  src={item.imageUrl || "/images/product-vanille.jpg"}
+                  src={item.imageUrl || "/products/default.jpg"}
                   alt={item.name}
                   style={styles.image}
                 />
@@ -105,6 +114,7 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
           )}
         </div>
 
+        {/* FOOTER */}
         {cart.length > 0 && (
           <div style={styles.footer}>
             <div style={styles.totalRow}>
@@ -112,7 +122,11 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
               <strong>{formatPrice(subtotal)}</strong>
             </div>
 
-            <Link href="/checkout" style={styles.checkoutBtn} onClick={handleClose}>
+            <Link
+              href="/checkout"
+              style={styles.checkoutBtn}
+              onClick={handleClose}
+            >
               Payer maintenant 🔒
             </Link>
 
@@ -126,11 +140,15 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
   );
 }
 
+/* =========================
+   STYLES PREMIUM
+========================= */
+
 const styles = {
   overlay: {
     position: "fixed" as const,
     inset: 0,
-    background: "rgba(0,0,0,0.4)",
+    background: "rgba(0,0,0,0.45)",
     zIndex: 110,
   },
   cart: {
@@ -149,7 +167,6 @@ const styles = {
   header: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     padding: "20px",
     borderBottom: "1px solid #eee",
   },
@@ -161,13 +178,16 @@ const styles = {
     background: "transparent",
     border: "none",
     cursor: "pointer",
-    fontSize: "18px",
   },
   shippingBox: {
     padding: "14px 20px",
     background: "#fef3c7",
     fontSize: "14px",
     color: "#7c4a03",
+  },
+  shippingHint: {
+    fontSize: "12px",
+    marginTop: "5px",
   },
   list: {
     flex: 1,
@@ -177,7 +197,6 @@ const styles = {
   empty: {
     textAlign: "center" as const,
     color: "#777",
-    marginTop: "40px",
   },
   itemRow: {
     display: "flex",
@@ -195,17 +214,14 @@ const styles = {
   },
   name: {
     fontWeight: 600,
-    margin: "0 0 6px 0",
   },
   qtyRow: {
     display: "flex",
     gap: "8px",
-    margin: "6px 0",
   },
   qtyBtn: {
     padding: "4px 10px",
     border: "1px solid #ddd",
-    background: "white",
     cursor: "pointer",
   },
   qtyValue: {
@@ -246,6 +262,5 @@ const styles = {
     background: "#f3f4f6",
     border: "none",
     borderRadius: "10px",
-    cursor: "pointer",
   },
 };

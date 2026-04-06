@@ -24,7 +24,7 @@ export default function Header() {
         {/* LOGO */}
         <Link href="/" style={logo}>
           <Image
-            src="/logo-vanilleor.png"
+            src="/images/logo-vanilleor.png"
             alt="Vanille'Or"
             width={220} // 🔥 PLUS GROS
             height={70}

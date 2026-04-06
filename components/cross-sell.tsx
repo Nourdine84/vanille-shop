@@ -2,6 +2,10 @@
 
 import { useCart } from "@/lib/cart-store";
 
+function formatPrice(price: number) {
+  return (price / 100).toFixed(2).replace(".", ",") + " €";
+}
+
 export default function CrossSell() {
   const { addToCart } = useCart();
 
@@ -20,11 +24,15 @@ export default function CrossSell() {
 
   return (
     <div style={box}>
-      <h3>Vous pourriez aussi aimer</h3>
+      <h3 style={title}>🔥 Complétez votre commande</h3>
 
       {suggestions.map((item) => (
         <div key={item.id} style={row}>
-          <span>{item.name}</span>
+          <div>
+            <p style={name}>{item.name}</p>
+            <p style={price}>{formatPrice(item.priceCents)}</p>
+          </div>
+
           <button
             onClick={() =>
               addToCart({
@@ -42,23 +50,41 @@ export default function CrossSell() {
   );
 }
 
+/* STYLE */
+
 const box = {
   marginTop: "30px",
   background: "white",
   padding: "20px",
-  borderRadius: "12px",
+  borderRadius: "14px",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+};
+
+const title = {
+  marginBottom: "15px",
 };
 
 const row = {
   display: "flex",
   justifyContent: "space-between",
-  marginBottom: "10px",
+  alignItems: "center",
+  marginBottom: "12px",
+};
+
+const name = {
+  fontWeight: 600,
+};
+
+const price = {
+  fontSize: "13px",
+  color: "#666",
 };
 
 const btn = {
-  background: "#a16207",
+  background: "#111",
   color: "white",
   border: "none",
   borderRadius: "8px",
-  padding: "6px 10px",
+  padding: "8px 12px",
+  cursor: "pointer",
 };
