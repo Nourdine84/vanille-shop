@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/* =========================
+   TYPES
+========================= */
+
 type ProductPayload = {
   id?: string | null;
   name?: string;
@@ -16,6 +20,35 @@ type ProductPayload = {
   stock?: number | string;
   isActive?: boolean | string;
 };
+
+/* =========================
+   UTILS
+========================= */
+
+function normalizeSlug(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function normalizeImageUrl(image?: string) {
+  if (!image || image.trim() === "") {
+    return "/products/default.jpg";
+  }
+
+  const clean = image.trim();
+
+  if (clean.startsWith("http")) return clean;
+  if (clean.startsWith("/")) return clean;
+
+  return `/products/${clean}`;
+}
+
+/* =========================
+   PARSE BODY SAFE
+========================= */
 
 async function parseBody(req: Request): Promise<ProductPayload> {
   const contentType = req.headers.get("content-type") || "";
@@ -48,21 +81,55 @@ async function parseBody(req: Request): Promise<ProductPayload> {
   throw new Error("Content-Type non supporté");
 }
 
+/* =========================
+   POST (CREATE + UPDATE)
+========================= */
+
 export async function POST(req: Request) {
   try {
+    /* 🔒 SAFE BUILD */
     if (process.env.NEXT_PHASE === "phase-production-build") {
       return NextResponse.json({ ok: true });
     }
 
     const { prisma } = await import("@/lib/prisma");
+
     const body = await parseBody(req);
+
+    /* =========================
+       NORMALISATION
+    ========================= */
 
     const id = body.id || null;
     const name = body.name?.trim() || "";
-    const slug = body.slug?.trim().toLowerCase() || "";
+
+    const slug = normalizeSlug(body.slug || name);
 
     const priceCents = Number(body.priceCents || 0);
     const stock = Number(body.stock || 0);
+
+    const imageUrl = normalizeImageUrl(body.imageUrl);
+
+    const category = body.category?.trim().toLowerCase() || "vanille";
+
+    const subCategory =
+      body.subCategory && body.subCategory.trim() !== ""
+        ? body.subCategory.trim()
+        : null;
+
+    const badge =
+      body.badge && body.badge.trim() !== ""
+        ? body.badge.trim()
+        : null;
+
+    const isActive =
+      body.isActive === true ||
+      body.isActive === "true" ||
+      body.isActive === "on";
+
+    /* =========================
+       VALIDATION
+    ========================= */
 
     if (!name || !slug) {
       return NextResponse.json(
@@ -78,23 +145,27 @@ export async function POST(req: Request) {
       );
     }
 
+    /* =========================
+       DATA
+    ========================= */
+
     const data = {
       name,
       slug,
       description: body.description?.trim() || "",
       priceCents,
-      imageUrl: body.imageUrl?.trim() || "/products/default.jpg",
+      imageUrl,
       stock: isNaN(stock) ? 0 : stock,
-      category: body.category?.trim().toLowerCase() || "vanille",
-      subCategory: body.subCategory?.trim() || null,
-      badge: body.badge || null,
-      isActive:
-        body.isActive === true ||
-        body.isActive === "true" ||
-        body.isActive === "on",
+      category,
+      subCategory,
+      badge,
+      isActive,
     };
 
-    // CREATE
+    /* =========================
+       CREATE
+    ========================= */
+
     if (!id) {
       const exists = await prisma.product.findUnique({
         where: { slug },
@@ -109,11 +180,21 @@ export async function POST(req: Request) {
 
       const created = await prisma.product.create({ data });
 
-      return NextResponse.json({ success: true, product: created });
+      console.log("✅ PRODUCT CREATED:", created.id);
+
+      return NextResponse.json({
+        success: true,
+        product: created,
+      });
     }
 
-    // UPDATE
-    const existing = await prisma.product.findUnique({ where: { id } });
+    /* =========================
+       UPDATE
+    ========================= */
+
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
 
     if (!existing) {
       return NextResponse.json(
@@ -140,13 +221,21 @@ export async function POST(req: Request) {
       data,
     });
 
-    return NextResponse.json({ success: true, product: updated });
+    console.log("✏️ PRODUCT UPDATED:", updated.id);
+
+    return NextResponse.json({
+      success: true,
+      product: updated,
+    });
 
   } catch (error: any) {
     console.error("🔥 PRODUCT API ERROR:", error);
 
     return NextResponse.json(
-      { error: "Erreur serveur", message: error?.message },
+      {
+        error: "Erreur serveur",
+        message: error?.message || "unknown",
+      },
       { status: 500 }
     );
   }

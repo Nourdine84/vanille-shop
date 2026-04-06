@@ -10,23 +10,33 @@ export const metadata: Metadata = {
 type Article = {
   slug: string;
   title: string;
+  image: string;
 };
 
-/* 🔥 ARTICLES SEO (fallback + contenu optimisé Google) */
+/* 🔥 ARTICLES SEO + IMAGE */
 const staticArticles: Article[] = [
   {
     slug: "utiliser-vanille-patisserie",
     title: "Comment utiliser la vanille en pâtisserie",
+    image: "/blog/vanille-patisserie.jpg",
   },
   {
     slug: "choisir-bonne-vanille",
     title: "Comment reconnaître une bonne vanille",
+    image: "/blog/bonne-vanille.jpg",
   },
   {
     slug: "pourquoi-vanille-madagascar",
     title: "Pourquoi la vanille de Madagascar est la meilleure",
+    image: "/blog/madagascar-vanille.jpg",
   },
 ];
+
+function getImage(img?: string) {
+  if (!img) return "/blog/default.jpg";
+  if (img.startsWith("http")) return img;
+  return img;
+}
 
 export default async function BlogPage() {
   let dbPosts: any[] = [];
@@ -34,19 +44,17 @@ export default async function BlogPage() {
   try {
     const prisma = (await import("@/lib/prisma")).prisma as any;
 
-dbPosts = await prisma.blogPost.findMany({
-  orderBy: { createdAt: "desc" },
-});
+    dbPosts = await prisma.blogPost.findMany({
+      orderBy: { createdAt: "desc" },
+    });
   } catch (e) {
     console.error("BLOG DB ERROR:", e);
   }
 
   return (
     <div style={container}>
-      {/* TITLE */}
       <h1 style={title}>Blog Vanille’Or</h1>
 
-      {/* INTRO SEO */}
       <p style={intro}>
         Découvrez nos conseils pour utiliser la{" "}
         <Link href="/vanille-madagascar">
@@ -55,66 +63,55 @@ dbPosts = await prisma.blogPost.findMany({
         , choisir les meilleures gousses et sublimer vos recettes.
       </p>
 
-      {/* 🔥 ARTICLES DB (PRIORITÉ) */}
+      {/* ARTICLES DB */}
       {dbPosts.length > 0 && (
         <>
           <h2 style={sectionTitle}>🆕 Articles récents</h2>
 
           <div style={grid}>
             {dbPosts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/blog/${post.slug}`}
-                style={card}
-                data-testid="blog-link"
-              >
+              <Link key={post.id} href={`/blog/${post.slug}`} style={card}>
+                <img
+                  src={getImage(post.coverImage)}
+                  alt={post.title}
+                  style={cardImage}
+                />
+
                 <h3 style={cardTitle}>{post.title}</h3>
 
                 {post.excerpt && (
                   <p style={excerpt}>{post.excerpt}</p>
                 )}
 
-                {post.coverImage && (
-                <img src={post.coverImage} style={cardImage} />
-                )}
-
-                <span style={readMore}>Lire l’article →</span>
+                <span style={readMore}>Lire →</span>
               </Link>
             ))}
           </div>
         </>
       )}
 
-      {/* 🔥 ARTICLES SEO STATIQUES */}
+      {/* ARTICLES STATIQUES */}
       <h2 style={sectionTitle}>📚 Guides essentiels</h2>
 
-      <div style={list}>
+      <div style={grid}>
         {staticArticles.map((article) => (
-          <Link
-            key={article.slug}
-            href={`/blog/${article.slug}`}
-            style={link}
-            data-testid="blog-link"
-          >
-            {article.title}
+          <Link key={article.slug} href={`/blog/${article.slug}`} style={card}>
+            <img
+              src={article.image}
+              alt={article.title}
+              style={cardImage}
+            />
+
+            <h3 style={cardTitle}>{article.title}</h3>
+
+            <span style={readMore}>Lire →</span>
           </Link>
         ))}
       </div>
 
-      {/* SEO LINKING */}
-      <div style={seoBlock}>
-        <p>Explorez également :</p>
-
-        <div style={{ marginTop: 8 }}>
-          <Link href="/vanille-madagascar">Vanille Madagascar</Link> |{" "}
-          <Link href="/acheter-vanille">Acheter vanille</Link> |{" "}
-          <Link href="/vanille-patisserie">Vanille pâtisserie</Link>
-        </div>
-      </div>
-
       {/* CTA */}
       <div style={ctaWrapper}>
-        <Link href="/products" data-testid="blog-cta" style={cta}>
+        <Link href="/products" style={cta}>
           Voir nos produits
         </Link>
       </div>
@@ -122,10 +119,10 @@ dbPosts = await prisma.blogPost.findMany({
   );
 }
 
-/* ================= STYLE ================= */
+/* STYLE */
 
 const container = {
-  maxWidth: "1000px",
+  maxWidth: "1100px",
   margin: "60px auto",
   padding: "20px",
 };
@@ -147,19 +144,26 @@ const sectionTitle = {
 
 const grid = {
   display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
   gap: "20px",
-  marginBottom: "30px",
 };
 
 const card = {
   display: "block",
-  padding: "20px",
+  padding: "15px",
   borderRadius: "12px",
   background: "white",
   textDecoration: "none",
   color: "black",
   boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-  transition: "0.2s",
+};
+
+const cardImage = {
+  width: "100%",
+  height: "180px",
+  objectFit: "cover" as const,
+  borderRadius: "10px",
+  marginBottom: "10px",
 };
 
 const cardTitle = {
@@ -178,23 +182,6 @@ const readMore = {
   fontWeight: 600,
 };
 
-const list = {
-  display: "flex",
-  flexDirection: "column" as const,
-  gap: "12px",
-};
-
-const link = {
-  fontWeight: 600,
-  color: "#a16207",
-  textDecoration: "none",
-};
-
-const seoBlock = {
-  marginTop: "40px",
-  textAlign: "center" as const,
-};
-
 const ctaWrapper = {
   marginTop: "40px",
   textAlign: "center" as const,
@@ -206,13 +193,4 @@ const cta = {
   padding: "12px 20px",
   borderRadius: "10px",
   textDecoration: "none",
-  fontWeight: 600,
-};
-
-const cardImage = {
-  width: "100%",
-  height: "160px",
-  objectFit: "cover" as const,
-  borderRadius: "10px",
-  marginBottom: "10px",
 };

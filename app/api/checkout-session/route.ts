@@ -83,28 +83,17 @@ function normalizeCart(rawItems: unknown): CartItem[] {
     }));
 }
 
-function buildImageUrl(baseUrl: string, imageUrl?: string) {
-  if (!imageUrl) {
-    return `${baseUrl}/products/default.jpg`;
-  }
-
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-
-  if (imageUrl.startsWith("/")) {
-    return `${baseUrl}${imageUrl}`;
-  }
-
-  return `${baseUrl}/${imageUrl}`;
-}
-
 /* =========================
    POST
 ========================= */
 
 export async function POST(req: Request) {
   try {
+    /* 🔥 SAFE BUILD VERCEL */
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      return NextResponse.json({ ok: true });
+    }
+
     const contentType = req.headers.get("content-type") || "";
 
     if (!contentType.includes("application/json")) {
@@ -117,6 +106,7 @@ export async function POST(req: Request) {
     const prisma = (await import("@/lib/prisma")).prisma;
 
     const body = (await req.json()) as CheckoutBody;
+
     const cart = normalizeCart(body.cart ?? body.items);
 
     if (cart.length === 0) {
@@ -141,7 +131,7 @@ export async function POST(req: Request) {
     const total = subtotal + shippingCost;
 
     /* =========================
-       CREATE ORDER
+       CREATE ORDER (FIX JSON)
     ========================= */
 
     const order = await prisma.order.create({
@@ -149,27 +139,25 @@ export async function POST(req: Request) {
         status: "PENDING",
         totalCents: total,
         currency: "EUR",
-        items: cart,
+        items: JSON.parse(JSON.stringify(cart)), // ✅ FIX CRITIQUE
       },
     });
 
     /* =========================
-       STRIPE LINE ITEMS
+       STRIPE LINE ITEMS (FIX PAYLOAD)
     ========================= */
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = cart.map(
-      (item) => ({
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      cart.map((item) => ({
         price_data: {
           currency: "eur",
           product_data: {
-            name: item.name,
-            images: [buildImageUrl(baseUrl, item.imageUrl)],
+            name: item.name, // ✅ PAS D'IMAGE → FIX 500
           },
           unit_amount: item.priceCents,
         },
         quantity: item.quantity,
-      })
-    );
+      }));
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -185,14 +173,16 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       CREATE STRIPE SESSION
+       STRIPE SESSION
     ========================= */
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
+
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/cart`,
+      cancel_url: `${baseUrl}/checkout?error=1`,
+
       metadata: {
         orderId: order.id,
       },
@@ -213,6 +203,7 @@ export async function POST(req: Request) {
       url: session.url,
       orderId: order.id,
     });
+
   } catch (error: any) {
     console.error("🔥 STRIPE ERROR:", error);
 
