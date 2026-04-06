@@ -10,13 +10,21 @@ function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
+/* 🔥 FIX IMAGE */
+function getImageUrl(image?: string) {
+  if (!image) return "/products/default.jpg";
+  if (image.startsWith("http")) return image;
+  if (!image.startsWith("/")) return `/products/${image}`;
+  return image;
+}
+
 export default async function ProductDetailPage({
   params,
 }: {
   params: { slug: string };
 }) {
   const product = await prisma.product.findUnique({
-    where: { slug: params.slug },
+    where: { slug: params.slug.toLowerCase() },
   });
 
   if (!product || !product.isActive) return notFound();
@@ -25,7 +33,7 @@ export default async function ProductDetailPage({
 
   return (
     <div style={page}>
-      {/* BREADCRUMB */}
+      
       <div style={breadcrumb}>
         <Link href="/">Accueil</Link> /{" "}
         <Link href="/products">Produits</Link> /{" "}
@@ -33,21 +41,20 @@ export default async function ProductDetailPage({
       </div>
 
       <div style={layout}>
-        {/* IMAGE */}
+        
+        {/* IMAGE FIX */}
         <div style={imageBox}>
           <img
-            src={product.imageUrl || "/products/default.jpg"}
+            src={getImageUrl(product.imageUrl)}
             alt={product.name}
             style={image}
           />
         </div>
 
-        {/* CONTENT */}
         <div>
           <p style={category}>{product.category}</p>
           <h1 style={title}>{product.name}</h1>
 
-          {/* 🔥 BADGES CONVERSION */}
           <div style={badges}>
             <span style={badge}>🔥 Produit populaire</span>
             {product.stock < 5 && (
@@ -63,7 +70,6 @@ export default async function ProductDetailPage({
               : `✅ En stock : ${product.stock}`}
           </p>
 
-          {/* 🔥 VALUE */}
           <div style={valueBox}>
             ⭐ Qualité premium Madagascar  
             <br />
@@ -80,17 +86,15 @@ export default async function ProductDetailPage({
                 id: product.id,
                 name: product.name,
                 priceCents: product.priceCents,
-                imageUrl: product.imageUrl || undefined,
+                imageUrl: getImageUrl(product.imageUrl),
               }}
             />
           )}
 
-          {/* 💰 BUNDLE */}
           <div style={bundleBox}>
             <h3>🔥 Offre pack</h3>
             <p>
-              Ajoutez une cannelle premium avec ce produit et économisez sur la
-              livraison.
+              Ajoutez une cannelle premium et optimisez votre livraison.
             </p>
           </div>
 

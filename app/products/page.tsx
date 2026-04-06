@@ -19,6 +19,17 @@ function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
+/* 🔥 FIX IMAGE PATH GLOBAL */
+function getImageUrl(image?: string) {
+  if (!image) return "/products/default.jpg";
+
+  if (image.startsWith("http")) return image;
+
+  if (!image.startsWith("/")) return `/products/${image}`;
+
+  return image;
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -64,11 +75,12 @@ export default function ProductsPage() {
 
   return (
     <div style={{ background: "#f8f5ef", minHeight: "100vh" }}>
+      
       {/* HERO */}
       <section style={hero}>
-        <h1 style={heroTitle}>VanilleOr Collection</h1>
+        <h1 style={heroTitle}>Collection Vanille’Or</h1>
         <p style={heroSubtitle}>
-          Produits premium sélectionnés à Madagascar
+          L’excellence de Madagascar, directement chez vous
         </p>
       </section>
 
@@ -83,34 +95,30 @@ export default function ProductsPage() {
 
               return (
                 <div key={product.id} style={card}>
+                  
                   {/* BADGES */}
                   {index === 0 && <div style={badgeBest}>🔥 Best Seller</div>}
                   {product.stock < 5 && !isOutOfStock && (
                     <div style={badgeStock}>⚠ Stock limité</div>
                   )}
-                  {isOutOfStock && (
-                    <div style={badgeOut}>Épuisé</div>
-                  )}
+                  {isOutOfStock && <div style={badgeOut}>Épuisé</div>}
 
-                  {/* IMAGE */}
+                  {/* IMAGE FIXED */}
                   <img
-                    src={product.imageUrl || "/products/default.jpg"}
+                    src={getImageUrl(product.imageUrl)}
+                    alt={product.name}
                     style={image}
                   />
 
-                  {/* CONTENT */}
                   <div style={content}>
                     <h2 style={title}>{product.name}</h2>
 
                     <p style={desc}>{product.description}</p>
 
-                    {/* 🔥 TRIGGERS */}
                     <p style={trigger}>✔ Qualité premium</p>
                     <p style={trigger2}>🚀 Expédition rapide</p>
 
-                    <p style={price}>
-                      {formatPrice(product.priceCents)}
-                    </p>
+                    <p style={price}>{formatPrice(product.priceCents)}</p>
 
                     {!isOutOfStock && (
                       <div style={qtyRow}>
@@ -129,7 +137,7 @@ export default function ProductsPage() {
                             name: product.name,
                             priceCents: product.priceCents,
                             quantity,
-                            imageUrl: product.imageUrl || "/products/default.jpg",
+                            imageUrl: getImageUrl(product.imageUrl),
                           });
 
                           setTimeout(() => openCart(), 120);
@@ -142,7 +150,8 @@ export default function ProductsPage() {
                         Ajouter
                       </button>
 
-                      <Link href={`/products/${product.slug}`} style={btnSecondary}>
+                      {/* 🔥 FIX SLUG */}
+                      <Link href={`/products/${product.slug?.toLowerCase()}`} style={btnSecondary}>
                         Voir
                       </Link>
                     </div>
@@ -176,7 +185,7 @@ const card = {
   borderRadius: 20,
   overflow: "hidden",
   boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
-  transition: "0.3s",
+  position: "relative" as const,
 };
 
 const image = { width: "100%", height: 260, objectFit: "cover" as const };
