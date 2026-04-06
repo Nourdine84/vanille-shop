@@ -5,8 +5,6 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useUIStore } from "@/components/ui-provider";
 
-/* ================= TYPES ================= */
-
 type Product = {
   id: string;
   name: string;
@@ -17,13 +15,9 @@ type Product = {
   slug: string;
 };
 
-/* ================= UTILS ================= */
-
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
-
-/* ================= PAGE ================= */
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -68,22 +62,19 @@ export default function ProductsPage() {
     }));
   };
 
-  /* ================= RENDER ================= */
-
   return (
     <div style={{ background: "#f8f5ef", minHeight: "100vh" }}>
-      
       {/* HERO */}
-      <section style={heroSection}>
-        <h1 style={heroTitle}>Nos produits</h1>
+      <section style={hero}>
+        <h1 style={heroTitle}>VanilleOr Collection</h1>
         <p style={heroSubtitle}>
-          Une sélection premium issue des meilleures récoltes de Madagascar
+          Produits premium sélectionnés à Madagascar
         </p>
       </section>
 
       <div style={container}>
         {loading ? (
-          <div style={loadingStyle}>Chargement des produits...</div>
+          <p style={{ textAlign: "center" }}>Chargement...</p>
         ) : (
           <div style={grid}>
             {products.map((product, index) => {
@@ -92,22 +83,19 @@ export default function ProductsPage() {
 
               return (
                 <div key={product.id} style={card}>
-                  
                   {/* BADGES */}
-                  {index === 0 && !isOutOfStock && (
-                    <div style={badgeBest}>Best Seller</div>
+                  {index === 0 && <div style={badgeBest}>🔥 Best Seller</div>}
+                  {product.stock < 5 && !isOutOfStock && (
+                    <div style={badgeStock}>⚠ Stock limité</div>
                   )}
-
                   {isOutOfStock && (
                     <div style={badgeOut}>Épuisé</div>
                   )}
 
                   {/* IMAGE */}
                   <img
-                    src={product.imageUrl || "/images/product-vanille.jpg"}
-                    alt={product.name}
+                    src={product.imageUrl || "/products/default.jpg"}
                     style={image}
-                    loading="lazy"
                   />
 
                   {/* CONTENT */}
@@ -115,6 +103,10 @@ export default function ProductsPage() {
                     <h2 style={title}>{product.name}</h2>
 
                     <p style={desc}>{product.description}</p>
+
+                    {/* 🔥 TRIGGERS */}
+                    <p style={trigger}>✔ Qualité premium</p>
+                    <p style={trigger2}>🚀 Expédition rapide</p>
 
                     <p style={price}>
                       {formatPrice(product.priceCents)}
@@ -128,21 +120,16 @@ export default function ProductsPage() {
                       </div>
                     )}
 
-                    {/* ACTIONS */}
                     <div style={actions}>
                       <button
                         disabled={isOutOfStock}
                         onClick={() => {
-                          if (isOutOfStock) return;
-
                           addToCart({
                             id: product.id,
                             name: product.name,
                             priceCents: product.priceCents,
                             quantity,
-                            imageUrl:
-                              product.imageUrl ||
-                              "/images/product-vanille.jpg",
+                            imageUrl: product.imageUrl || "/products/default.jpg",
                           });
 
                           setTimeout(() => openCart(), 120);
@@ -152,13 +139,10 @@ export default function ProductsPage() {
                           background: isOutOfStock ? "#aaa" : "#a16207",
                         }}
                       >
-                        {isOutOfStock ? "Indisponible" : "Ajouter"}
+                        Ajouter
                       </button>
 
-                      <Link
-                        href={`/products/${product.slug}`}
-                        style={btnSecondary}
-                      >
+                      <Link href={`/products/${product.slug}`} style={btnSecondary}>
                         Voir
                       </Link>
                     </div>
@@ -173,134 +157,81 @@ export default function ProductsPage() {
   );
 }
 
-/* ================= STYLE ================= */
+/* STYLE */
 
-const heroSection = {
-  textAlign: "center" as const,
-  padding: "80px 20px 40px",
-};
+const hero = { textAlign: "center" as const, padding: "60px 20px" };
+const heroTitle = { fontSize: "40px", fontWeight: 800 };
+const heroSubtitle = { color: "#666" };
 
-const heroTitle = {
-  fontSize: "42px",
-  fontWeight: 800,
-  marginBottom: "10px",
-};
-
-const heroSubtitle = {
-  color: "#6b7280",
-};
-
-const container = {
-  maxWidth: "1200px",
-  margin: "0 auto",
-  padding: "20px",
-};
-
-const loadingStyle = {
-  textAlign: "center" as const,
-  padding: "40px",
-  color: "#777",
-};
+const container = { maxWidth: 1200, margin: "0 auto", padding: 20 };
 
 const grid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: "30px",
+  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+  gap: 30,
 };
 
 const card = {
   background: "white",
-  borderRadius: "20px",
-  padding: "15px",
-  boxShadow: "0 15px 40px rgba(0,0,0,0.06)",
-  position: "relative" as const,
-  transition: "0.2s",
+  borderRadius: 20,
+  overflow: "hidden",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
+  transition: "0.3s",
 };
 
-const image = {
-  width: "100%",
-  height: "260px",
-  objectFit: "cover" as const,
-  borderRadius: "14px",
-};
+const image = { width: "100%", height: 260, objectFit: "cover" as const };
 
-const content = {
-  padding: "10px 5px",
-};
+const content = { padding: 20 };
 
-const title = {
-  fontSize: "20px",
-  fontWeight: 700,
-  marginTop: "10px",
-};
+const title = { fontWeight: 700 };
+const desc = { fontSize: 14, color: "#666" };
 
-const desc = {
-  color: "#6b7280",
-  fontSize: "14px",
-  margin: "10px 0",
-};
+const trigger = { color: "#16a34a", fontSize: 13 };
+const trigger2 = { color: "#a16207", fontSize: 13 };
 
-const price = {
-  fontWeight: "bold",
-  fontSize: "18px",
-};
+const price = { fontSize: 20, fontWeight: 800 };
 
-const qtyRow = {
-  display: "flex",
-  justifyContent: "space-between",
-  margin: "10px 0",
-};
+const qtyRow = { display: "flex", gap: 10 };
 
-const qtyBtn = {
-  padding: "4px 10px",
-  borderRadius: "6px",
-  border: "1px solid #ddd",
-  cursor: "pointer",
-};
+const qtyBtn = { padding: "4px 10px" };
 
-const actions = {
-  display: "flex",
-  gap: "10px",
-  marginTop: "10px",
-};
+const actions = { display: "flex", gap: 10 };
 
 const btnPrimary = {
   flex: 1,
   color: "white",
-  padding: "12px",
-  borderRadius: "10px",
+  padding: 12,
+  borderRadius: 10,
   border: "none",
-  cursor: "pointer",
 };
 
 const btnSecondary = {
   flex: 1,
+  background: "#eee",
+  padding: 12,
+  borderRadius: 10,
   textAlign: "center" as const,
-  background: "#f3f4f6",
-  padding: "12px",
-  borderRadius: "10px",
   textDecoration: "none",
-  color: "#111",
 };
 
 const badgeBest = {
   position: "absolute" as const,
-  top: "10px",
-  left: "10px",
+  top: 10,
+  left: 10,
   background: "#a16207",
   color: "white",
-  padding: "6px 12px",
-  borderRadius: "20px",
-  fontSize: "12px",
+  padding: "6px 10px",
+  borderRadius: 10,
 };
 
-const badgeOut = {
+const badgeStock = {
   position: "absolute" as const,
-  top: "10px",
-  right: "10px",
+  top: 10,
+  right: 10,
   background: "#dc2626",
   color: "white",
-  padding: "6px 12px",
-  borderRadius: "20px",
-  fontSize: "12px",
+  padding: "6px 10px",
+  borderRadius: 10,
 };
+
+const badgeOut = badgeStock;

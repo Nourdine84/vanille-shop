@@ -24,35 +24,53 @@ export default async function ProductDetailPage({
   const isOutOfStock = product.stock <= 0;
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: 40 }}>
-      <div style={{ marginBottom: 20 }}>
+    <div style={page}>
+      {/* BREADCRUMB */}
+      <div style={breadcrumb}>
         <Link href="/">Accueil</Link> /{" "}
         <Link href="/products">Produits</Link> /{" "}
         <strong>{product.name}</strong>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
-        <div>
+      <div style={layout}>
+        {/* IMAGE */}
+        <div style={imageBox}>
           <img
             src={product.imageUrl || "/products/default.jpg"}
             alt={product.name}
-            style={{ width: "100%", borderRadius: 12 }}
+            style={image}
           />
         </div>
 
+        {/* CONTENT */}
         <div>
-          <p>{product.category}</p>
-          <h1>{product.name}</h1>
+          <p style={category}>{product.category}</p>
+          <h1 style={title}>{product.name}</h1>
 
-          <p style={{ fontSize: 24, fontWeight: 700 }}>
-            {formatPrice(product.priceCents)}
-          </p>
+          {/* 🔥 BADGES CONVERSION */}
+          <div style={badges}>
+            <span style={badge}>🔥 Produit populaire</span>
+            {product.stock < 5 && (
+              <span style={badgeDanger}>⚠ Stock limité</span>
+            )}
+          </div>
 
-          <p>
+          <p style={price}>{formatPrice(product.priceCents)}</p>
+
+          <p style={stock}>
             {isOutOfStock
               ? "❌ Rupture"
               : `✅ En stock : ${product.stock}`}
           </p>
+
+          {/* 🔥 VALUE */}
+          <div style={valueBox}>
+            ⭐ Qualité premium Madagascar  
+            <br />
+            🚀 Livraison rapide  
+            <br />
+            👨‍🍳 Idéal pâtisserie & cuisine
+          </div>
 
           <p>{product.description || "Description à venir"}</p>
 
@@ -67,6 +85,15 @@ export default async function ProductDetailPage({
             />
           )}
 
+          {/* 💰 BUNDLE */}
+          <div style={bundleBox}>
+            <h3>🔥 Offre pack</h3>
+            <p>
+              Ajoutez une cannelle premium avec ce produit et économisez sur la
+              livraison.
+            </p>
+          </div>
+
           <div style={{ marginTop: 20 }}>
             <Link href="/products">← Retour catalogue</Link>
           </div>
@@ -75,3 +102,63 @@ export default async function ProductDetailPage({
     </div>
   );
 }
+
+/* STYLE */
+
+const page = { maxWidth: 1200, margin: "0 auto", padding: 40 };
+
+const breadcrumb = { marginBottom: 20 };
+
+const layout = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 40,
+};
+
+const imageBox = {
+  background: "white",
+  padding: 20,
+  borderRadius: 16,
+};
+
+const image = {
+  width: "100%",
+  borderRadius: 12,
+};
+
+const category = { color: "#a16207" };
+const title = { fontSize: 34 };
+
+const price = { fontSize: 28, fontWeight: 800 };
+
+const stock = { marginBottom: 15 };
+
+const badges = { display: "flex", gap: 10 };
+
+const badge = {
+  background: "#f59e0b",
+  padding: "6px 10px",
+  borderRadius: 10,
+  color: "white",
+};
+
+const badgeDanger = {
+  background: "#dc2626",
+  padding: "6px 10px",
+  borderRadius: 10,
+  color: "white",
+};
+
+const valueBox = {
+  background: "#fff7ed",
+  padding: 15,
+  borderRadius: 12,
+  margin: "15px 0",
+};
+
+const bundleBox = {
+  marginTop: 20,
+  padding: 15,
+  borderRadius: 12,
+  background: "#f3f4f6",
+};
