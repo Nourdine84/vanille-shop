@@ -1,215 +1,247 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useCart } from "@/lib/cart-store";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useCart } from "@/lib/cart-store";
 
-type StoredCartItem = {
-  id: string;
-  name: string;
-  priceCents: number;
-  quantity: number;
-};
+export default function SuccessContent() {
+  const params = useSearchParams();
+  const sessionId = params.get("session_id");
 
-export default function SuccessPage() {
   const { clearCart } = useCart();
-  const searchParams = useSearchParams();
 
-  const hasTracked = useRef(false);
+  const [visible, setVisible] = useState(false);
+  const [redirectTimer, setRedirectTimer] = useState(5);
 
   useEffect(() => {
-    if (hasTracked.current) return;
-    hasTracked.current = true;
+    setTimeout(() => setVisible(true), 200);
 
-    const sessionId =
-      searchParams.get("session_id") || Date.now().toString();
+    clearCart();
+    localStorage.removeItem("cart");
 
-    let total = 0;
-    let items: Array<{
-      item_id: string;
-      item_name: string;
-      price: number;
-      quantity: number;
-    }> = [];
-
-    try {
-      const stored = localStorage.getItem("cart");
-
-      if (stored) {
-        const cart: StoredCartItem[] = JSON.parse(stored);
-
-        total = cart.reduce(
-          (acc, item) => acc + item.priceCents * item.quantity,
-          0
-        );
-
-        items = cart.map((item) => ({
-          item_id: item.id,
-          item_name: item.name,
-          price: item.priceCents / 100,
-          quantity: item.quantity,
-        }));
-      }
-    } catch (e) {
-      console.error("❌ Cart parse error:", e);
-    }
-
-    /* 🔥 TRACKING GOOGLE */
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      (window as any).gtag("event", "purchase", {
-        transaction_id: sessionId,
-        currency: "EUR",
-        value: total / 100,
-        items,
+    const interval = setInterval(() => {
+      setRedirectTimer((prev) => {
+        if (prev <= 1) {
+          window.location.href = "/products";
+          return 0;
+        }
+        return prev - 1;
       });
-    }
+    }, 1000);
 
-    /* 🔥 CLEAR CART */
-    setTimeout(() => {
-      clearCart();
-      localStorage.removeItem("cart");
-    }, 0);
-  }, [clearCart, searchParams]);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div style={page}>
-      <div style={wrapper}>
+    <div style={container}>
+      <div
+        style={{
+          ...card,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0px)" : "translateY(20px)",
+        }}
+      >
+        {/* 🔥 LOGO FIX */}
+        <div style={logoWrapper}>
+          <Image
+            src="public/images/logo-vanillor.png"
+            alt="Vanille’Or"
+            width={140}
+            height={50}
+            priority
+            style={{
+              objectFit: "contain",
+              margin: "0 auto",
+            }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/logo.png";
+            }}
+          />
+        </div>
+
         {/* ICON */}
         <div style={icon}>🎉</div>
 
-        {/* TITLE */}
-        <h1 style={title}>Paiement confirmé</h1>
+        <h1 style={title}>Commande validée</h1>
 
         <p style={subtitle}>
-          Merci pour votre commande chez <strong>Vanille’Or</strong>
+          Merci pour votre confiance chez{" "}
+          <strong style={{ color: "#a16207" }}>Vanille’Or</strong>
         </p>
 
-        <p style={subtext}>
-          Votre colis est en cours de préparation.
-        </p>
-
-        {/* STATUS BOX */}
-        <div style={statusBox}>
-          <h3 style={{ marginBottom: 10 }}>
-            Suivi de votre commande
-          </h3>
-
-          <p style={statusText}>
-            📦 Préparation en cours <br />
-            🚚 Expédition sous 24-48h <br />
-            📧 Email de confirmation envoyé
+        {sessionId && (
+          <p style={orderId}>
+            Référence : {sessionId.slice(0, 12)}
           </p>
+        )}
+
+        {/* TIMELINE */}
+        <div style={timeline}>
+          <Step text="Paiement confirmé" active />
+          <Step text="Préparation" />
+          <Step text="Expédition" />
+          <Step text="Livraison" />
         </div>
 
-        {/* TRUST */}
-        <div style={trust}>
-          ✔ Paiement sécurisé validé <br />
-          ✔ Produits premium sélectionnés <br />
-          ✔ Origine Madagascar garantie
+        {/* INFO */}
+        <div style={infoBox}>
+          <p>📦 Préparation en cours</p>
+          <p>🚚 Expédition sous 24-48h</p>
+          <p>📧 Email envoyé avec les détails</p>
         </div>
 
-        {/* ACTIONS */}
+        {/* CTA */}
         <div style={actions}>
-          <Link href="/products" style={btnPrimary}>
+          <Link href="/products" style={primaryBtn}>
             Continuer mes achats
           </Link>
 
-          <Link href="/" style={btnSecondary}>
-            Retour à l’accueil
+          <Link href="/b2b" style={secondaryBtn}>
+            Offre professionnelle
           </Link>
         </div>
 
-        {/* BRAND STORY */}
-        <div style={footer}>
-          Chez Vanille’Or, chaque produit est sélectionné avec exigence
-          pour offrir une qualité exceptionnelle aux passionnés et professionnels.
-        </div>
+        {/* AUTO REDIRECT */}
+        <p style={redirectText}>
+          Redirection automatique dans {redirectTimer}s
+        </p>
       </div>
     </div>
   );
 }
 
-/* ================= STYLE ================= */
+/* =========================
+   STEP COMPONENT
+========================= */
 
-const page = {
-  background: "#faf7f2",
+function Step({ text, active = false }: { text: string; active?: boolean }) {
+  return (
+    <div style={step}>
+      <div
+        style={{
+          ...dot,
+          background: active ? "#16a34a" : "#ddd",
+        }}
+      />
+      <span style={{ color: active ? "#111" : "#999" }}>{text}</span>
+    </div>
+  );
+}
+
+/* =========================
+   STYLES
+========================= */
+
+const container = {
   minHeight: "100vh",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "#f8f5ef",
+  padding: "20px",
 };
 
-const wrapper = {
-  maxWidth: "900px",
-  margin: "0 auto",
-  padding: "80px 20px",
+const card = {
+  background: "white",
+  padding: "40px 30px",
+  borderRadius: "22px",
   textAlign: "center" as const,
+  maxWidth: "520px",
+  width: "100%",
+  boxShadow: "0 25px 60px rgba(0,0,0,0.08)",
+  transition: "all 0.4s ease",
+};
+
+const logoWrapper = {
+  marginBottom: "20px",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
 };
 
 const icon = {
-  fontSize: "60px",
-  marginBottom: "10px",
+  fontSize: "44px",
+  marginBottom: "15px",
 };
 
 const title = {
-  fontSize: "32px",
+  fontSize: "30px",
   marginBottom: "10px",
 };
 
 const subtitle = {
   color: "#666",
-  fontSize: "16px",
+  marginBottom: "10px",
 };
 
-const subtext = {
-  marginTop: "8px",
-  color: "#666",
+const orderId = {
+  fontSize: "12px",
+  color: "#999",
 };
 
-const statusBox = {
-  marginTop: "40px",
-  background: "white",
-  padding: "30px",
-  borderRadius: "16px",
-  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+/* TIMELINE */
+
+const timeline = {
+  display: "flex",
+  justifyContent: "space-between",
+  marginTop: "25px",
+  marginBottom: "25px",
 };
 
-const statusText = {
-  marginTop: "10px",
-  color: "#666",
-  lineHeight: 1.6,
+const step = {
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  gap: "6px",
+  fontSize: "12px",
 };
 
-const trust = {
-  marginTop: "30px",
-  color: "#666",
-  fontSize: "14px",
+const dot = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "50%",
 };
+
+/* INFO */
+
+const infoBox = {
+  background: "#faf7f2",
+  padding: "18px",
+  borderRadius: "14px",
+  marginBottom: "20px",
+};
+
+/* CTA */
 
 const actions = {
-  marginTop: "40px",
   display: "flex",
   flexDirection: "column" as const,
   gap: "10px",
 };
 
-const btnPrimary = {
+const primaryBtn = {
+  padding: "14px",
   background: "#a16207",
   color: "white",
-  padding: "14px 24px",
-  borderRadius: "10px",
+  borderRadius: "12px",
   textDecoration: "none",
-  fontWeight: "600",
+  fontWeight: 600,
 };
 
-const btnSecondary = {
-  color: "#a16207",
+const secondaryBtn = {
+  padding: "12px",
+  background: "#f3f4f6",
+  borderRadius: "12px",
   textDecoration: "none",
-  fontWeight: "600",
+  color: "#111",
 };
 
-const footer = {
-  marginTop: "60px",
-  fontSize: "14px",
-  color: "#888",
-  maxWidth: "600px",
-  marginInline: "auto",
+/* REDIRECT */
+
+const redirectText = {
+  marginTop: "15px",
+  fontSize: "12px",
+  color: "#999",
 };
