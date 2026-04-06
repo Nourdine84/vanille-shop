@@ -3,83 +3,131 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type ProductPayload = {
+  id?: string | null;
+  name?: string;
+  slug?: string;
+  description?: string;
+  imageUrl?: string;
+  category?: string;
+  subCategory?: string | null;
+  badge?: string | null;
+  priceCents?: number | string;
+  stock?: number | string;
+  isActive?: boolean | string;
+};
+
+async function parseBody(req: Request): Promise<ProductPayload> {
+  const contentType = req.headers.get("content-type") || "";
+
+  if (
+    contentType.includes("multipart/form-data") ||
+    contentType.includes("application/x-www-form-urlencoded")
+  ) {
+    const formData = await req.formData();
+
+    return {
+      id: formData.get("id")?.toString() || null,
+      name: formData.get("name")?.toString() || "",
+      slug: formData.get("slug")?.toString() || "",
+      description: formData.get("description")?.toString() || "",
+      imageUrl: formData.get("imageUrl")?.toString() || "",
+      category: formData.get("category")?.toString() || "vanille",
+      subCategory: formData.get("subCategory")?.toString() || null,
+      badge: formData.get("badge")?.toString() || null,
+      priceCents: formData.get("priceCents")?.toString() || 0,
+      stock: formData.get("stock")?.toString() || 0,
+      isActive: formData.get("isActive") === "on",
+    };
+  }
+
+  if (contentType.includes("application/json")) {
+    return await req.json();
+  }
+
+  throw new Error("Content-Type non supporté");
+}
+
 export async function POST(req: Request) {
   try {
-    /**
-     * 🔥 ANTI BUILD VERCEL
-     */
     if (process.env.NEXT_PHASE === "phase-production-build") {
       return NextResponse.json({ ok: true });
     }
 
-    /**
-     * 🔥 IMPORT PRISMA (SAFE)
-     */
     const { prisma } = await import("@/lib/prisma");
+    const body = await parseBody(req);
 
-    /* =========================
-       PARSE FORM DATA
-    ========================= */
-    const formData = await req.formData();
+    const id = body.id || null;
+    const name = body.name?.trim() || "";
+    const slug = body.slug?.trim().toLowerCase() || "";
 
-    const id = formData.get("id")?.toString() || null;
-    const name = formData.get("name")?.toString() || "";
-    const slug = formData.get("slug")?.toString() || "";
-    const description = formData.get("description")?.toString() || "";
-    const imageUrl = formData.get("imageUrl")?.toString() || "";
-    const category = formData.get("category")?.toString() || "vanille";
-    const subCategory = formData.get("subCategory")?.toString() || "";
-    const badge = formData.get("badge")?.toString() || null;
+    const priceCents = Number(body.priceCents || 0);
+    const stock = Number(body.stock || 0);
 
-    const priceCents = Number(formData.get("priceCents") || 0);
-    const stock = Number(formData.get("stock") || 0);
-
-    const isActive = formData.get("isActive") === "on";
-
-    /* =========================
-       VALIDATION
-    ========================= */
-    if (!name.trim() || !slug.trim() || priceCents <= 0) {
+    if (!name || !slug) {
       return NextResponse.json(
-        { error: "Champs obligatoires invalides" },
+        { error: "Nom et slug requis" },
         { status: 400 }
       );
     }
 
-    if (isNaN(priceCents)) {
+    if (!priceCents || isNaN(priceCents) || priceCents <= 0) {
       return NextResponse.json(
         { error: "Prix invalide" },
         { status: 400 }
       );
     }
 
-    /* =========================
-       NORMALISATION
-    ========================= */
-    const cleanSlug = slug.trim().toLowerCase();
-
     const data = {
-      name: name.trim(),
-      slug: cleanSlug,
-      description: description.trim(),
+      name,
+      slug,
+      description: body.description?.trim() || "",
       priceCents,
-      imageUrl: imageUrl.trim(),
-      stock,
-      category: category.trim().toLowerCase(),
-      subCategory: subCategory.trim(),
-      badge,
-      isActive,
+      imageUrl: body.imageUrl?.trim() || "/products/default.jpg",
+      stock: isNaN(stock) ? 0 : stock,
+      category: body.category?.trim().toLowerCase() || "vanille",
+      subCategory: body.subCategory?.trim() || null,
+      badge: body.badge || null,
+      isActive:
+        body.isActive === true ||
+        body.isActive === "true" ||
+        body.isActive === "on",
     };
 
-    /* =========================
-       CHECK SLUG UNIQUE (CREATE)
-    ========================= */
+    // CREATE
     if (!id) {
-      const existing = await prisma.product.findUnique({
-        where: { slug: cleanSlug },
+      const exists = await prisma.product.findUnique({
+        where: { slug },
       });
 
-      if (existing) {
+      if (exists) {
+        return NextResponse.json(
+          { error: "Slug déjà utilisé" },
+          { status: 400 }
+        );
+      }
+
+      const created = await prisma.product.create({ data });
+
+      return NextResponse.json({ success: true, product: created });
+    }
+
+    // UPDATE
+    const existing = await prisma.product.findUnique({ where: { id } });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Produit introuvable" },
+        { status: 404 }
+      );
+    }
+
+    if (existing.slug !== slug) {
+      const exists = await prisma.product.findUnique({
+        where: { slug },
+      });
+
+      if (exists) {
         return NextResponse.json(
           { error: "Slug déjà utilisé" },
           { status: 400 }
@@ -87,50 +135,18 @@ export async function POST(req: Request) {
       }
     }
 
-    /* =========================
-       UPDATE
-    ========================= */
-    if (id) {
-      const existingProduct = await prisma.product.findUnique({
-        where: { id },
-      });
-
-      if (!existingProduct) {
-        return NextResponse.json(
-          { error: "Produit introuvable" },
-          { status: 404 }
-        );
-      }
-
-      const updated = await prisma.product.update({
-        where: { id },
-        data,
-      });
-
-      console.log("✅ PRODUCT UPDATED:", id);
-
-      return NextResponse.json(updated);
-    }
-
-    /* =========================
-       CREATE
-    ========================= */
-    const created = await prisma.product.create({
+    const updated = await prisma.product.update({
+      where: { id },
       data,
     });
 
-    console.log("✅ PRODUCT CREATED:", created.id);
-
-    return NextResponse.json(created);
+    return NextResponse.json({ success: true, product: updated });
 
   } catch (error: any) {
     console.error("🔥 PRODUCT API ERROR:", error);
 
     return NextResponse.json(
-      {
-        error: "Erreur serveur",
-        message: error?.message || "unknown",
-      },
+      { error: "Erreur serveur", message: error?.message },
       { status: 500 }
     );
   }

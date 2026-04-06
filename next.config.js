@@ -5,6 +5,7 @@ const nextConfig = {
   output: "standalone",
 
   images: {
+    unoptimized: true, // 🔥 évite bugs en dev
     remotePatterns: [
       {
         protocol: "https",
@@ -12,11 +13,9 @@ const nextConfig = {
       },
     ],
   },
-};
 
-module.exports = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // ⚠️ ok temporaire
   },
 };
 

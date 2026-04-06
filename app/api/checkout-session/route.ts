@@ -5,16 +5,15 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /* =========================
-   INIT STRIPE FIXED
+   INIT STRIPE
 ========================= */
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("❌ STRIPE_SECRET_KEY manquante");
 }
 
-// ✅ FIX VERSION (IMPORTANT)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20" as any, // ← FIX TS ERROR
+  apiVersion: "2024-06-20" as any,
 });
 
 /* =========================
@@ -29,8 +28,13 @@ type CartItem = {
   imageUrl?: string;
 };
 
+type CheckoutBody = {
+  cart?: CartItem[];
+  items?: CartItem[];
+};
+
 /* =========================
-   BASE URL
+   HELPERS
 ========================= */
 
 function getBaseUrl(req: Request) {
@@ -38,8 +42,61 @@ function getBaseUrl(req: Request) {
 
   if (origin) return origin;
   if (process.env.NEXT_PUBLIC_URL) return process.env.NEXT_PUBLIC_URL;
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
 
   return "http://localhost:3000";
+}
+
+function isValidCartItem(item: unknown): item is CartItem {
+  if (!item || typeof item !== "object") return false;
+
+  const candidate = item as Partial<CartItem>;
+
+  return (
+    typeof candidate.id === "string" &&
+    candidate.id.trim().length > 0 &&
+    typeof candidate.name === "string" &&
+    candidate.name.trim().length > 0 &&
+    typeof candidate.priceCents === "number" &&
+    Number.isFinite(candidate.priceCents) &&
+    candidate.priceCents > 0 &&
+    typeof candidate.quantity === "number" &&
+    Number.isFinite(candidate.quantity) &&
+    candidate.quantity > 0
+  );
+}
+
+function normalizeCart(rawItems: unknown): CartItem[] {
+  if (!Array.isArray(rawItems)) return [];
+
+  return rawItems
+    .filter(isValidCartItem)
+    .map((item) => ({
+      id: item.id,
+      name: item.name.trim(),
+      priceCents: Math.round(item.priceCents),
+      quantity: Math.max(1, Math.floor(item.quantity)),
+      imageUrl:
+        typeof item.imageUrl === "string" && item.imageUrl.trim()
+          ? item.imageUrl.trim()
+          : undefined,
+    }));
+}
+
+function buildImageUrl(baseUrl: string, imageUrl?: string) {
+  if (!imageUrl) {
+    return `${baseUrl}/products/default.jpg`;
+  }
+
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+
+  if (imageUrl.startsWith("/")) {
+    return `${baseUrl}${imageUrl}`;
+  }
+
+  return `${baseUrl}/${imageUrl}`;
 }
 
 /* =========================
@@ -48,13 +105,23 @@ function getBaseUrl(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const contentType = req.headers.get("content-type") || "";
+
+    if (!contentType.includes("application/json")) {
+      return NextResponse.json(
+        { error: "Content-Type invalide. JSON requis." },
+        { status: 400 }
+      );
+    }
+
     const prisma = (await import("@/lib/prisma")).prisma;
 
-    const body = await req.json();
+    const body = (await req.json()) as CheckoutBody;
+    const cart = normalizeCart(body.cart ?? body.items);
 
-    if (!body.cart || body.cart.length === 0) {
+    if (cart.length === 0) {
       return NextResponse.json(
-        { error: "Panier vide" },
+        { error: "Panier vide ou invalide" },
         { status: 400 }
       );
     }
@@ -62,12 +129,11 @@ export async function POST(req: Request) {
     const baseUrl = getBaseUrl(req);
 
     /* =========================
-       TOTAL
+       TOTALS
     ========================= */
 
-    const subtotal = body.cart.reduce(
-      (acc: number, item: CartItem) =>
-        acc + item.priceCents * item.quantity,
+    const subtotal = cart.reduce(
+      (acc, item) => acc + item.priceCents * item.quantity,
       0
     );
 
@@ -83,33 +149,27 @@ export async function POST(req: Request) {
         status: "PENDING",
         totalCents: total,
         currency: "EUR",
-        items: body.cart,
+        items: cart,
       },
     });
 
     /* =========================
-       STRIPE ITEMS
+       STRIPE LINE ITEMS
     ========================= */
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      body.cart.map((item: CartItem) => {
-        const imageUrl =
-          item.imageUrl?.startsWith("http")
-            ? item.imageUrl
-            : `${baseUrl}${item.imageUrl || "/images/product-vanille.jpg"}`;
-
-        return {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: item.name,
-              images: [imageUrl],
-            },
-            unit_amount: item.priceCents,
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = cart.map(
+      (item) => ({
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: item.name,
+            images: [buildImageUrl(baseUrl, item.imageUrl)],
           },
-          quantity: item.quantity,
-        };
-      });
+          unit_amount: item.priceCents,
+        },
+        quantity: item.quantity,
+      })
+    );
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -125,33 +185,42 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       SESSION
+       CREATE STRIPE SESSION
     ========================= */
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
-
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/cart`,
-
       metadata: {
         orderId: order.id,
       },
     });
 
+    /* =========================
+       UPDATE ORDER
+    ========================= */
+
     await prisma.order.update({
       where: { id: order.id },
-      data: { stripeSessionId: session.id },
+      data: {
+        stripeSessionId: session.id,
+      },
     });
 
-    return NextResponse.json({ url: session.url });
-
+    return NextResponse.json({
+      url: session.url,
+      orderId: order.id,
+    });
   } catch (error: any) {
     console.error("🔥 STRIPE ERROR:", error);
 
     return NextResponse.json(
-      { error: error?.message || "Erreur Stripe" },
+      {
+        error: "Erreur Stripe",
+        message: error?.message || "unknown",
+      },
       { status: 500 }
     );
   }

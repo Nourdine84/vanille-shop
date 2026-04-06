@@ -1,302 +1,261 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import ProductForm from "@/components/admin/ProductForm";
+import ProductCard from "@/components/admin/ProductCard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
-}
+/* ================= TYPES ================= */
 
-export default async function ProductDetailPage({
-  params,
+type SearchParams = {
+  q?: string;
+  category?: string;
+  success?: string;
+  error?: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  priceCents: number;
+  imageUrl: string;
+  stock: number;
+  isActive: boolean;
+  category: string;
+  subCategory?: string | null;
+  badge?: string | null;
+};
+
+/* ================= PAGE ================= */
+
+export default async function AdminProductsPage({
+  searchParams,
 }: {
-  params: { slug: string };
+  searchParams?: SearchParams;
 }) {
-  const product = await prisma.product.findUnique({
-    where: { slug: params.slug },
-  });
+  /* ================= AUTH ================= */
 
-  if (!product) {
-    notFound();
+  const isAdmin = cookies().get("admin")?.value === "true";
+
+  if (!isAdmin) {
+    redirect("/admin/login");
   }
 
-  const isOutOfStock = product.stock <= 0;
+  /* ================= SAFE PARAMS ================= */
+
+  const query = searchParams?.q?.trim() || "";
+  const category = searchParams?.category?.trim() || "";
+  const success = searchParams?.success;
+  const error = searchParams?.error;
+
+  let products: Product[] = [];
+
+  /* ================= FETCH ================= */
+
+  try {
+    products = await prisma.product.findMany({
+      where: {
+        ...(query
+          ? {
+              OR: [
+                {
+                  name: {
+                    contains: query,
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  slug: {
+                    contains: query,
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            }
+          : {}),
+
+        ...(category
+          ? {
+              category: {
+                equals: category.toLowerCase(),
+                mode: "insensitive",
+              },
+            }
+          : {}),
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (e) {
+    console.error("❌ PRISMA PRODUCTS ERROR:", e);
+    products = [];
+  }
+
+  /* ================= KPI ================= */
+
+  const totalProducts = products.length;
+  const activeProducts = products.filter((p) => p.isActive).length;
+  const outOfStockProducts = products.filter((p) => p.stock <= 0).length;
+
+  /* ================= RENDER ================= */
 
   return (
-    <div style={page}>
-      <div style={breadcrumb}>
-        <Link href="/" style={breadcrumbLink}>
-          Accueil
-        </Link>
-        <span>/</span>
-        <Link href="/products" style={breadcrumbLink}>
-          Produits
-        </Link>
-        <span>/</span>
-        <span style={breadcrumbCurrent}>{product.name}</span>
+    <div style={container}>
+      <h1 style={title}>🛠 Gestion des produits</h1>
+
+      {/* STATUS */}
+      {success && <div style={successPopup}>✅ Opération réussie</div>}
+      {error && <div style={errorPopup}>❌ Une erreur est survenue</div>}
+
+      {/* KPI */}
+      <div style={grid3}>
+        <Card title="Produits" value={totalProducts} />
+        <Card title="Actifs" value={activeProducts} />
+        <Card title="Épuisés" value={outOfStockProducts} />
       </div>
 
-      <div style={layout}>
-        <div style={imagePanel}>
-          {product.badge ? <div style={badge}>{product.badge}</div> : null}
+      {/* FILTRES */}
+      <div style={card}>
+        <form method="GET" style={filterRow}>
+          <input
+            name="q"
+            placeholder="Rechercher"
+            defaultValue={query}
+            style={input}
+          />
 
-          {product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              style={image}
-            />
-          ) : (
-            <div style={imageFallback}>Image bientôt disponible</div>
-          )}
-        </div>
+          <select name="category" defaultValue={category} style={input}>
+            <option value="">Toutes</option>
+            <option value="vanille">Vanille</option>
+            <option value="epices">Épices</option>
+          </select>
 
-        <div style={contentPanel}>
-          <p style={category}>{product.category}</p>
-          <h1 style={title}>{product.name}</h1>
+          <button type="submit" style={primaryBtn}>
+            Filtrer
+          </button>
+        </form>
+      </div>
 
-          {product.subCategory ? (
-            <p style={subCategory}>{product.subCategory}</p>
-          ) : null}
+      {/* CREATE */}
+      <div style={card}>
+        <h2 style={sectionTitle}>➕ Ajouter un produit</h2>
+        <ProductForm />
+      </div>
 
-          <p style={price}>{formatPrice(product.priceCents)}</p>
+      {/* LISTE */}
+      <div style={listWrapper}>
+        <h2 style={sectionTitle}>📦 Catalogue</h2>
 
-          <div style={statusRow}>
-            <span
-              style={{
-                ...statusDot,
-                background: product.isActive ? "#16a34a" : "#6b7280",
-              }}
-            />
-            <span style={statusText}>
-              {product.isActive ? "Produit actif" : "Produit indisponible"}
-            </span>
+        {products.length === 0 ? (
+          <div style={card}>Aucun produit</div>
+        ) : (
+          <div style={productGrid}>
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
-
-          <p
-            style={{
-              ...stock,
-              color: isOutOfStock ? "#dc2626" : "#16a34a",
-            }}
-          >
-            {isOutOfStock ? "Rupture de stock" : `En stock : ${product.stock}`}
-          </p>
-
-          <div style={descriptionBox}>
-            <h2 style={sectionTitle}>Description</h2>
-            <p style={description}>{product.description}</p>
-          </div>
-
-          <div style={ctaRow}>
-            <button
-              type="button"
-              disabled={isOutOfStock}
-              style={{
-                ...primaryBtn,
-                opacity: isOutOfStock ? 0.6 : 1,
-                cursor: isOutOfStock ? "not-allowed" : "pointer",
-              }}
-            >
-              {isOutOfStock ? "Indisponible" : "Ajouter au panier"}
-            </button>
-
-            <Link href="/products" style={secondaryBtn}>
-              Voir le catalogue
-            </Link>
-          </div>
-
-          <div style={reassuranceBox}>
-            <div style={reassuranceItem}>✔ VanilleOr sélection premium</div>
-            <div style={reassuranceItem}>✔ Expédition soignée</div>
-            <div style={reassuranceItem}>✔ Qualité pensée pour particuliers et pros</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-const page = {
-  maxWidth: "1200px",
-  margin: "0 auto",
-  padding: "40px 20px 60px",
-};
+/* ================= COMPONENT ================= */
 
-const breadcrumb = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
-  marginBottom: "24px",
-  color: "#777",
-  fontSize: "14px",
-};
+function Card({
+  title,
+  value,
+}: {
+  title: string;
+  value: number;
+}) {
+  return (
+    <div style={card}>
+      <h3 style={{ margin: 0 }}>{title}</h3>
+      <p style={valueStyle}>{value}</p>
+    </div>
+  );
+}
 
-const breadcrumbLink = {
-  color: "#a16207",
-  textDecoration: "none",
-};
+/* ================= STYLES ================= */
 
-const breadcrumbCurrent = {
-  color: "#222",
-  fontWeight: 600,
-};
-
-const layout = {
-  display: "grid",
-  gridTemplateColumns: "1.1fr 1fr",
-  gap: "36px",
-};
-
-const imagePanel = {
-  position: "relative" as const,
-  background: "white",
-  borderRadius: "18px",
-  padding: "20px",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
-  minHeight: "520px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const badge = {
-  position: "absolute" as const,
-  top: "18px",
-  left: "18px",
-  background: "#f59e0b",
-  color: "white",
-  padding: "8px 12px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const image = {
-  width: "100%",
-  maxHeight: "480px",
-  objectFit: "contain" as const,
-  borderRadius: "12px",
-};
-
-const imageFallback = {
-  width: "100%",
-  height: "480px",
-  borderRadius: "12px",
-  background: "#f3f3f3",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#777",
-};
-
-const contentPanel = {
-  display: "flex",
-  flexDirection: "column" as const,
-};
-
-const category = {
-  color: "#a16207",
-  fontWeight: 700,
-  marginBottom: "8px",
-  textTransform: "capitalize" as const,
+const container = {
+  padding: 30,
 };
 
 const title = {
-  fontSize: "40px",
-  lineHeight: 1.15,
-  margin: "0 0 10px",
+  fontSize: 28,
+  marginBottom: 20,
 };
 
-const subCategory = {
-  color: "#666",
-  marginBottom: "18px",
+const successPopup = {
+  background: "#16a34a",
+  color: "white",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 16,
 };
 
-const price = {
-  fontSize: "30px",
-  fontWeight: 800,
-  margin: "0 0 18px",
+const errorPopup = {
+  background: "#dc2626",
+  color: "white",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 16,
 };
 
-const statusRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  marginBottom: "10px",
+const grid3 = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3,1fr)",
+  gap: 20,
+  marginBottom: 20,
 };
 
-const statusDot = {
-  width: "10px",
-  height: "10px",
-  borderRadius: "50%",
-};
-
-const statusText = {
-  color: "#444",
-};
-
-const stock = {
-  fontWeight: 700,
-  marginBottom: "24px",
-};
-
-const descriptionBox = {
+const card = {
   background: "white",
-  borderRadius: "14px",
-  padding: "20px",
-  boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
-  marginBottom: "24px",
+  padding: 20,
+  borderRadius: 12,
 };
 
-const sectionTitle = {
-  margin: "0 0 10px",
-  fontSize: "18px",
+const valueStyle = {
+  fontSize: 22,
+  fontWeight: 700,
 };
 
-const description = {
-  color: "#444",
-  lineHeight: 1.7,
-  margin: 0,
-};
-
-const ctaRow = {
+const filterRow = {
   display: "flex",
-  gap: "12px",
+  gap: 10,
   flexWrap: "wrap" as const,
-  marginBottom: "24px",
+};
+
+const input = {
+  padding: 10,
+  borderRadius: 8,
+  border: "1px solid #ddd",
 };
 
 const primaryBtn = {
   background: "#a16207",
   color: "white",
-  padding: "14px 20px",
-  borderRadius: "12px",
+  padding: 10,
+  borderRadius: 8,
   border: "none",
-  fontWeight: 700,
-  fontSize: "15px",
+  cursor: "pointer",
 };
 
-const secondaryBtn = {
-  display: "inline-block",
-  background: "white",
-  color: "#222",
-  padding: "14px 20px",
-  borderRadius: "12px",
-  textDecoration: "none",
-  fontWeight: 700,
-  border: "1px solid #ddd",
+const listWrapper = {
+  marginTop: 20,
 };
 
-const reassuranceBox = {
-  background: "#faf7f2",
-  borderRadius: "14px",
-  padding: "18px",
+const sectionTitle = {
+  marginBottom: 15,
+};
+
+const productGrid = {
   display: "grid",
-  gap: "10px",
-};
-
-const reassuranceItem = {
-  color: "#444",
+  gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))",
+  gap: 20,
 };
