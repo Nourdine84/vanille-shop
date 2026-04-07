@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,9 +13,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("❌ STRIPE_SECRET_KEY manquante");
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20" as any,
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 /* =========================
    TYPES
@@ -30,7 +29,6 @@ type CartItem = {
 
 type CheckoutBody = {
   cart?: CartItem[];
-  items?: CartItem[];
 };
 
 /* =========================
@@ -41,77 +39,79 @@ function getBaseUrl(req: Request) {
   const origin = req.headers.get("origin");
 
   if (origin) return origin;
-  if (process.env.NEXT_PUBLIC_URL) return process.env.NEXT_PUBLIC_URL;
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+
+  if (process.env.NEXT_PUBLIC_URL) {
+    return process.env.NEXT_PUBLIC_URL;
+  }
+
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
 
   return "http://localhost:3000";
 }
 
-function isValidCartItem(item: unknown): item is CartItem {
-  if (!item || typeof item !== "object") return false;
+function getSafeProductId(rawId: string) {
+  return rawId.trim();
+}
 
-  const candidate = item as Partial<CartItem>;
+function getSafeImageUrl(baseUrl: string, imageUrl?: string) {
+  if (!imageUrl || imageUrl.trim() === "") {
+    return `${baseUrl}/images/default.jpg`;
+  }
 
+  const clean = imageUrl.trim();
+
+  if (clean.startsWith("http://") || clean.startsWith("https://")) {
+    return clean;
+  }
+
+  if (clean.startsWith("/")) {
+    return `${baseUrl}${clean}`;
+  }
+
+  return `${baseUrl}/images/${clean}`;
+}
+
+function isValidCartItem(item: any): item is CartItem {
   return (
-    typeof candidate.id === "string" &&
-    candidate.id.trim().length > 0 &&
-    typeof candidate.name === "string" &&
-    candidate.name.trim().length > 0 &&
-    typeof candidate.priceCents === "number" &&
-    Number.isFinite(candidate.priceCents) &&
-    candidate.priceCents > 0 &&
-    typeof candidate.quantity === "number" &&
-    Number.isFinite(candidate.quantity) &&
-    candidate.quantity > 0
+    item &&
+    typeof item.id === "string" &&
+    item.id.trim() !== "" &&
+    typeof item.name === "string" &&
+    item.name.trim() !== "" &&
+    typeof item.priceCents === "number" &&
+    Number.isFinite(item.priceCents) &&
+    item.priceCents > 0 &&
+    typeof item.quantity === "number" &&
+    Number.isFinite(item.quantity) &&
+    item.quantity > 0
   );
 }
 
-function normalizeCart(rawItems: unknown): CartItem[] {
-  if (!Array.isArray(rawItems)) return [];
-
-  return rawItems
-    .filter(isValidCartItem)
-    .map((item) => ({
-      id: item.id,
-      name: item.name.trim(),
-      priceCents: Math.round(item.priceCents),
-      quantity: Math.max(1, Math.floor(item.quantity)),
-      imageUrl:
-        typeof item.imageUrl === "string" && item.imageUrl.trim()
-          ? item.imageUrl.trim()
-          : undefined,
-    }));
-}
-
 /* =========================
-   POST
+   POST CHECKOUT
 ========================= */
 
 export async function POST(req: Request) {
   try {
-    /* 🔥 SAFE BUILD VERCEL */
-    if (process.env.NEXT_PHASE === "phase-production-build") {
-      return NextResponse.json({ ok: true });
+    let body: CheckoutBody;
+
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
     }
 
-    const contentType = req.headers.get("content-type") || "";
-
-    if (!contentType.includes("application/json")) {
-      return NextResponse.json(
-        { error: "Content-Type invalide. JSON requis." },
-        { status: 400 }
-      );
+    if (!body.cart || !Array.isArray(body.cart) || body.cart.length === 0) {
+      return NextResponse.json({ error: "Panier vide" }, { status: 400 });
     }
 
-    const prisma = (await import("@/lib/prisma")).prisma;
-
-    const body = (await req.json()) as CheckoutBody;
-
-    const cart = normalizeCart(body.cart ?? body.items);
+    const cart = body.cart.filter(isValidCartItem);
 
     if (cart.length === 0) {
       return NextResponse.json(
-        { error: "Panier vide ou invalide" },
+        { error: "Panier invalide" },
         { status: 400 }
       );
     }
@@ -119,7 +119,47 @@ export async function POST(req: Request) {
     const baseUrl = getBaseUrl(req);
 
     /* =========================
-       TOTALS
+       VALIDATION PRODUITS DB
+    ========================= */
+
+    for (const item of cart) {
+      const productId = getSafeProductId(item.id);
+
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          { error: `Produit introuvable : ${item.name}` },
+          { status: 404 }
+        );
+      }
+
+      if (!product.isActive) {
+        return NextResponse.json(
+          { error: `Produit inactif : ${item.name}` },
+          { status: 400 }
+        );
+      }
+
+      if (product.stock < item.quantity) {
+        return NextResponse.json(
+          { error: `Stock insuffisant pour ${item.name}` },
+          { status: 400 }
+        );
+      }
+
+      if (product.priceCents !== item.priceCents) {
+        return NextResponse.json(
+          { error: `Prix invalide pour ${item.name}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    /* =========================
+       CALCUL PRIX
     ========================= */
 
     const subtotal = cart.reduce(
@@ -127,11 +167,12 @@ export async function POST(req: Request) {
       0
     );
 
-    const shippingCost = subtotal >= 5000 ? 0 : 490;
+    const freeShippingThreshold = 5000;
+    const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
     const total = subtotal + shippingCost;
 
     /* =========================
-       CREATE ORDER (FIX JSON)
+       CREATE ORDER
     ========================= */
 
     const order = await prisma.order.create({
@@ -139,25 +180,28 @@ export async function POST(req: Request) {
         status: "PENDING",
         totalCents: total,
         currency: "EUR",
-        items: JSON.parse(JSON.stringify(cart)), // ✅ FIX CRITIQUE
+        items: cart,
       },
     });
 
     /* =========================
-       STRIPE LINE ITEMS (FIX PAYLOAD)
+       STRIPE LINE ITEMS
     ========================= */
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      cart.map((item) => ({
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = cart.map(
+      (item) => ({
         price_data: {
           currency: "eur",
           product_data: {
-            name: item.name, // ✅ PAS D'IMAGE → FIX 500
+            name: item.name,
+            description: "Vanille premium de Madagascar — Vanille’Or",
+            images: [getSafeImageUrl(baseUrl, item.imageUrl)],
           },
           unit_amount: item.priceCents,
         },
         quantity: item.quantity,
-      }));
+      })
+    );
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -173,23 +217,30 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       STRIPE SESSION
+       CREATE STRIPE SESSION
     ========================= */
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      payment_method_types: ["card"],
       line_items: lineItems,
-
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/checkout?error=1`,
-
+      billing_address_collection: "required",
+      shipping_address_collection: {
+        allowed_countries: ["FR", "BE", "CH"],
+      },
+      phone_number_collection: {
+        enabled: true,
+      },
       metadata: {
         orderId: order.id,
+        source: "vanilleor-shop",
       },
     });
 
     /* =========================
-       UPDATE ORDER
+       LINK ORDER TO SESSION
     ========================= */
 
     await prisma.order.update({
@@ -201,18 +252,28 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       url: session.url,
+      sessionId: session.id,
       orderId: order.id,
     });
-
   } catch (error: any) {
-    console.error("🔥 STRIPE ERROR:", error);
+    console.error("🔥 STRIPE FULL ERROR:", error);
 
     return NextResponse.json(
       {
-        error: "Erreur Stripe",
-        message: error?.message || "unknown",
+        error: error?.message || "Erreur Stripe",
       },
       { status: 500 }
     );
   }
+}
+
+/* =========================
+   GET DEBUG
+========================= */
+
+export async function GET() {
+  return NextResponse.json({
+    message: "API checkout OK",
+    env: !!process.env.STRIPE_SECRET_KEY,
+  });
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
-import { useUIStore } from "@/components/ui-provider";
+import { useUIStore } from "@/components/ui-providers";
 
 export default function Header() {
   const { cart } = useCart();

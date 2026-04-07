@@ -1,72 +1,103 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function normalizeSlug(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 export async function POST(req: Request) {
   try {
-    const prisma = (await import("@/lib/prisma")).prisma as any;
+    const form = await req.formData();
 
-    const formData = await req.formData();
+    const id = form.get("id")?.toString();
+    const title = form.get("title")?.toString().trim() || "";
+    const rawSlug = form.get("slug")?.toString() || "";
+    const excerpt = form.get("excerpt")?.toString().trim() || "";
+    const content = form.get("content")?.toString().trim() || "";
+    const coverImage = form.get("coverImage")?.toString().trim() || "";
 
-    const title = formData.get("title")?.toString().trim() || "";
-    const slugRaw = formData.get("slug")?.toString().trim() || "";
-    const excerpt = formData.get("excerpt")?.toString().trim() || "";
-    const content = formData.get("content")?.toString().trim() || "";
+    const slug = normalizeSlug(rawSlug || title);
 
-    // ✅ FIX IMPORTANT
-    const coverImage =
-      formData.get("coverImage")?.toString().trim() || null;
-
-    // 🔥 Normalisation slug
-    const slug = slugRaw
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^\w-]+/g, "");
-
-    // 🔥 Validation
     if (!title || !slug || !content) {
       return NextResponse.json(
-        { error: "Champs obligatoires manquants" },
+        { error: "Champs requis" },
         { status: 400 }
       );
     }
 
-    // 🔥 Check unicité slug
-    const existing = await prisma.blogPost.findUnique({
-      where: { slug },
+    if (!id) {
+      const existing = await prisma.blogPost.findUnique({
+        where: { slug },
+      });
+
+      if (existing) {
+        return NextResponse.json(
+          { error: "Slug déjà utilisé" },
+          { status: 400 }
+        );
+      }
+
+      await prisma.blogPost.create({
+        data: {
+          title,
+          slug,
+          excerpt,
+          content,
+          coverImage,
+        },
+      });
+
+      return NextResponse.redirect(new URL("/admin/blog", req.url));
+    }
+
+    const currentPost = await prisma.blogPost.findUnique({
+      where: { id },
     });
 
-    if (existing) {
+    if (!currentPost) {
       return NextResponse.json(
-        { error: "Slug déjà utilisé" },
-        { status: 400 }
+        { error: "Article introuvable" },
+        { status: 404 }
       );
     }
 
-    // 🔥 CREATE
-    const post = await prisma.blogPost.create({
+    if (currentPost.slug !== slug) {
+      const slugAlreadyUsed = await prisma.blogPost.findUnique({
+        where: { slug },
+      });
+
+      if (slugAlreadyUsed) {
+        return NextResponse.json(
+          { error: "Slug déjà utilisé" },
+          { status: 400 }
+        );
+      }
+    }
+
+    await prisma.blogPost.update({
+      where: { id },
       data: {
         title,
         slug,
         excerpt,
         content,
-        coverImage, // ✅ maintenant défini
+        coverImage,
       },
     });
 
-    console.log("✅ BLOG CREATED:", post.id);
-
-    return NextResponse.json(post);
-
-  } catch (error: any) {
-    console.error("🔥 BLOG ERROR:", error);
+    return NextResponse.redirect(new URL("/admin/blog", req.url));
+  } catch (error) {
+    console.error("BLOG API ERROR:", error);
 
     return NextResponse.json(
-      {
-        error: "Erreur serveur",
-        message: error?.message || "unknown",
-      },
+      { error: "Erreur serveur" },
       { status: 500 }
     );
   }

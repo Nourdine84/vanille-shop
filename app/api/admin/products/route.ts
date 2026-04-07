@@ -27,6 +27,8 @@ type ProductPayload = {
 
 function normalizeSlug(input: string) {
   return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
@@ -35,15 +37,22 @@ function normalizeSlug(input: string) {
 
 function normalizeImageUrl(image?: string) {
   if (!image || image.trim() === "") {
-    return "/products/default.jpg";
+    return "default.jpg";
   }
 
-  const clean = image.trim();
+  const clean = image
+    .trim()
+    .replace(/^\/+/, "")
+    .replace(/^products\//, "")
+    .replace(/^images\//, "")
+    .replace(/^image\//, "")
+    .replace(/^imae\//, "");
 
-  if (clean.startsWith("http")) return clean;
-  if (clean.startsWith("/")) return clean;
+  if (clean.startsWith("http://") || clean.startsWith("https://")) {
+    return clean;
+  }
 
-  return `/products/${clean}`;
+  return clean;
 }
 
 /* =========================
@@ -87,29 +96,20 @@ async function parseBody(req: Request): Promise<ProductPayload> {
 
 export async function POST(req: Request) {
   try {
-    /* 🔒 SAFE BUILD */
     if (process.env.NEXT_PHASE === "phase-production-build") {
       return NextResponse.json({ ok: true });
     }
 
     const { prisma } = await import("@/lib/prisma");
-
     const body = await parseBody(req);
-
-    /* =========================
-       NORMALISATION
-    ========================= */
 
     const id = body.id || null;
     const name = body.name?.trim() || "";
-
     const slug = normalizeSlug(body.slug || name);
 
     const priceCents = Number(body.priceCents || 0);
     const stock = Number(body.stock || 0);
-
     const imageUrl = normalizeImageUrl(body.imageUrl);
-
     const category = body.category?.trim().toLowerCase() || "vanille";
 
     const subCategory =
@@ -227,7 +227,6 @@ export async function POST(req: Request) {
       success: true,
       product: updated,
     });
-
   } catch (error: any) {
     console.error("🔥 PRODUCT API ERROR:", error);
 

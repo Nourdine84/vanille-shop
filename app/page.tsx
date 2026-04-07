@@ -1,253 +1,389 @@
-import Link from "next/link";
-import Image from "next/image";
+"use client";
 
-export const metadata = {
-  title: "Vanille’Or — Vanille Premium de Madagascar",
-  description:
-    "Découvrez la vanille premium de Madagascar avec Vanille’Or.",
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getImageUrl } from "@/lib/image";
+
+/* =========================
+   TYPES
+========================= */
+
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  priceCents: number;
+  imageUrl?: string;
 };
 
-export default function HomePage() {
-  return (
-    <div style={{ background: "#faf7f2" }}>
-      
-      {/* HERO */}
-      <section style={{ height: "90vh", position: "relative" }}>
-        <Image
-          src="/images/hero-vanille.jpg"
-          alt="Vanille Madagascar premium"
-          fill
-          priority
-          style={heroImg}
-        />
+/* =========================
+   HELPERS
+========================= */
 
-        <div style={overlay} />
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+/* =========================
+   PAGE
+========================= */
+
+export default function HomePage() {
+  const [best, setBest] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => setBest(data.slice(0, 3)));
+  }, []);
+
+  return (
+    <div style={page}>
+      {/* ================= HERO ================= */}
+      <section style={hero}>
+        <div style={heroOverlay} />
 
         <div style={heroContent}>
-          {/* ❌ LOGO SUPPRIMÉ */}
+          <p style={heroTag}>VanilleOr</p>
 
           <h1 style={heroTitle}>
-            L’essence précieuse de Madagascar
+            La vanille d’exception <br /> venue de Madagascar
           </h1>
 
-          <div style={divider} />
-
           <p style={heroSubtitle}>
-            Une vanille d’exception, sélectionnée pour les passionnés de goût
+            Une expérience sensorielle unique, utilisée par les chefs et
+            passionnés de gastronomie.
           </p>
 
-          <Link href="/products" style={ctaPrimary}>
-            Découvrir nos produits
-          </Link>
+          <div style={heroActions}>
+            <Link href="/products" style={btnPrimary}>
+              Découvrir
+            </Link>
+
+            <Link href="/collections/vanille" style={btnGhost}>
+              Explorer
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* UNIVERS */}
-      <section style={section}>
-        <h2 style={sectionTitle}>Nos univers</h2>
-
-        <div style={grid}>
-          <Link href="/collections/vanille" style={linkReset}>
-            <div style={card}>
-              <Image
-                src="/images/vanille.jpg"
-                alt="Vanille premium"
-                width={500}
-                height={300}
-                style={img}
-              />
-              <div style={cardContent}>
-                <h3>🌿 Vanille</h3>
-                <p>Gousses, poudre, caviar</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/collections/epices" style={linkReset}>
-            <div style={card}>
-              <Image
-                src="/images/epices.jpg"
-                alt="Épices premium"
-                width={500}
-                height={300}
-                style={img}
-              />
-              <div style={cardContent}>
-                <h3>🌶️ Épices</h3>
-                <p>Cannelle, cacao, poivre, girofle</p>
-              </div>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* B2B */}
-      <section style={{ ...section, background: "white" }}>
-        <div style={b2bBox}>
-          <h2>Offre professionnelle</h2>
-
-          <p style={textMuted}>
-            Fourniture en volume pour restaurants, pâtissiers et revendeurs.
-          </p>
-
-          <Link href="/b2b" style={ctaPrimary}>
-            Demander un devis
-          </Link>
-        </div>
-      </section>
-
-      {/* STORY */}
+      {/* ================= STORY ================= */}
       <section style={section}>
         <div style={storyBox}>
-          <h2>Notre engagement</h2>
+          <h2 style={sectionTitle}>Une histoire, un savoir-faire</h2>
 
-          <p style={textMuted}>
-            VanilleOr travaille directement avec des producteurs à Madagascar
-            pour garantir une qualité premium et une traçabilité totale.
+          <p style={storyText}>
+            Originaire de Madagascar, la vanille est aujourd’hui considérée comme
+            l’une des épices les plus précieuses au monde, prisée pour son arôme
+            intense et sa richesse exceptionnelle.
+          </p>
+
+          <p style={storyText}>
+            En <strong>1841</strong>, un jeune esclave réunionnais nommé{" "}
+            <strong>Raymond Albius</strong> découvre la méthode permettant de
+            polliniser manuellement la fleur de vanille. Cette avancée majeure
+            révolutionne la production mondiale et rend enfin sa culture
+            maîtrisable.
+          </p>
+
+          <p style={storyText}>
+            Aujourd’hui encore, ce savoir-faire artisanal perdure à Madagascar,
+            donnant naissance à une vanille d’une qualité incomparable — celle que
+            nous avons choisi de vous proposer avec exigence et passion.
           </p>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={footer}>
-        © {new Date().getFullYear()} Vanille’Or  
-        <br />
-        <span style={akm}>
-          Site conçu par AKM.Consulting
-        </span>
-      </footer>
+      {/* ================= BEST SELLERS ================= */}
+      <section style={sectionAlt}>
+        <h2 style={sectionTitle}>Best Sellers</h2>
+
+        <div style={grid}>
+          {best.map((p) => (
+            <Link
+              key={p.id}
+              href={`/products/${p.slug}`}
+              style={card}
+            >
+              <img
+                src={getImageUrl(p.imageUrl)}
+                alt={p.name}
+                style={img}
+              />
+
+              <div style={cardContent}>
+                <h3 style={cardTitle}>{p.name}</h3>
+                <p style={price}>{formatPrice(p.priceCents)}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ================= COLLECTION ================= */}
+      <section style={section}>
+        <div style={grid2}>
+          <Link href="/collections/vanille" style={collection}>
+            <img src="/images/vanille.jpg" style={imgFull} />
+            <div style={overlay} />
+            <h3 style={collectionTitle}>Vanille</h3>
+          </Link>
+
+          <Link href="/collections/epices" style={collection}>
+            <img src="/images/epices.jpg" style={imgFull} />
+            <div style={overlay} />
+            <h3 style={collectionTitle}>Épices</h3>
+          </Link>
+        </div>
+      </section>
+
+      {/* ================= TRUST ================= */}
+      <section style={trust}>
+        <div style={trustGrid}>
+          <div>✔ Qualité premium</div>
+          <div>✔ Livraison rapide</div>
+          <div>✔ Sélection rigoureuse</div>
+        </div>
+      </section>
+
+      {/* ================= CTA ================= */}
+      <section style={cta}>
+        <h2 style={ctaTitle}>Passez à l’expérience VanilleOr</h2>
+
+        <p style={ctaText}>
+          Découvrez nos produits et transformez votre cuisine en expérience
+          gastronomique.
+        </p>
+
+        <Link href="/products" style={btnPrimaryLarge}>
+          Voir le catalogue
+        </Link>
+      </section>
+
+      {/* ================= SIGNATURE ================= */}
+      <div style={signature}>
+        Site développé par <strong>Akm.Consulting</strong>
+      </div>
     </div>
   );
 }
 
-/* ================= STYLE ================= */
+/* =========================
+   STYLES
+========================= */
 
-const heroImg = {
+const page = {
+  background: "#f8f5ef",
+};
+
+/* HERO */
+
+const hero = {
+  position: "relative" as const,
+  height: "90vh",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center" as const,
+  color: "white",
+  backgroundImage: "url('/images/hero-vanille.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+};
+
+const heroOverlay = {
+  position: "absolute" as const,
+  inset: 0,
+  background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
+};
+
+const heroContent = {
+  position: "relative" as const,
+  zIndex: 2,
+  maxWidth: 800,
+};
+
+const heroTag = {
+  color: "#d4af37",
+  letterSpacing: 2,
+  fontWeight: 700,
+};
+
+const heroTitle = {
+  fontSize: "48px",
+  fontWeight: 800,
+  margin: "20px 0",
+};
+
+const heroSubtitle = {
+  color: "#ddd",
+  marginBottom: 30,
+};
+
+const heroActions = {
+  display: "flex",
+  gap: 12,
+  justifyContent: "center",
+};
+
+const btnPrimary = {
+  background: "#a16207",
+  color: "white",
+  padding: "14px 22px",
+  borderRadius: 12,
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+const btnGhost = {
+  background: "white",
+  color: "#111",
+  padding: "14px 22px",
+  borderRadius: 12,
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+/* SECTIONS */
+
+const section = { padding: "60px 20px" };
+const sectionAlt = { padding: "60px 20px", background: "white" };
+
+const sectionTitle = {
+  textAlign: "center" as const,
+  fontSize: 28,
+  marginBottom: 30,
+};
+
+const storyBox = {
+  maxWidth: 750,
+  margin: "0 auto",
+};
+
+const storyText = {
+  color: "#555",
+  lineHeight: 1.7,
+  marginBottom: 16,
+};
+
+/* GRID */
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+  gap: 20,
+};
+
+const grid2 = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 20,
+};
+
+/* CARDS */
+
+const card = {
+  background: "white",
+  borderRadius: 16,
+  overflow: "hidden",
+  textDecoration: "none",
+  color: "#111",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+};
+
+const img = {
+  width: "100%",
+  height: 220,
   objectFit: "cover" as const,
-  filter: "brightness(0.5)",
+};
+
+const imgFull = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover" as const,
+};
+
+const cardContent = {
+  padding: 15,
+};
+
+const cardTitle = {
+  fontWeight: 700,
+};
+
+const price = {
+  color: "#a16207",
+  fontWeight: 700,
+};
+
+/* COLLECTION */
+
+const collection = {
+  position: "relative" as const,
+  height: 250,
+  borderRadius: 20,
+  overflow: "hidden",
 };
 
 const overlay = {
   position: "absolute" as const,
   inset: 0,
-  background:
-    "linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7))",
+  background: "rgba(0,0,0,0.4)",
 };
 
-const heroContent = {
+const collectionTitle = {
   position: "absolute" as const,
-  inset: 0,
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "18px",
-  zIndex: 2,
+  bottom: 20,
+  left: 20,
   color: "white",
-  padding: "0 20px",
-  textAlign: "center" as const,
-};
-
-const heroTitle = {
-  fontSize: "52px",
+  fontSize: 22,
   fontWeight: 700,
-  letterSpacing: "-1px",
-  lineHeight: 1.2,
 };
 
-const heroSubtitle = {
-  fontSize: "18px",
-  opacity: 0.9,
-  maxWidth: "600px",
-};
+/* TRUST */
 
-const divider = {
-  width: "60px",
-  height: "2px",
-  background: "#a16207",
-};
-
-/* SECTIONS */
-
-const section = {
-  padding: "70px 20px",
-  maxWidth: "1100px",
-  margin: "0 auto",
-};
-
-const sectionTitle = {
+const trust = {
+  padding: 40,
   textAlign: "center" as const,
-  marginBottom: "40px",
 };
 
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
-  gap: "25px",
+const trustGrid = {
+  display: "flex",
+  justifyContent: "center",
+  gap: 40,
 };
 
-const card = {
-  background: "white",
-  borderRadius: "18px",
-  overflow: "hidden",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-  transition: "0.3s",
+/* CTA */
+
+const cta = {
+  textAlign: "center" as const,
+  padding: 60,
 };
 
-const cardContent = {
-  padding: "15px",
+const ctaTitle = {
+  fontSize: 28,
+  marginBottom: 10,
 };
 
-const img = {
-  width: "100%",
-  height: "220px",
-  objectFit: "cover" as const,
+const ctaText = {
+  color: "#666",
+  marginBottom: 20,
 };
 
-const ctaPrimary = {
+const btnPrimaryLarge = {
   background: "#a16207",
   color: "white",
-  padding: "16px 28px",
-  borderRadius: "12px",
+  padding: "16px 30px",
+  borderRadius: 14,
   textDecoration: "none",
-  fontWeight: "600",
-  display: "inline-block",
-  marginTop: "10px",
+  fontWeight: 800,
 };
 
-const textMuted = {
-  color: "#666",
-  marginTop: "10px",
-};
+/* SIGNATURE */
 
-const b2bBox = {
-  maxWidth: "800px",
-  margin: "0 auto",
+const signature = {
   textAlign: "center" as const,
-  display: "flex",
-  flexDirection: "column" as const,
-  gap: "20px",
-};
-
-const storyBox = {
-  maxWidth: "800px",
-  margin: "0 auto",
-  textAlign: "center" as const,
-};
-
-const footer = {
-  textAlign: "center" as const,
-  padding: "30px",
-  fontSize: "13px",
+  padding: 20,
+  fontSize: 12,
   color: "#777",
-};
-
-const akm = {
-  fontWeight: 600,
-  color: "#111",
-};
-
-const linkReset = {
-  textDecoration: "none",
-  color: "inherit",
 };

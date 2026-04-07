@@ -2,18 +2,34 @@
 
 import { useState } from "react";
 
-export default function BlogForm() {
-  const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState("");
+type BlogPost = {
+  id?: string;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  content: string;
+  coverImage?: string | null;
+};
 
-  /* ================= UPLOAD CLOUDINARY ================= */
+export default function BlogForm({
+  initialData,
+}: {
+  initialData?: BlogPost;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(
+    initialData?.coverImage || null
+  );
+  const [imageUrl, setImageUrl] = useState(
+    initialData?.coverImage || ""
+  );
+
+  /* ================= IMAGE UPLOAD ================= */
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // preview immédiat
     const localPreview = URL.createObjectURL(file);
     setPreview(localPreview);
 
@@ -30,8 +46,6 @@ export default function BlogForm() {
 
       if (json.url) {
         setImageUrl(json.url);
-      } else {
-        console.error("Upload failed");
       }
     } catch (err) {
       console.error("Upload error:", err);
@@ -40,108 +54,125 @@ export default function BlogForm() {
 
   /* ================= SUBMIT ================= */
 
-  function handleSubmit() {
-    setLoading(true);
-  }
+  const action = "/api/admin/blog";
 
   return (
     <form
-      action="/api/admin/blog"
+      action={action}
       method="POST"
       encType="multipart/form-data"
-      onSubmit={handleSubmit}
+      onSubmit={() => setLoading(true)}
       style={form}
     >
-      {/* TITRE */}
-      <input name="title" placeholder="Titre" required style={input} />
+      {/* ID (EDIT) */}
+      {initialData?.id && (
+        <input type="hidden" name="id" value={initialData.id} />
+      )}
+
+      {/* TITLE */}
+      <input
+        name="title"
+        defaultValue={initialData?.title}
+        placeholder="Titre"
+        required
+        style={input}
+      />
 
       {/* SLUG */}
-      <input name="slug" placeholder="Slug (SEO)" required style={input} />
+      <input
+        name="slug"
+        defaultValue={initialData?.slug}
+        placeholder="Slug"
+        required
+        style={input}
+      />
 
       {/* EXCERPT */}
-      <input name="excerpt" placeholder="Résumé" style={input} />
+      <input
+        name="excerpt"
+        defaultValue={initialData?.excerpt || ""}
+        placeholder="Résumé"
+        style={input}
+      />
 
       {/* CONTENT */}
       <textarea
         name="content"
-        placeholder="Contenu HTML (éditeur riche)"
+        defaultValue={initialData?.content}
+        placeholder="Contenu HTML"
         required
         style={textarea}
       />
 
-      {/* 🔥 UPLOAD IMAGE */}
+      {/* IMAGE */}
       <div style={uploadBox}>
-        <label style={uploadLabel}>Image couverture</label>
-
+        <label style={label}>Image couverture</label>
         <input type="file" accept="image/*" onChange={handleUpload} />
       </div>
 
       {/* PREVIEW */}
-      {preview && (
-        <img src={preview} style={previewImg} />
-      )}
+      {preview && <img src={preview} style={previewImg} />}
 
-      {/* 🔥 URL IMAGE AUTO */}
+      {/* URL */}
       <input type="hidden" name="coverImage" value={imageUrl} />
 
-      {/* FALLBACK MANUEL */}
       <input
-        placeholder="Ou coller une URL image"
+        placeholder="Ou coller URL image"
+        defaultValue={imageUrl}
         style={input}
         onChange={(e) => setImageUrl(e.target.value)}
       />
 
-      {/* SUBMIT */}
-      <button type="submit" style={btn} disabled={loading}>
-        {loading ? "Création en cours..." : "Créer article"}
+      <button style={btn} disabled={loading}>
+        {loading
+          ? "Enregistrement..."
+          : initialData
+          ? "Mettre à jour"
+          : "Créer article"}
       </button>
     </form>
   );
 }
 
-/* ================= STYLE ================= */
+/* STYLE */
 
-const form = {
-  display: "grid",
-  gap: 14,
-};
+const form = { display: "grid", gap: 14 };
 
 const input = {
-  padding: "10px",
-  borderRadius: "8px",
+  padding: 10,
+  borderRadius: 8,
   border: "1px solid #ddd",
 };
 
 const textarea = {
-  minHeight: "140px",
-  padding: "10px",
-  borderRadius: "8px",
+  minHeight: 160,
+  padding: 10,
+  borderRadius: 8,
   border: "1px solid #ddd",
 };
 
 const btn = {
   background: "#a16207",
   color: "white",
-  padding: "12px",
-  borderRadius: "10px",
+  padding: 12,
+  borderRadius: 10,
   border: "none",
   fontWeight: "bold",
-  cursor: "pointer",
 };
 
 const previewImg = {
   width: "100%",
-  maxHeight: "220px",
+  maxHeight: 240,
   objectFit: "cover" as const,
-  borderRadius: "12px",
+  borderRadius: 12,
 };
 
 const uploadBox = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "6px",
+  gap: 6,
 };
 
-const uploadLabel = {
+const label = {
   fontWeight: "600",
 };
