@@ -2,7 +2,7 @@
 
 import { useCart } from "@/lib/cart-store";
 import { useToast } from "@/components/ui/toast";
-import { useUIStore } from "@/components/ui-provider";
+import { useUIStore } from "@/components/ui-providers";
 
 type Product = {
   id: string;

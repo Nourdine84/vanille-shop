@@ -2,9 +2,12 @@ import BlogForm from "@/components/admin/BlogForm";
 
 export default function CreateBlogPage() {
   return (
-    <div style={{ padding: 30 }}>
-      <h1>➕ Nouvel article</h1>
+    <div style={container}>
+      <h1 style={title}>➕ Nouvel article</h1>
       <BlogForm />
     </div>
   );
 }
+
+const container = { padding: 30 };
+const title = { fontSize: 28, marginBottom: 20 };

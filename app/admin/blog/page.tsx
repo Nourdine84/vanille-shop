@@ -1,10 +1,35 @@
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+type BlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  content: string;
+  coverImage?: string | null;
+  createdAt: Date;
+};
+
+function getImageUrl(image?: string | null) {
+  if (!image) return "/blog/default.jpg";
+  if (image.startsWith("http")) return image;
+  if (image.startsWith("/")) return image;
+  return `/blog/${image}`;
+}
+
+function formatDate(date: Date) {
+  return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export default async function BlogAdminPage() {
   const isAdmin = cookies().get("admin")?.value === "true";
@@ -13,7 +38,7 @@ export default async function BlogAdminPage() {
     redirect("/admin/login");
   }
 
-  let posts: any[] = [];
+  let posts: BlogPost[] = [];
 
   try {
     posts = await prisma.blogPost.findMany({
@@ -21,68 +46,92 @@ export default async function BlogAdminPage() {
     });
   } catch (e) {
     console.error("BLOG ADMIN ERROR:", e);
+    posts = [];
   }
 
   return (
     <div style={container}>
-      <h1 style={title}>📝 Blog Admin</h1>
+      <div style={topBar}>
+        <div>
+          <h1 style={title}>📝 Blog Admin</h1>
+          <p style={subtitle}>
+            Gérez les articles, les visuels et la visibilité éditoriale de
+            Vanille’Or.
+          </p>
+        </div>
 
-      <Link href="/admin/blog/create" style={createBtn}>
-        ➕ Nouvel article
-      </Link>
+        <Link href="/admin/blog/create" style={createBtn}>
+          ➕ Nouvel article
+        </Link>
+      </div>
+
+      <div style={kpiRow}>
+        <div style={kpiCard}>
+          <span style={kpiLabel}>Articles</span>
+          <strong style={kpiValue}>{posts.length}</strong>
+        </div>
+      </div>
 
       {posts.length === 0 ? (
-        <div style={card}>Aucun article</div>
+        <div style={emptyCard}>
+          <p style={{ margin: 0 }}>Aucun article pour le moment.</p>
+        </div>
       ) : (
         <div style={grid}>
           {posts.map((post) => (
-            <div key={post.id} style={card}>
-              
-              {/* IMAGE */}
-              {post.coverImage && (
+            <article key={post.id} style={card}>
+              <div style={imageWrap}>
                 <img
-                  src={post.coverImage}
+                  src={getImageUrl(post.coverImage)}
+                  alt={post.title}
                   style={image}
                 />
-              )}
-
-              <h3 style={postTitle}>{post.title}</h3>
-
-              {post.excerpt && (
-                <p style={excerpt}>{post.excerpt}</p>
-              )}
-
-              <p style={slug}>{post.slug}</p>
-
-              {/* ACTIONS */}
-              <div style={actions}>
-                
-                <Link
-                  href={`/blog/${post.slug}`}
-                  style={btnView}
-                >
-                  Voir
-                </Link>
-
-                <Link
-                  href={`/admin/blog/edit/${post.id}`}
-                  style={btnEdit}
-                >
-                  ✏️ Edit
-                </Link>
-
-                <form
-                  action={`/api/admin/blog/${post.id}`}
-                  method="POST"
-                >
-                  <input type="hidden" name="_method" value="DELETE" />
-                  <button style={btnDelete}>
-                    🗑 Supprimer
-                  </button>
-                </form>
-
               </div>
-            </div>
+
+              <div style={content}>
+                <div style={metaRow}>
+                  <span style={dateBadge}>{formatDate(post.createdAt)}</span>
+                  <span style={slugBadge}>/{post.slug}</span>
+                </div>
+
+                <h2 style={postTitle}>{post.title}</h2>
+
+                <p style={excerpt}>
+                  {post.excerpt?.trim()
+                    ? post.excerpt
+                    : "Aucun résumé renseigné pour cet article."}
+                </p>
+
+                <div style={actions}>
+                  <a
+                    href={`/blog/${post.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={viewBtn}
+                  >
+                    👁 Voir
+                  </a>
+
+                  <a
+                    href={`/admin/blog/edit/${post.id}`}
+                    style={editBtn}
+                  >
+                    ✏️ Modifier
+                  </a>
+
+                  <form
+                    action={`/api/admin/blog/${post.id}`}
+                    method="POST"
+                    style={{ margin: 0, flex: 1 }}
+                  >
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <button type="submit" style={deleteBtn}>
+                      🗑 Supprimer
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </article>
           ))}
         </div>
       )}
@@ -90,7 +139,7 @@ export default async function BlogAdminPage() {
   );
 }
 
-/* STYLE */
+/* ================= STYLE ================= */
 
 const container = {
   padding: 30,
@@ -98,84 +147,169 @@ const container = {
   minHeight: "100vh",
 };
 
+const topBar = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 20,
+  flexWrap: "wrap" as const,
+  marginBottom: 24,
+};
+
 const title = {
-  fontSize: 28,
-  marginBottom: 20,
+  fontSize: 30,
+  margin: "0 0 8px 0",
+};
+
+const subtitle = {
+  margin: 0,
+  color: "#666",
+  maxWidth: 700,
 };
 
 const createBtn = {
   display: "inline-block",
-  marginBottom: 20,
   background: "#a16207",
   color: "white",
-  padding: "10px 14px",
-  borderRadius: 8,
+  padding: "12px 16px",
+  borderRadius: 10,
   textDecoration: "none",
+  fontWeight: 700,
+};
+
+const kpiRow = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 16,
+  marginBottom: 24,
+};
+
+const kpiCard = {
+  background: "white",
+  borderRadius: 14,
+  padding: 18,
+  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
+};
+
+const kpiLabel = {
+  display: "block",
+  fontSize: 13,
+  color: "#777",
+  marginBottom: 6,
+};
+
+const kpiValue = {
+  fontSize: 24,
+};
+
+const emptyCard = {
+  background: "white",
+  borderRadius: 14,
+  padding: 24,
+  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
 };
 
 const grid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(300px,1fr))",
+  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
   gap: 20,
 };
 
 const card = {
   background: "white",
-  padding: 20,
-  borderRadius: 12,
-  boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
+  borderRadius: 16,
+  overflow: "hidden" as const,
+  boxShadow: "0 12px 30px rgba(0,0,0,0.06)",
+  border: "1px solid #eee",
+};
+
+const imageWrap = {
+  height: 190,
+  background: "#f3f4f6",
 };
 
 const image = {
   width: "100%",
-  height: 160,
+  height: "100%",
   objectFit: "cover" as const,
-  borderRadius: 10,
+  display: "block",
+};
+
+const content = {
+  padding: 18,
+};
+
+const metaRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  flexWrap: "wrap" as const,
   marginBottom: 10,
+};
+
+const dateBadge = {
+  background: "#fef3c7",
+  color: "#7c4a03",
+  borderRadius: 999,
+  padding: "4px 10px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const slugBadge = {
+  background: "#f3f4f6",
+  color: "#555",
+  borderRadius: 999,
+  padding: "4px 10px",
+  fontSize: 12,
 };
 
 const postTitle = {
-  marginBottom: 5,
+  margin: "0 0 10px 0",
+  fontSize: 20,
 };
 
 const excerpt = {
-  fontSize: 14,
   color: "#666",
-};
-
-const slug = {
-  fontSize: 12,
-  color: "#999",
-  marginBottom: 10,
+  lineHeight: 1.5,
+  minHeight: 48,
+  marginBottom: 16,
 };
 
 const actions = {
   display: "flex",
   gap: 10,
-  marginTop: 10,
+  flexWrap: "wrap" as const,
 };
 
-const btnView = {
-  background: "#2563eb",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: 8,
+const sharedAction = {
+  flex: 1,
+  minWidth: 90,
+  padding: "10px 12px",
+  borderRadius: 10,
+  textAlign: "center" as const,
   textDecoration: "none",
-};
-
-const btnEdit = {
-  background: "#16a34a",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: 8,
-  textDecoration: "none",
-};
-
-const btnDelete = {
-  background: "#dc2626",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: 8,
+  fontWeight: 600,
   border: "none",
   cursor: "pointer",
+};
+
+const viewBtn = {
+  ...sharedAction,
+  background: "#2563eb",
+  color: "white",
+};
+
+const editBtn = {
+  ...sharedAction,
+  background: "#111",
+  color: "white",
+};
+
+const deleteBtn = {
+  ...sharedAction,
+  width: "100%",
+  background: "#dc2626",
+  color: "white",
 };

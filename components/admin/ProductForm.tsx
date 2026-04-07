@@ -8,36 +8,60 @@ import { useState } from "react";
 
 function generateSlug(name: string) {
   return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
 
+/* 🔥 NORMALISATION IMAGE ULTRA SAFE */
+function normalizeImageInput(input: string) {
+  const value = input.trim();
+
+  if (!value) return "";
+
+  // URL externe → OK
+  if (value.startsWith("http")) return value;
+
+  // 🔥 On garde uniquement le nom du fichier
+  const fileName = value
+    .replace(/^.*[\\/]/, "") // enlève dossier
+    .replace(/^images\//, "")
+    .replace(/^products\//, "")
+    .replace(/^collections\//, "");
+
+  return fileName;
+}
+
+/* =========================
+   COMPONENT
+========================= */
+
 export default function ProductForm() {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
+
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
 
   /* =========================
-     IMAGE
+     IMAGE PREVIEW
   ========================= */
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    const previewUrl = URL.createObjectURL(file);
+    setPreview(previewUrl);
 
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setPreview(base64);
-    };
-
-    reader.readAsDataURL(file);
+    // 🔥 IMPORTANT → nom fichier seulement
+    setImageUrl(file.name);
   }
 
   /* =========================
@@ -63,16 +87,15 @@ export default function ProductForm() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    /* 🔥 IMAGE SAFE */
-    if (preview) {
-      formData.set("imageUrl", preview);
-    }
+    /* 🔥 SLUG SAFE */
+    formData.set("slug", generateSlug(slug || name));
 
-    /* 🔥 NORMALISATION IMAGE */
-    const imageUrl = formData.get("imageUrl")?.toString() || "";
-    if (imageUrl && !imageUrl.startsWith("http") && !imageUrl.startsWith("/")) {
-      formData.set("imageUrl", `/products/${imageUrl}`);
-    }
+    /* 🔥 IMAGE SAFE */
+    const normalizedImage = normalizeImageInput(
+      formData.get("imageUrl")?.toString() || ""
+    );
+
+    formData.set("imageUrl", normalizedImage);
 
     try {
       const res = await fetch("/api/admin/products", {
@@ -80,23 +103,32 @@ export default function ProductForm() {
         body: formData,
       });
 
-      const data = await res.json();
+      let data: any = null;
+
+      try {
+        data = await res.json();
+      } catch {
+        // fallback si redirect serveur
+      }
 
       if (!res.ok) {
         setIsError(true);
-        setMessage(data.error || "Erreur");
+        setMessage(data?.error || "Erreur lors de l’enregistrement");
         return;
       }
 
-      setMessage("Produit créé avec succès");
+      /* ✅ SUCCESS */
+      setMessage("✅ Produit créé avec succès");
       setIsError(false);
 
       form.reset();
       setPreview(null);
       setName("");
       setSlug("");
+      setImageUrl("");
 
     } catch (error) {
+      console.error("❌ PRODUCT FORM ERROR:", error);
       setIsError(true);
       setMessage("Erreur serveur");
     } finally {
@@ -126,7 +158,7 @@ export default function ProductForm() {
         name="slug"
         placeholder="Slug"
         value={slug}
-        onChange={(e) => setSlug(e.target.value)}
+        onChange={(e) => setSlug(generateSlug(e.target.value))}
         required
         style={input}
       />
@@ -139,15 +171,20 @@ export default function ProductForm() {
         style={{ ...input, gridColumn: "1 / -1" }}
       />
 
-      {/* IMAGE */}
+      {/* IMAGE UPLOAD */}
       <div style={uploadBox}>
         <input type="file" accept="image/*" onChange={handleImage} />
-        {preview && <img src={preview} style={previewImg} />}
+        {preview && (
+          <img src={preview} alt="Preview produit" style={previewImg} />
+        )}
       </div>
 
+      {/* IMAGE NAME */}
       <input
         name="imageUrl"
-        placeholder="Nom fichier (ex: vanille.jpg)"
+        placeholder="Nom fichier (ex: cannelle.jpg)"
+        value={imageUrl}
+        onChange={(e) => setImageUrl(e.target.value)}
         style={input}
       />
 
@@ -156,6 +193,7 @@ export default function ProductForm() {
         name="priceCents"
         type="number"
         placeholder="Prix en centimes"
+        min="1"
         required
         style={input}
       />
@@ -165,12 +203,13 @@ export default function ProductForm() {
         name="stock"
         type="number"
         placeholder="Stock"
+        min="0"
         required
         style={input}
       />
 
       {/* CATEGORY */}
-      <select name="category" style={input}>
+      <select name="category" style={input} defaultValue="vanille">
         <option value="vanille">Vanille</option>
         <option value="epices">Épices</option>
       </select>
@@ -182,16 +221,8 @@ export default function ProductForm() {
         style={input}
       />
 
-      {/* 🔥 COLLECTION */}
-      <select name="collection" style={input}>
-        <option value="">Collection</option>
-        <option value="premium">Premium</option>
-        <option value="pro">Professionnel</option>
-        <option value="gourmet">Gourmet</option>
-      </select>
-
       {/* BADGE */}
-      <select name="badge" style={input}>
+      <select name="badge" style={input} defaultValue="">
         <option value="">Aucun badge</option>
         <option value="Nouveau">🔥 Nouveau</option>
         <option value="Promo">💸 Promo</option>

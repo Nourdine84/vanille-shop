@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { getImageUrl } from "@/lib/image";
+
+/* =========================
+   TYPES
+========================= */
 
 type Product = {
   id: string;
@@ -10,9 +15,14 @@ type Product = {
   name: string;
   description: string;
   priceCents: number;
-  imageUrl: string;
+  imageUrl?: string;
   stock?: number;
+  badge?: string | null; // 🔥 IMPORTANT
 };
+
+/* =========================
+   CONFIG
+========================= */
 
 const SPICES_KEYWORDS = [
   "cannelle",
@@ -23,9 +33,17 @@ const SPICES_KEYWORDS = [
   "cacao",
 ];
 
+/* =========================
+   HELPERS
+========================= */
+
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
+
+/* =========================
+   PAGE
+========================= */
 
 export default function EpicesPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -62,8 +80,7 @@ export default function EpicesPage() {
         <p style={heroEyebrow}>Vanille’Or</p>
         <h1 style={title}>🌶️ Univers Épices</h1>
         <p style={heroText}>
-          Explorez notre sélection d’épices et produits aromatiques pour enrichir
-          vos créations culinaires avec intensité et caractère.
+          Explorez notre sélection d’épices premium pour sublimer vos créations culinaires.
         </p>
       </div>
 
@@ -80,7 +97,7 @@ export default function EpicesPage() {
           return (
             <Link
               key={product.id}
-              href={`/product/${product.slug}`}
+              href={`/products/${product.slug}`} // ✅ FIX ROUTE
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <motion.div
@@ -90,14 +107,26 @@ export default function EpicesPage() {
                   opacity: isOutOfStock ? 0.7 : 1,
                 }}
               >
-                {index === 0 && !isOutOfStock && (
+                {/* 🔥 BADGE ADMIN */}
+                {product.badge && (
+                  <div style={badge}>
+                    {product.badge}
+                  </div>
+                )}
+
+                {/* 🔥 BEST SELLER AUTO */}
+                {index === 0 && !product.badge && !isOutOfStock && (
                   <div style={bestSeller}>⭐ Best seller</div>
                 )}
 
-                {isOutOfStock && <div style={outOfStock}>ÉPUISÉ</div>}
+                {/* STOCK */}
+                {isOutOfStock && (
+                  <div style={outOfStock}>ÉPUISÉ</div>
+                )}
 
+                {/* IMAGE FIX */}
                 <img
-                  src={product.imageUrl || "/images/product-default.jpg"}
+                  src={getImageUrl(product.imageUrl)}
                   alt={product.name}
                   style={img}
                 />
@@ -109,7 +138,9 @@ export default function EpicesPage() {
                 </p>
 
                 <div style={bottomRow}>
-                  <span style={price}>{formatPrice(product.priceCents)}</span>
+                  <span style={price}>
+                    {formatPrice(product.priceCents)}
+                  </span>
                   <span style={ctaMini}>Voir →</span>
                 </div>
               </motion.div>
@@ -121,7 +152,7 @@ export default function EpicesPage() {
   );
 }
 
-/* STYLES */
+/* ================= STYLE ================= */
 
 const container = {
   background: "#faf7f2",
@@ -203,6 +234,19 @@ const price = {
 const ctaMini = {
   color: "#111",
   fontWeight: 600,
+};
+
+/* 🔥 BADGE ADMIN */
+const badge = {
+  position: "absolute" as const,
+  top: "12px",
+  left: "12px",
+  background: "#f59e0b",
+  color: "white",
+  padding: "6px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  zIndex: 2,
 };
 
 const bestSeller = {

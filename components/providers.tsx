@@ -1,8 +1,11 @@
 "use client";
 
-import { ReactNode } from "react";
-import { UIProvider } from "@/components/ui-provider";
+import { UIProvider } from "@/components/ui-providers";
 
-export default function Providers({ children }: { children: ReactNode }) {
+export default function Providers({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <UIProvider>{children}</UIProvider>;
 }

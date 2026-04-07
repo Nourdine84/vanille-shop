@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
-import { useUIStore } from "@/components/ui-provider";
+import { useUIStore } from "@/components/ui-providers";
+import { getImageUrl } from "@/lib/image";
 
 type Product = {
   id: string;
@@ -19,15 +20,12 @@ function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-/* 🔥 FIX IMAGE PATH GLOBAL */
-function getImageUrl(image?: string) {
-  if (!image) return "/products/default.jpg";
-
-  if (image.startsWith("http")) return image;
-
-  if (!image.startsWith("/")) return `/products/${image}`;
-
-  return image;
+function normalizeSlug(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 export default function ProductsPage() {
@@ -44,10 +42,18 @@ export default function ProductsPage() {
         const res = await fetch("/api/products");
         const data = await res.json();
 
+        if (!Array.isArray(data)) {
+          setProducts([]);
+          setQuantities({});
+          return;
+        }
+
         setProducts(data);
 
         const q: Record<string, number> = {};
-        data.forEach((p: Product) => (q[p.id] = 1));
+        data.forEach((p: Product) => {
+          q[p.id] = 1;
+        });
         setQuantities(q);
       } catch (err) {
         console.error("❌ Fetch products error:", err);
@@ -75,8 +81,6 @@ export default function ProductsPage() {
 
   return (
     <div style={{ background: "#f8f5ef", minHeight: "100vh" }}>
-      
-      {/* HERO */}
       <section style={hero}>
         <h1 style={heroTitle}>Collection Vanille’Or</h1>
         <p style={heroSubtitle}>
@@ -87,23 +91,27 @@ export default function ProductsPage() {
       <div style={container}>
         {loading ? (
           <p style={{ textAlign: "center" }}>Chargement...</p>
+        ) : products.length === 0 ? (
+          <p style={{ textAlign: "center", color: "#666" }}>
+            Aucun produit disponible pour le moment.
+          </p>
         ) : (
           <div style={grid}>
             {products.map((product, index) => {
-              const isOutOfStock = product.stock === 0;
+              const isOutOfStock = product.stock <= 0;
               const quantity = quantities[product.id] || 1;
+              const safeSlug = normalizeSlug(product.slug || product.name);
 
               return (
                 <div key={product.id} style={card}>
-                  
-                  {/* BADGES */}
                   {index === 0 && <div style={badgeBest}>🔥 Best Seller</div>}
+
                   {product.stock < 5 && !isOutOfStock && (
                     <div style={badgeStock}>⚠ Stock limité</div>
                   )}
+
                   {isOutOfStock && <div style={badgeOut}>Épuisé</div>}
 
-                  {/* IMAGE FIXED */}
                   <img
                     src={getImageUrl(product.imageUrl)}
                     alt={product.name}
@@ -122,9 +130,19 @@ export default function ProductsPage() {
 
                     {!isOutOfStock && (
                       <div style={qtyRow}>
-                        <button onClick={() => decrease(product.id)} style={qtyBtn}>−</button>
+                        <button
+                          onClick={() => decrease(product.id)}
+                          style={qtyBtn}
+                        >
+                          −
+                        </button>
                         <span>{quantity}</span>
-                        <button onClick={() => increase(product.id)} style={qtyBtn}>+</button>
+                        <button
+                          onClick={() => increase(product.id)}
+                          style={qtyBtn}
+                        >
+                          +
+                        </button>
                       </div>
                     )}
 
@@ -150,8 +168,7 @@ export default function ProductsPage() {
                         Ajouter
                       </button>
 
-                      {/* 🔥 FIX SLUG */}
-                      <Link href={`/products/${product.slug?.toLowerCase()}`} style={btnSecondary}>
+                      <Link href={`/products/${safeSlug}`} style={btnSecondary}>
                         Voir
                       </Link>
                     </div>
@@ -165,8 +182,6 @@ export default function ProductsPage() {
     </div>
   );
 }
-
-/* STYLE */
 
 const hero = { textAlign: "center" as const, padding: "60px 20px" };
 const heroTitle = { fontSize: "40px", fontWeight: 800 };
@@ -200,9 +215,20 @@ const trigger2 = { color: "#a16207", fontSize: 13 };
 
 const price = { fontSize: 20, fontWeight: 800 };
 
-const qtyRow = { display: "flex", gap: 10 };
+const qtyRow = {
+  display: "flex",
+  alignItems: "center" as const,
+  gap: 10,
+  marginBottom: 12,
+};
 
-const qtyBtn = { padding: "4px 10px" };
+const qtyBtn = {
+  padding: "4px 10px",
+  borderRadius: 8,
+  border: "1px solid #ddd",
+  background: "white",
+  cursor: "pointer",
+};
 
 const actions = { display: "flex", gap: 10 };
 
@@ -212,6 +238,7 @@ const btnPrimary = {
   padding: 12,
   borderRadius: 10,
   border: "none",
+  cursor: "pointer",
 };
 
 const btnSecondary = {
@@ -221,6 +248,7 @@ const btnSecondary = {
   borderRadius: 10,
   textAlign: "center" as const,
   textDecoration: "none",
+  color: "#111",
 };
 
 const badgeBest = {

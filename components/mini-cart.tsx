@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
-import { useUIStore } from "@/components/ui-provider";
+import { useUIStore } from "@/components/ui-providers";
 
 type MiniCartProps = {
   open?: boolean;

@@ -28,7 +28,7 @@ export default function DeleteProductButton({
 
       window.location.href = "/admin/products?success=delete";
     } catch (error) {
-      console.error("❌ DELETE PRODUCT ERROR:", error);
+      console.error("DELETE PRODUCT ERROR:", error);
       window.location.href = "/admin/products?error=delete";
     } finally {
       setLoading(false);
@@ -38,11 +38,7 @@ export default function DeleteProductButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={deleteBtn}
-      >
+      <button type="button" onClick={() => setOpen(true)} style={deleteBtn}>
         Supprimer
       </button>
 
