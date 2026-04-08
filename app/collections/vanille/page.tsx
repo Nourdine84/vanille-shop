@@ -2,12 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { getImageUrl } from "@/lib/image";
 
-/* =========================
-   TYPES
-========================= */
+/* ========================= */
 
 type Product = {
   id: string;
@@ -21,136 +18,75 @@ type Product = {
   category?: string;
 };
 
-/* =========================
-   HELPERS
-========================= */
-
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+function formatPrice(price: number) {
+  return (price / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-/* =========================
-   PAGE
-========================= */
+/* ========================= */
 
 export default function VanillePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch("/api/products");
-        if (!res.ok) throw new Error("Erreur API");
-
-        const data = await res.json();
-
-        // 🔥 FILTRE VANILLE INTELLIGENT
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => {
         const filtered = data.filter((p: Product) =>
           (p.category || "").toLowerCase() === "vanille" ||
-           p.name.toLowerCase().includes("vanille")
+          p.name.toLowerCase().includes("vanille")
         );
-
         setProducts(filtered);
-      } catch (error) {
-        console.error("❌ FETCH VANILLE ERROR:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div style={container}>
+    <div style={page}>
       {/* HERO */}
-      <div style={hero}>
-        <p style={heroEyebrow}>Vanille’Or</p>
-        <h1 style={title}>🌿 Univers Vanille</h1>
-        <p style={heroText}>
-          Découvrez notre sélection de vanille de Madagascar, reconnue pour sa richesse aromatique exceptionnelle et sa qualité premium.
-        </p>
-      </div>
+      <section style={hero}>
+        <div style={overlay} />
+        <div style={heroContent}>
+          <p style={heroTag}>VanilleOr</p>
+          <h1 style={heroTitle}>L’univers Vanille</h1>
+          <p style={heroSubtitle}>
+            L’essence précieuse de Madagascar, sélectionnée pour une qualité et
+            un arôme incomparables.
+          </p>
+        </div>
+      </section>
 
-      {/* LOADING */}
-      {loading && <div style={center}>Chargement de la vanille...</div>}
+      <div style={container}>
+        {loading && <p style={center}>Chargement...</p>}
 
-      {/* EMPTY */}
-      {!loading && products.length === 0 && (
-        <div style={center}>Aucun produit vanille disponible</div>
-      )}
+        <div style={grid}>
+          {products.map((p) => {
+            const isOut = p.stock === 0;
 
-      {/* GRID */}
-      <div style={grid}>
-        {products.map((product, index) => {
-          const isOutOfStock = product.stock === 0;
+            return (
+              <Link key={p.id} href={`/products/${p.slug}`} style={card}>
+                {p.badge && <span style={badge}>{p.badge}</span>}
+                {isOut && <span style={out}>ÉPUISÉ</span>}
 
-          return (
-            <Link
-              key={product.id}
-              href={`/products/${product.slug}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <motion.div
-                whileHover={{ y: -5 }}
-                style={{
-                  ...card,
-                  opacity: isOutOfStock ? 0.7 : 1,
-                }}
-              >
-                {/* BADGE ADMIN */}
-                {product.badge && (
-                  <div style={badge}>
-                    {product.badge}
-                  </div>
-                )}
+                <img src={getImageUrl(p.imageUrl)} style={img} />
 
-                {/* BEST SELLER AUTO */}
-                {index === 0 && !product.badge && !isOutOfStock && (
-                  <div style={bestSeller}>⭐ Best seller</div>
-                )}
-
-                {/* STOCK */}
-                {isOutOfStock && (
-                  <div style={outOfStock}>ÉPUISÉ</div>
-                )}
-
-                {/* IMAGE */}
-                <img
-                  src={getImageUrl(product.imageUrl)}
-                  alt={product.name}
-                  style={img}
-                />
-
-                {/* CONTENT */}
                 <div style={content}>
-                  <h3 style={name}>{product.name}</h3>
-
+                  <h3>{p.name}</h3>
                   <p style={desc}>
-                    {product.description?.slice(0, 90)}...
+                    {p.description?.slice(0, 90) || "Vanille premium"}...
                   </p>
-
-                  {/* VALUE PROPOSITION */}
-                  <div style={valueBox}>
-                    🌿 Qualité Madagascar  
-                    <br />
-                    ⭐ Arôme intense  
-                    <br />
-                    🚀 Livraison rapide
-                  </div>
 
                   <div style={bottomRow}>
                     <span style={price}>
-                      {formatPrice(product.priceCents)}
+                      {formatPrice(p.priceCents)}
                     </span>
-                    <span style={ctaMini}>Voir →</span>
+                    <span style={cta}>Voir →</span>
                   </div>
                 </div>
-              </motion.div>
-            </Link>
-          );
-        })}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -158,40 +94,38 @@ export default function VanillePage() {
 
 /* ================= STYLE ================= */
 
-const container = {
-  background: "#faf7f2",
-  minHeight: "100vh",
-  padding: "40px 20px 60px",
-  maxWidth: "1140px",
-  margin: "0 auto",
-};
+const page = { background: "#f8f5ef" };
 
 const hero = {
+  position: "relative" as const,
+  height: "300px",
+  backgroundImage: "url('/images/hero-vanille.jpg')",
+  backgroundSize: "cover",
+};
+
+const overlay = {
+  position: "absolute" as const,
+  inset: 0,
+  background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
+};
+
+const heroContent = {
+  position: "relative" as const,
+  zIndex: 2,
   textAlign: "center" as const,
-  marginBottom: "42px",
+  color: "white",
+  paddingTop: "80px",
 };
 
-const heroEyebrow = {
-  color: "#a16207",
-  fontWeight: 700,
-  marginBottom: "8px",
-};
+const heroTag = { color: "#d4af37", letterSpacing: "0.3em" };
+const heroTitle = { fontSize: "30px" };
+const heroSubtitle = { color: "#ddd" };
 
-const title = {
-  margin: "0 0 12px 0",
-  fontSize: "34px",
-};
-
-const heroText = {
-  color: "#666",
-  maxWidth: "720px",
-  margin: "0 auto",
-  lineHeight: 1.7,
-};
+const container = { padding: "40px", maxWidth: "1100px", margin: "0 auto" };
 
 const grid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
   gap: "24px",
 };
 
@@ -199,95 +133,48 @@ const card = {
   background: "white",
   borderRadius: "18px",
   overflow: "hidden",
-  boxShadow: "0 10px 40px rgba(0,0,0,0.06)",
+  textDecoration: "none",
+  color: "#111",
   position: "relative" as const,
 };
 
 const img = {
   width: "100%",
-  height: "260px",
+  height: 220,
   objectFit: "cover" as const,
 };
 
-const content = {
-  padding: "18px",
-};
+const content = { padding: 15 };
 
-const name = {
-  fontSize: "18px",
-  fontWeight: 700,
-  marginBottom: "8px",
-};
-
-const desc = {
-  color: "#666",
-  fontSize: "14px",
-};
-
-const valueBox = {
-  background: "#fff7ed",
-  padding: "10px",
-  borderRadius: "10px",
-  fontSize: "13px",
-  marginTop: "10px",
-};
+const desc = { color: "#666", fontSize: 14 };
 
 const bottomRow = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
-  marginTop: "16px",
 };
 
-const price = {
-  fontWeight: 700,
-  color: "#a16207",
-};
+const price = { color: "#a16207", fontWeight: 700 };
 
-const ctaMini = {
-  color: "#111",
-  fontWeight: 600,
-};
-
-/* BADGES */
+const cta = { fontWeight: 600 };
 
 const badge = {
   position: "absolute" as const,
-  top: "12px",
-  left: "12px",
-  background: "#f59e0b",
-  color: "white",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  zIndex: 2,
-};
-
-const bestSeller = {
-  position: "absolute" as const,
-  top: "12px",
-  left: "12px",
+  top: 10,
+  left: 10,
   background: "#a16207",
   color: "white",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  zIndex: 2,
+  padding: "5px 10px",
+  borderRadius: 999,
 };
 
-const outOfStock = {
+const out = {
   position: "absolute" as const,
-  top: "12px",
-  right: "12px",
+  top: 10,
+  right: 10,
   background: "#dc2626",
   color: "white",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  zIndex: 2,
+  padding: "5px 10px",
+  borderRadius: 999,
 };
 
-const center = {
-  textAlign: "center" as const,
-  marginBottom: "20px",
-};
+const center = { textAlign: "center" as const };

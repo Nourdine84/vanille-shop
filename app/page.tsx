@@ -30,11 +30,24 @@ function formatPrice(priceCents: number) {
 
 export default function HomePage() {
   const [best, setBest] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => setBest(data.slice(0, 3)));
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("/api/products");
+        const data = await res.json();
+
+        setBest(Array.isArray(data) ? data.slice(0, 3) : []);
+      } catch (err) {
+        console.error("❌ HOME FETCH ERROR:", err);
+        setBest([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   return (
@@ -47,7 +60,7 @@ export default function HomePage() {
           <p style={heroTag}>VanilleOr</p>
 
           <h1 style={heroTitle}>
-            La vanille d’exception <br /> venue de Madagascar
+            L'essence précieuse <br /> de Madagascar
           </h1>
 
           <p style={heroSubtitle}>
@@ -74,37 +87,43 @@ export default function HomePage() {
 
           <p style={storyText}>
             Originaire de Madagascar, la vanille est aujourd’hui considérée comme
-            l’une des épices les plus précieuses au monde, prisée pour son arôme
-            intense et sa richesse exceptionnelle.
+            l’une des épices les plus précieuses au monde.
           </p>
 
           <p style={storyText}>
-            En <strong>1841</strong>, un jeune esclave réunionnais nommé{" "}
-            <strong>Raymond Albius</strong> découvre la méthode permettant de
-            polliniser manuellement la fleur de vanille. Cette avancée majeure
-            révolutionne la production mondiale et rend enfin sa culture
-            maîtrisable.
+            En <strong>1841</strong>, <strong>Raymond Albius</strong> découvre la
+            pollinisation manuelle, révolutionnant la production mondiale.
           </p>
 
           <p style={storyText}>
-            Aujourd’hui encore, ce savoir-faire artisanal perdure à Madagascar,
-            donnant naissance à une vanille d’une qualité incomparable — celle que
-            nous avons choisi de vous proposer avec exigence et passion.
+            Aujourd’hui encore, ce savoir-faire artisanal donne naissance à une
+            vanille d’une qualité incomparable.
           </p>
         </div>
       </section>
 
       {/* ================= BEST SELLERS ================= */}
       <section style={sectionAlt}>
-        <h2 style={sectionTitle}>Best Sellers</h2>
+        <h2 style={sectionTitle}>🔥 Best Sellers</h2>
+
+        {loading && (
+          <div style={center}>Chargement des produits...</div>
+        )}
+
+        {!loading && best.length === 0 && (
+          <div style={center}>Aucun produit disponible</div>
+        )}
 
         <div style={grid}>
           {best.map((p) => (
             <Link
               key={p.id}
-              href={`/products/${p.slug}`}
+              href={`/products/${p.slug}`} // ✅ FIX CRITIQUE ICI
               style={card}
             >
+              {/* BADGE */}
+              <div style={badge}>Best Seller</div>
+
               <img
                 src={getImageUrl(p.imageUrl)}
                 alt={p.name}
@@ -151,8 +170,7 @@ export default function HomePage() {
         <h2 style={ctaTitle}>Passez à l’expérience VanilleOr</h2>
 
         <p style={ctaText}>
-          Découvrez nos produits et transformez votre cuisine en expérience
-          gastronomique.
+          Découvrez nos produits et transformez votre cuisine.
         </p>
 
         <Link href="/products" style={btnPrimaryLarge}>
@@ -172,11 +190,7 @@ export default function HomePage() {
    STYLES
 ========================= */
 
-const page = {
-  background: "#f8f5ef",
-};
-
-/* HERO */
+const page = { background: "#f8f5ef" };
 
 const hero = {
   position: "relative" as const,
@@ -188,7 +202,6 @@ const hero = {
   color: "white",
   backgroundImage: "url('/images/hero-vanille.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
 };
 
 const heroOverlay = {
@@ -200,14 +213,9 @@ const heroOverlay = {
 const heroContent = {
   position: "relative" as const,
   zIndex: 2,
-  maxWidth: 800,
 };
 
-const heroTag = {
-  color: "#d4af37",
-  letterSpacing: 2,
-  fontWeight: 700,
-};
+const heroTag = { color: "#d4af37", fontWeight: 700 };
 
 const heroTitle = {
   fontSize: "48px",
@@ -215,10 +223,7 @@ const heroTitle = {
   margin: "20px 0",
 };
 
-const heroSubtitle = {
-  color: "#ddd",
-  marginBottom: 30,
-};
+const heroSubtitle = { color: "#ddd", marginBottom: 30 };
 
 const heroActions = {
   display: "flex",
@@ -244,8 +249,6 @@ const btnGhost = {
   fontWeight: 700,
 };
 
-/* SECTIONS */
-
 const section = { padding: "60px 20px" };
 const sectionAlt = { padding: "60px 20px", background: "white" };
 
@@ -255,18 +258,9 @@ const sectionTitle = {
   marginBottom: 30,
 };
 
-const storyBox = {
-  maxWidth: 750,
-  margin: "0 auto",
-};
+const storyBox = { maxWidth: 750, margin: "0 auto" };
 
-const storyText = {
-  color: "#555",
-  lineHeight: 1.7,
-  marginBottom: 16,
-};
-
-/* GRID */
+const storyText = { color: "#555", marginBottom: 16 };
 
 const grid = {
   display: "grid",
@@ -280,15 +274,27 @@ const grid2 = {
   gap: 20,
 };
 
-/* CARDS */
-
 const card = {
+  position: "relative" as const,
   background: "white",
   borderRadius: 16,
   overflow: "hidden",
   textDecoration: "none",
   color: "#111",
   boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  transition: "0.3s",
+};
+
+const badge = {
+  position: "absolute" as const,
+  top: 10,
+  left: 10,
+  background: "#a16207",
+  color: "white",
+  padding: "5px 10px",
+  borderRadius: 10,
+  fontSize: 12,
+  zIndex: 2,
 };
 
 const img = {
@@ -303,20 +309,11 @@ const imgFull = {
   objectFit: "cover" as const,
 };
 
-const cardContent = {
-  padding: 15,
-};
+const cardContent = { padding: 15 };
 
-const cardTitle = {
-  fontWeight: 700,
-};
+const cardTitle = { fontWeight: 700 };
 
-const price = {
-  color: "#a16207",
-  fontWeight: 700,
-};
-
-/* COLLECTION */
+const price = { color: "#a16207", fontWeight: 700 };
 
 const collection = {
   position: "relative" as const,
@@ -340,12 +337,7 @@ const collectionTitle = {
   fontWeight: 700,
 };
 
-/* TRUST */
-
-const trust = {
-  padding: 40,
-  textAlign: "center" as const,
-};
+const trust = { padding: 40, textAlign: "center" as const };
 
 const trustGrid = {
   display: "flex",
@@ -353,22 +345,11 @@ const trustGrid = {
   gap: 40,
 };
 
-/* CTA */
+const cta = { textAlign: "center" as const, padding: 60 };
 
-const cta = {
-  textAlign: "center" as const,
-  padding: 60,
-};
+const ctaTitle = { fontSize: 28 };
 
-const ctaTitle = {
-  fontSize: 28,
-  marginBottom: 10,
-};
-
-const ctaText = {
-  color: "#666",
-  marginBottom: 20,
-};
+const ctaText = { color: "#666", marginBottom: 20 };
 
 const btnPrimaryLarge = {
   background: "#a16207",
@@ -379,11 +360,14 @@ const btnPrimaryLarge = {
   fontWeight: 800,
 };
 
-/* SIGNATURE */
-
 const signature = {
   textAlign: "center" as const,
   padding: 20,
   fontSize: 12,
   color: "#777",
+};
+
+const center = {
+  textAlign: "center" as const,
+  marginBottom: 20,
 };
