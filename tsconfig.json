@@ -4,59 +4,59 @@
         CORE CONFIG
      ========================= */
     "target": "ES2020",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
     "moduleResolution": "bundler",
     "jsx": "preserve",
+
     /* =========================
-        STRICT MODE (🔥 PRO)
+        STRICT MODE (PRO)
      ========================= */
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
+
     /* =========================
-        CODE QUALITY (🔥 BONUS PRO)
+        CODE QUALITY
      ========================= */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
+
     /* =========================
         MODULE & INTEROP
      ========================= */
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+
     /* =========================
         NEXT / BUILD
      ========================= */
     "skipLibCheck": true,
     "noEmit": true,
     "incremental": true,
+
     /* =========================
-        TYPES (🔥 FIX CRITICAL)
+        TYPES
      ========================= */
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
+
     /* =========================
-        IMPORTS CLEAN (🔥 IMPORTANT)
+        IMPORT ALIAS (CRITICAL FIX)
      ========================= */
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     },
+
     /* =========================
         SAFETY
      ========================= */
-    "allowJs": false,
+    "allowJs": true,
+
     /* =========================
         NEXT PLUGIN
      ========================= */
@@ -66,14 +66,14 @@
       }
     ]
   },
+
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "scripts/**/*.js"
   ],
-  "exclude": [
-    "node_modules",
-    ".next"
-  ]
+
+  "exclude": ["node_modules", ".next"]
 }

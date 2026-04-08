@@ -5,10 +5,6 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-store";
 import CrossSell from "@/components/cross-sell";
 
-/* =========================
-   TYPES
-========================= */
-
 type CartItem = {
   id: string;
   name: string;
@@ -17,127 +13,35 @@ type CartItem = {
   imageUrl?: string;
 };
 
-type CheckoutApiResponse = {
-  url?: string;
-  error?: string;
-};
-
-/* =========================
-   HELPERS
-========================= */
-
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
-
-function getSafeImage(image?: string) {
-  if (!image) return "/images/default.jpg";
-
-  if (image.startsWith("http")) return image;
-
-  if (image.startsWith("/")) return image;
-
-  return `/images/${image}`;
-}
-
-/* =========================
-   UI COMPONENTS
-========================= */
-
-function ErrorModal({
-  open,
-  message,
-  onClose,
-}: {
-  open: boolean;
-  message: string;
-  onClose: () => void;
-}) {
-  if (!open) return null;
-
-  return (
-    <div style={overlay} onClick={onClose}>
-      <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <div style={modalIcon}>❌</div>
-        <h2 style={modalTitle}>Paiement impossible</h2>
-        <p style={modalText}>{message}</p>
-
-        <button style={primaryBtn} onClick={onClose}>
-          Réessayer
-        </button>
-
-        <button style={secondaryBtn} onClick={onClose}>
-          Continuer mes achats
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PriceRow({
-  label,
-  value,
-  bold = false,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
-  return (
-    <div style={row}>
-      <span style={{ color: "#5b5b5b" }}>{label}</span>
-      <span style={{ fontWeight: bold ? 700 : 500 }}>{value}</span>
-    </div>
-  );
-}
-
-/* =========================
-   PAGE
-========================= */
 
 export default function CheckoutPage() {
   const { cart } = useCart();
 
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [errorOpen, setErrorOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     setMounted(true);
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("error")) {
-        setErrorMessage("Le paiement a été annulé ou refusé.");
-        setErrorOpen(true);
-      }
-    }
   }, []);
 
   const subtotal = useMemo(() => {
     return cart.reduce(
-      (acc: number, item: CartItem) =>
-        acc + item.priceCents * item.quantity,
+      (acc, item) => acc + item.priceCents * item.quantity,
       0
     );
   }, [cart]);
 
-  const shippingCost = subtotal >= 5000 ? 0 : 490;
+  const freeShippingThreshold = 5000;
+  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
   const total = subtotal + shippingCost;
 
-  /* =========================
-     CHECKOUT
-  ========================= */
+  const remaining = Math.max(0, freeShippingThreshold - subtotal);
 
   const handleCheckout = async () => {
-    if (loading) return;
-
-    if (!cart.length) {
-      setErrorMessage("Votre panier est vide.");
-      setErrorOpen(true);
-      return;
-    }
+    if (!cart.length) return;
 
     try {
       setLoading(true);
@@ -147,173 +51,303 @@ export default function CheckoutPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          cart: cart, // ✅ FIX CRITIQUE
-        }),
+        body: JSON.stringify({ cart }),
       });
 
-      const data: CheckoutApiResponse = await res.json();
+      const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Erreur paiement");
-      }
-
-      if (!data.url) {
-        throw new Error("Lien Stripe invalide");
-      }
+      if (!res.ok) throw new Error(data.error);
 
       window.location.href = data.url;
-
-    } catch (error: any) {
-      console.error("❌ CHECKOUT ERROR:", error);
-
-      setErrorMessage(
-        error?.message || "Une erreur est survenue lors du paiement."
-      );
-
-      setErrorOpen(true);
-    } finally {
+    } catch (err) {
+      console.error(err);
+      alert("Erreur paiement");
       setLoading(false);
     }
   };
 
   if (!mounted) return null;
 
-  if (!cart.length) {
-    return (
-      <>
-        <ErrorModal
-          open={errorOpen}
-          message={errorMessage}
-          onClose={() => setErrorOpen(false)}
-        />
-
-        <div style={page}>
-          <h1>Votre panier est vide</h1>
-          <Link href="/products">Voir les produits</Link>
-        </div>
-      </>
-    );
-  }
-
   return (
-    <>
-      <ErrorModal
-        open={errorOpen}
-        message={errorMessage}
-        onClose={() => setErrorOpen(false)}
-      />
+    <div style={page}>
+      {/* HERO */}
+      <section style={hero}>
+        <div style={heroOverlay} />
 
-      <div style={page}>
-        <h1>Finaliser votre commande</h1>
+        <div style={heroContent}>
+          <p style={heroTag}>VanilleOr</p>
 
-        {/* LISTE PRODUITS */}
-        {cart.map((item: CartItem) => (
-          <div key={item.id} style={itemRow}>
-            <img
-              src={getSafeImage(item.imageUrl)}
-              alt={item.name}
-              style={image}
-            />
+          <h1 style={heroTitle}>
+            Finalisez votre commande en toute sérénité
+          </h1>
 
-            <div>
-              <p>{item.name}</p>
-              <p>Quantité : {item.quantity}</p>
-              <p>{formatPrice(item.priceCents)}</p>
-            </div>
-          </div>
-        ))}
-
-        {/* TOTAL */}
-        <div style={{ marginTop: 20 }}>
-          <PriceRow label="Sous-total" value={formatPrice(subtotal)} />
-          <PriceRow
-            label="Livraison"
-            value={shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
-          />
-          <PriceRow label="Total" value={formatPrice(total)} bold />
+          <p style={heroSub}>
+            Paiement sécurisé • Livraison rapide • Qualité premium
+          </p>
         </div>
+      </section>
 
-        {/* CTA */}
-        <button
-          onClick={handleCheckout}
-          disabled={loading}
-          style={cta}
-        >
-          {loading ? "Redirection..." : "Payer 🔒"}
-        </button>
+      {/* CONTENT */}
+      <div style={container}>
+        <div style={grid}>
+          
+          {/* LEFT */}
+          <div>
+            <div style={card}>
+              <h2 style={sectionTitle}>Votre panier</h2>
 
-        <CrossSell />
+              {cart.map((item) => (
+                <div key={item.id} style={itemRow}>
+                  <img
+                    src={item.imageUrl || "/images/default.jpg"}
+                    style={image}
+                  />
+
+                  <div style={{ flex: 1 }}>
+                    <p style={name}>{item.name}</p>
+                    <p style={meta}>Quantité : {item.quantity}</p>
+                  </div>
+
+                  <p style={price}>
+                    {formatPrice(item.priceCents * item.quantity)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* TRUST */}
+            <div style={trust}>
+              <p>✔ Paiement sécurisé Stripe</p>
+              <p>✔ Produits premium Madagascar</p>
+              <p>✔ Expédition rapide & suivie</p>
+            </div>
+
+            <CrossSell />
+          </div>
+
+          {/* RIGHT */}
+          <div style={summary}>
+            <h2 style={sectionTitle}>Résumé</h2>
+
+            {/* 🔥 LIVRAISON PREMIUM */}
+            {remaining > 0 ? (
+              <div style={shippingBox}>
+                Ajoutez encore{" "}
+                <strong>{formatPrice(remaining)}</strong> pour bénéficier de la{" "}
+                <strong>livraison offerte</strong>
+              </div>
+            ) : (
+              <div style={shippingFree}>
+                Livraison offerte appliquée 🎉
+              </div>
+            )}
+
+            <div style={row}>
+              <span>Sous-total</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+
+            <div style={row}>
+              <span>Livraison</span>
+              <span>
+                {shippingCost === 0
+                  ? "Offerte"
+                  : formatPrice(shippingCost)}
+              </span>
+            </div>
+
+            <hr />
+
+            <div style={totalRow}>
+              <span>Total</span>
+              <span>{formatPrice(total)}</span>
+            </div>
+
+            <button
+              onClick={handleCheckout}
+              style={{
+                ...cta,
+                opacity: loading ? 0.7 : 1,
+              }}
+              disabled={loading}
+            >
+              {loading ? "Redirection..." : "Payer maintenant 🔒"}
+            </button>
+
+            <p style={secure}>
+              Paiement sécurisé via Stripe
+            </p>
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
-/* =========================
-   STYLES
-========================= */
+/* ================= STYLE ================= */
 
 const page = {
-  padding: 30,
+  background: "#f8f5ef",
+  minHeight: "100vh",
+};
+
+/* HERO */
+
+const hero = {
+  position: "relative" as const,
+  height: "280px",
+  backgroundImage: "url('/images/hero-vanille.jpg')",
+  backgroundSize: "cover",
+};
+
+const heroOverlay = {
+  position: "absolute" as const,
+  inset: 0,
+  background: "rgba(0,0,0,0.6)",
+};
+
+const heroContent = {
+  position: "relative" as const,
+  zIndex: 2,
+  textAlign: "center" as const,
+  color: "white",
+  paddingTop: "70px",
+};
+
+const heroTag = {
+  color: "#d4af37",
+  fontSize: "26px",
+  fontWeight: 900,
+  letterSpacing: "0.3em",
+};
+
+const heroTitle = {
+  fontSize: "28px",
+  marginTop: "10px",
+};
+
+const heroSub = {
+  color: "#ddd",
+};
+
+/* LAYOUT */
+
+const container = {
+  maxWidth: "1100px",
+  margin: "0 auto",
+  padding: "30px",
+};
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns: "2fr 1fr",
+  gap: "30px",
+};
+
+/* CARD */
+
+const card = {
+  background: "white",
+  borderRadius: "16px",
+  padding: "20px",
 };
 
 const itemRow = {
   display: "flex",
-  gap: 10,
-  marginBottom: 15,
+  gap: "15px",
+  marginBottom: "15px",
+  alignItems: "center",
 };
 
 const image = {
-  width: 80,
-  height: 80,
+  width: "70px",
+  height: "70px",
+  borderRadius: "10px",
   objectFit: "cover" as const,
 };
 
-const cta = {
-  marginTop: 20,
-  padding: 15,
-  background: "#a16207",
-  color: "white",
-  border: "none",
-  borderRadius: 10,
-  cursor: "pointer",
+const name = { fontWeight: 700 };
+
+const meta = {
+  fontSize: "13px",
+  color: "#666",
 };
 
-const overlay = {
-  position: "fixed" as const,
-  inset: 0,
-  background: "rgba(0,0,0,0.6)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+const price = { fontWeight: 700 };
+
+/* TRUST */
+
+const trust = {
+  marginTop: "20px",
+  background: "#fff7ed",
+  padding: "15px",
+  borderRadius: "12px",
 };
 
-const modal = {
+/* SUMMARY */
+
+const summary = {
   background: "white",
-  padding: 20,
-  borderRadius: 12,
+  borderRadius: "16px",
+  padding: "20px",
+  position: "sticky" as const,
+  top: "20px",
 };
 
-const modalIcon = { fontSize: 30 };
-const modalTitle = { marginBottom: 10 };
-const modalText = { marginBottom: 15 };
-
-const primaryBtn = {
-  background: "#a16207",
-  color: "white",
-  padding: 10,
-  borderRadius: 8,
-  border: "none",
-};
-
-const secondaryBtn = {
-  background: "#eee",
-  padding: 10,
-  borderRadius: 8,
-  border: "none",
+const sectionTitle = {
+  fontSize: "20px",
+  marginBottom: "15px",
 };
 
 const row = {
   display: "flex",
   justifyContent: "space-between",
+  marginBottom: "10px",
+};
+
+const totalRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  fontWeight: 800,
+  fontSize: "18px",
+};
+
+/* SHIPPING UX */
+
+const shippingBox = {
+  background: "#fff4df",
+  padding: "12px",
+  borderRadius: "12px",
+  marginBottom: "15px",
+  fontSize: "14px",
+};
+
+const shippingFree = {
+  background: "#ecfdf5",
+  padding: "12px",
+  borderRadius: "12px",
+  marginBottom: "15px",
+  color: "#065f46",
+  fontWeight: 600,
+};
+
+/* CTA */
+
+const cta = {
+  marginTop: "20px",
+  width: "100%",
+  padding: "14px",
+  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
+  color: "white",
+  borderRadius: "12px",
+  border: "none",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const secure = {
+  textAlign: "center" as const,
+  marginTop: "10px",
+  fontSize: "12px",
+  color: "#777",
 };

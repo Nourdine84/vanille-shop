@@ -1,274 +1,262 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useCart } from "@/lib/cart-store";
-import { useUIStore } from "@/components/ui-providers";
+import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
+
+/* =========================
+   TYPES
+========================= */
 
 type Product = {
   id: string;
   name: string;
-  description: string;
+  slug: string;
   priceCents: number;
   imageUrl?: string;
-  stock: number;
-  slug: string;
+  badge?: string;
+  stock?: number;
 };
 
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+/* =========================
+   HELPERS
+========================= */
+
+function formatPrice(price: number) {
+  return (price / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-function normalizeSlug(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+/* =========================
+   PAGE
+========================= */
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
-  const { addToCart } = useCart();
-  const { openCart } = useUIStore();
-
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/products");
-        const data = await res.json();
-
-        if (!Array.isArray(data)) {
-          setProducts([]);
-          setQuantities({});
-          return;
-        }
-
-        setProducts(data);
-
-        const q: Record<string, number> = {};
-        data.forEach((p: Product) => {
-          q[p.id] = 1;
-        });
-        setQuantities(q);
-      } catch (err) {
-        console.error("❌ Fetch products error:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    load();
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch(() => console.error("Erreur chargement produits"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const increase = (id: string) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [id]: Math.min((prev[id] || 1) + 1, 99),
-    }));
-  };
-
-  const decrease = (id: string) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [id]: Math.max((prev[id] || 1) - 1, 1),
-    }));
-  };
-
   return (
-    <div style={{ background: "#f8f5ef", minHeight: "100vh" }}>
+    <div style={page}>
+      {/* ================= HERO ================= */}
       <section style={hero}>
-        <h1 style={heroTitle}>Collection Vanille’Or</h1>
-        <p style={heroSubtitle}>
-          L’excellence de Madagascar, directement chez vous
-        </p>
+        <div style={overlay} />
+
+        <div style={heroContent}>
+          <p style={heroTag}>VanilleOr</p>
+
+          <h1 style={heroTitle}>
+            Nos produits d’exception
+          </h1>
+
+          <p style={heroSubtitle}>
+            Découvrez notre sélection premium de vanille et d’épices,
+            directement issue de Madagascar.
+          </p>
+        </div>
       </section>
 
+      {/* ================= CONTENT ================= */}
       <div style={container}>
-        {loading ? (
-          <p style={{ textAlign: "center" }}>Chargement...</p>
-        ) : products.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#666" }}>
-            Aucun produit disponible pour le moment.
-          </p>
-        ) : (
-          <div style={grid}>
-            {products.map((product, index) => {
-              const isOutOfStock = product.stock <= 0;
-              const quantity = quantities[product.id] || 1;
-              const safeSlug = normalizeSlug(product.slug || product.name);
+        {loading && <p style={center}>Chargement...</p>}
 
-              return (
-                <div key={product.id} style={card}>
-                  {index === 0 && <div style={badgeBest}>🔥 Best Seller</div>}
-
-                  {product.stock < 5 && !isOutOfStock && (
-                    <div style={badgeStock}>⚠ Stock limité</div>
-                  )}
-
-                  {isOutOfStock && <div style={badgeOut}>Épuisé</div>}
-
-                  <img
-                    src={getImageUrl(product.imageUrl)}
-                    alt={product.name}
-                    style={image}
-                  />
-
-                  <div style={content}>
-                    <h2 style={title}>{product.name}</h2>
-
-                    <p style={desc}>{product.description}</p>
-
-                    <p style={trigger}>✔ Qualité premium</p>
-                    <p style={trigger2}>🚀 Expédition rapide</p>
-
-                    <p style={price}>{formatPrice(product.priceCents)}</p>
-
-                    {!isOutOfStock && (
-                      <div style={qtyRow}>
-                        <button
-                          onClick={() => decrease(product.id)}
-                          style={qtyBtn}
-                        >
-                          −
-                        </button>
-                        <span>{quantity}</span>
-                        <button
-                          onClick={() => increase(product.id)}
-                          style={qtyBtn}
-                        >
-                          +
-                        </button>
-                      </div>
-                    )}
-
-                    <div style={actions}>
-                      <button
-                        disabled={isOutOfStock}
-                        onClick={() => {
-                          addToCart({
-                            id: product.id,
-                            name: product.name,
-                            priceCents: product.priceCents,
-                            quantity,
-                            imageUrl: getImageUrl(product.imageUrl),
-                          });
-
-                          setTimeout(() => openCart(), 120);
-                        }}
-                        style={{
-                          ...btnPrimary,
-                          background: isOutOfStock ? "#aaa" : "#a16207",
-                        }}
-                      >
-                        Ajouter
-                      </button>
-
-                      <Link href={`/products/${safeSlug}`} style={btnSecondary}>
-                        Voir
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {!loading && products.length === 0 && (
+          <p style={center}>Aucun produit disponible</p>
         )}
+
+        <div style={grid}>
+          {products.map((p) => {
+            const isOut = p.stock === 0;
+
+            return (
+              <Link
+                key={p.id}
+                href={`/products/${p.slug}`}
+                style={card}
+              >
+                {/* BADGES */}
+                {p.badge && !isOut && (
+                  <span style={badge}>{p.badge}</span>
+                )}
+
+                {isOut && <span style={out}>ÉPUISÉ</span>}
+
+                {/* IMAGE */}
+                <img
+                  src={getImageUrl(p.imageUrl)}
+                  alt={p.name}
+                  style={img}
+                />
+
+                {/* CONTENT */}
+                <div style={content}>
+                  <h3 style={name}>{p.name}</h3>
+
+                  <p style={price}>
+                    {formatPrice(p.priceCents)}
+                  </p>
+
+                  <span style={ctaMini}>Voir →</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ================= SIGNATURE ================= */}
+      <div style={signature}>
+        Site développé par <strong>Akm.Consulting</strong>
       </div>
     </div>
   );
 }
 
-const hero = { textAlign: "center" as const, padding: "60px 20px" };
-const heroTitle = { fontSize: "40px", fontWeight: 800 };
-const heroSubtitle = { color: "#666" };
+/* =========================
+   STYLES
+========================= */
 
-const container = { maxWidth: 1200, margin: "0 auto", padding: 20 };
+const page = {
+  background: "#f8f5ef",
+  minHeight: "100vh",
+};
+
+/* HERO */
+
+const hero = {
+  position: "relative" as const,
+  height: "320px",
+  backgroundImage: "url('/images/hero-vanille.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+};
+
+const overlay = {
+  position: "absolute" as const,
+  inset: 0,
+  background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
+};
+
+const heroContent = {
+  position: "relative" as const,
+  zIndex: 2,
+  textAlign: "center" as const,
+  color: "white",
+  paddingTop: "80px",
+};
+
+const heroTag = {
+  color: "#d4af37",
+  fontSize: "22px",
+  fontWeight: 800,
+  letterSpacing: "0.3em",
+};
+
+const heroTitle = {
+  fontSize: "32px",
+  marginTop: "10px",
+};
+
+const heroSubtitle = {
+  color: "#ddd",
+  marginTop: "10px",
+};
+
+/* CONTENT */
+
+const container = {
+  maxWidth: "1100px",
+  margin: "0 auto",
+  padding: "40px 20px",
+};
+
+const center = {
+  textAlign: "center" as const,
+};
+
+/* GRID */
 
 const grid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-  gap: 30,
+  gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+  gap: "24px",
 };
+
+/* CARD */
 
 const card = {
-  background: "white",
-  borderRadius: 20,
-  overflow: "hidden",
-  boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
   position: "relative" as const,
-};
-
-const image = { width: "100%", height: 260, objectFit: "cover" as const };
-
-const content = { padding: 20 };
-
-const title = { fontWeight: 700 };
-const desc = { fontSize: 14, color: "#666" };
-
-const trigger = { color: "#16a34a", fontSize: 13 };
-const trigger2 = { color: "#a16207", fontSize: 13 };
-
-const price = { fontSize: 20, fontWeight: 800 };
-
-const qtyRow = {
-  display: "flex",
-  alignItems: "center" as const,
-  gap: 10,
-  marginBottom: 12,
-};
-
-const qtyBtn = {
-  padding: "4px 10px",
-  borderRadius: 8,
-  border: "1px solid #ddd",
   background: "white",
-  cursor: "pointer",
-};
-
-const actions = { display: "flex", gap: 10 };
-
-const btnPrimary = {
-  flex: 1,
-  color: "white",
-  padding: 12,
-  borderRadius: 10,
-  border: "none",
-  cursor: "pointer",
-};
-
-const btnSecondary = {
-  flex: 1,
-  background: "#eee",
-  padding: 12,
-  borderRadius: 10,
-  textAlign: "center" as const,
+  borderRadius: "18px",
+  overflow: "hidden",
   textDecoration: "none",
   color: "#111",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  transition: "0.2s",
 };
 
-const badgeBest = {
+const img = {
+  width: "100%",
+  height: "220px",
+  objectFit: "cover" as const,
+};
+
+const content = {
+  padding: "15px",
+};
+
+const name = {
+  fontWeight: 700,
+  marginBottom: "6px",
+};
+
+const price = {
+  color: "#a16207",
+  fontWeight: 700,
+};
+
+const ctaMini = {
+  display: "block",
+  marginTop: "8px",
+  fontSize: "13px",
+  fontWeight: 600,
+};
+
+/* BADGES */
+
+const badge = {
   position: "absolute" as const,
-  top: 10,
-  left: 10,
+  top: "10px",
+  left: "10px",
   background: "#a16207",
   color: "white",
-  padding: "6px 10px",
-  borderRadius: 10,
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
 };
 
-const badgeStock = {
+const out = {
   position: "absolute" as const,
-  top: 10,
-  right: 10,
+  top: "10px",
+  right: "10px",
   background: "#dc2626",
   color: "white",
-  padding: "6px 10px",
-  borderRadius: 10,
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
 };
 
-const badgeOut = badgeStock;
+/* SIGNATURE */
+
+const signature = {
+  textAlign: "center" as const,
+  padding: "20px",
+  fontSize: "12px",
+  color: "#777",
+};

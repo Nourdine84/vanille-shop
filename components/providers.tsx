@@ -1,11 +1,13 @@
 "use client";
 
-import { UIProvider } from "@/components/ui-providers";
+import { UIProvider } from "./ui-providers";
+import MiniCart from "./mini-cart";
 
-export default function Providers({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <UIProvider>{children}</UIProvider>;
+export default function Providers({ children }: any) {
+  return (
+    <UIProvider>
+      {children}
+      <MiniCart /> {/* 🔥 GLOBAL */}
+    </UIProvider>
+  );
 }
