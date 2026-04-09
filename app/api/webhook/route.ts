@@ -27,6 +27,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 ========================= */
 
 export async function POST(req: Request) {
+  let event: Stripe.Event;
+
   try {
     const body = await req.text();
     const signature = headers().get("stripe-signature");
@@ -35,8 +37,6 @@ export async function POST(req: Request) {
       console.error("❌ Missing Stripe signature");
       return NextResponse.json({ error: "No signature" }, { status: 400 });
     }
-
-    let event: Stripe.Event;
 
     try {
       event = stripe.webhooks.constructEvent(
@@ -55,142 +55,154 @@ export async function POST(req: Request) {
        💰 CHECKOUT SUCCESS
     ========================= */
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const orderId = session.metadata?.orderId;
-
-      if (!orderId) {
-        console.error("❌ Missing orderId");
-        return NextResponse.json({ received: true });
-      }
-
-      /* =========================
-         FETCH ORDER
-      ========================= */
-      const existingOrder = await prisma.order.findUnique({
-        where: { id: orderId },
-      });
-
-      if (!existingOrder) {
-        console.error("❌ Order not found:", orderId);
-        return NextResponse.json({ received: true });
-      }
-
-      /* =========================
-         IDEMPOTENCE
-      ========================= */
-      if (existingOrder.status === "PAID") {
-        console.log("⚠️ Already processed:", orderId);
-        return NextResponse.json({ received: true });
-      }
-
-      /* =========================
-         UPDATE ORDER
-      ========================= */
-      const order = await prisma.order.update({
-        where: { id: orderId },
-        data: {
-          status: "PAID",
-          stripePaymentId:
-            typeof session.payment_intent === "string"
-              ? session.payment_intent
-              : session.payment_intent?.id,
-        },
-      });
-
-      console.log("✅ ORDER PAID:", order.id);
-
-      /* =========================
-         SAFE PARSE ITEMS
-      ========================= */
-      let items: any[] = [];
-
-      if (Array.isArray(order.items)) {
-        items = order.items;
-      } else {
-        console.warn("⚠️ Invalid items format:", order.items);
-      }
-
-      /* =========================
-         UPDATE STOCK
-      ========================= */
-      try {
-        for (const item of items) {
-          const cleanId = item.id?.split("-")[0];
-
-          if (!cleanId) continue;
-
-          await prisma.product.update({
-            where: { id: cleanId },
-            data: {
-              stock: {
-                decrement: Number(item.quantity) || 1,
-              },
-            },
-          });
-        }
-
-        console.log("📦 STOCK UPDATED");
-      } catch (err) {
-        console.error("❌ STOCK ERROR:", err);
-      }
-
-      /* =========================
-         FORMAT ITEMS (TS SAFE)
-      ========================= */
-      const formattedItems = items.map((item: any) => ({
-        id: item.id || "",
-        name: item.name || "Produit",
-        quantity: Number(item.quantity) || 1,
-        priceCents: Number(item.priceCents) || 0,
-      }));
-
-      /* =========================
-         FIX NULL TYPES
-      ========================= */
-      const trackingNumber =
-        order.trackingNumber === null ? undefined : order.trackingNumber;
-
-      const carrier =
-        order.carrier === null ? undefined : order.carrier;
-
-      /* =========================
-         EMAIL CLIENT
-      ========================= */
-      const email = session.customer_details?.email;
-
-      if (email && formattedItems.length > 0) {
-        try {
-          await sendOrderConfirmationEmail({
-            to: email,
-            orderId: order.id,
-            items: formattedItems,
-            totalCents: order.totalCents,
-            trackingNumber,
-            carrier,
-          });
-
-          console.log("📧 CLIENT EMAIL SENT:", email);
-        } catch (err) {
-          console.error("❌ EMAIL CLIENT ERROR:", err);
-        }
-      }
-
-      /* =========================
-         EMAIL ADMIN
-      ========================= */
-      await sendAdminNotification(order, session);
+      await handleCheckoutCompleted(
+        event.data.object as Stripe.Checkout.Session
+      );
     }
 
     return NextResponse.json({ received: true });
 
   } catch (error) {
     console.error("🔥 WEBHOOK ERROR:", error);
-
     return NextResponse.json(
       { error: "Webhook error" },
       { status: 500 }
     );
   }
+}
+
+/* =========================
+   HANDLER CLEAN
+========================= */
+
+async function handleCheckoutCompleted(
+  session: Stripe.Checkout.Session
+) {
+  const orderId = session.metadata?.orderId;
+
+  if (!orderId) {
+    console.error("❌ Missing orderId");
+    return;
+  }
+
+  /* =========================
+     FETCH ORDER
+  ========================= */
+  const existingOrder = await prisma.order.findUnique({
+    where: { id: orderId },
+  });
+
+  if (!existingOrder) {
+    console.error("❌ Order not found:", orderId);
+    return;
+  }
+
+  /* =========================
+     IDEMPOTENCE HARD SAFE
+  ========================= */
+  if (existingOrder.status === "PAID") {
+    console.log("⚠️ Already processed:", orderId);
+    return;
+  }
+
+  /* =========================
+     UPDATE ORDER
+  ========================= */
+  const order = await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      status: "PAID",
+      stripePaymentId:
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id,
+    },
+  });
+
+  console.log("✅ ORDER PAID:", order.id);
+
+  /* =========================
+     SAFE ITEMS PARSE
+  ========================= */
+  let items: any[] = [];
+
+  try {
+    if (Array.isArray(order.items)) {
+      items = order.items;
+    } else if (typeof order.items === "string") {
+      items = JSON.parse(order.items);
+    }
+  } catch (err) {
+    console.error("❌ Items parse error:", err);
+  }
+
+  /* =========================
+     UPDATE STOCK (SAFE LOOP)
+  ========================= */
+  try {
+    await Promise.all(
+      items.map(async (item) => {
+        const cleanId = item?.id?.split("-")[0];
+
+        if (!cleanId) return;
+
+        await prisma.product.update({
+          where: { id: cleanId },
+          data: {
+            stock: {
+              decrement: Number(item.quantity) || 1,
+            },
+          },
+        });
+      })
+    );
+
+    console.log("📦 STOCK UPDATED");
+
+  } catch (err) {
+    console.error("❌ STOCK ERROR:", err);
+  }
+
+  /* =========================
+     FORMAT ITEMS CLEAN
+  ========================= */
+  const formattedItems = items.map((item: any) => ({
+    id: item?.id || "",
+    name: item?.name || "Produit",
+    quantity: Number(item?.quantity) || 1,
+    priceCents: Number(item?.priceCents) || 0,
+  }));
+
+  const trackingNumber = order.trackingNumber ?? undefined;
+  const carrier = order.carrier ?? undefined;
+
+  /* =========================
+     EMAIL CLIENT
+  ========================= */
+  const email = session.customer_details?.email;
+
+  if (email && formattedItems.length > 0) {
+    try {
+      await sendOrderConfirmationEmail({
+        to: email,
+        orderId: order.id,
+        items: formattedItems,
+        totalCents: order.totalCents,
+        trackingNumber,
+        carrier,
+      });
+
+      console.log("📧 CLIENT EMAIL SENT:", email);
+
+    } catch (err) {
+      console.error("❌ EMAIL CLIENT ERROR:", err);
+    }
+  }
+
+  /* =========================
+     EMAIL ADMIN
+  ========================= */
+  await sendAdminNotification(order, session);
 }
 
 /* =========================
