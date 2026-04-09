@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openCart } from "../utils/cart";
 
 test("🧠 Persistance panier entre pages", async ({ page }) => {
   await page.goto("/products");
