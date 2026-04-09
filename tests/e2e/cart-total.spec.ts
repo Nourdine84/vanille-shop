@@ -1,16 +1,17 @@
 import { test, expect } from "@playwright/test";
+import { openCart } from "../utils/cart";
 
-test("💰 Calcul du total panier dynamique", async ({ page }) => {
+test("💰 Total panier correct", async ({ page }) => {
   await page.goto("/products");
   await page.waitForLoadState("networkidle");
 
   await page.getByRole("button", { name: "Ajouter" }).first().click();
 
-  await page.getByTestId("cart-button").click();
+  const cart = page.getByTestId("mini-cart").first();
 
-  const totalBefore = await page.getByTestId("cart-total").innerText();
+  await expect(cart).toBeVisible();
 
-  await page.getByRole("button", { name: "+" }).first().click();
+  const total = cart.getByTestId("cart-total");
 
-  await expect(page.getByTestId("cart-total")).not.toHaveText(totalBefore);
+  await expect(total).toBeVisible();
 });

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openCart } from "../utils/cart";
 
 test.describe("📱 Responsive mobile", () => {
   test("Navigation mobile produits → panier", async ({ page }) => {

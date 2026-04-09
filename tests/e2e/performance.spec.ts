@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openCart } from "../utils/cart";
 
 test("⚡ Temps chargement produits", async ({ page }) => {
   const start = Date.now();

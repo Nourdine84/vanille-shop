@@ -1,28 +1,40 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 
-test("Accès checkout stable", async ({ page }) => {
-  await page.goto("/products");
+/* =========================
+   HELPERS
+========================= */
 
-  await page.waitForSelector('[data-testid="add-to-cart"]');
+async function openCart(page: Page) {
+  const cart = page.getByTestId("mini-cart").first();
 
-  await page.getByTestId("add-to-cart").first().click();
-
-  const cart = page.locator('[data-testid="mini-cart"]:visible').first();
-
-  if (!(await cart.isVisible().catch(() => false))) {
+  if (!(await cart.isVisible())) {
     await page.getByTestId("cart-button").click();
   }
 
   await expect(cart).toBeVisible();
+}
 
-  await cart.getByTestId("checkout-button").click({ force: true });
+/* =========================
+   TEST
+========================= */
 
-  // ✅ check principal
-  await page.waitForURL("**/checkout", { timeout: 10000 });
+test("Accès checkout stable", async ({ page }) => {
+  await page.goto("/products");
+  await page.waitForLoadState("networkidle");
 
-  // ✅ check robuste (structure page)
-  await expect(page).toHaveURL(/checkout/);
+  // ajouter produit
+  await page.getByRole("button", { name: "Ajouter" }).first().click();
 
-  // OPTION BONUS (si tu veux sécuriser plus)
-  await expect(page.locator("body")).toBeVisible();
+  // ouvrir panier
+  await openCart(page);
+
+  const cart = page.getByTestId("mini-cart").first();
+
+  // checkout
+  await cart.getByTestId("checkout-button").click();
+
+  await page.waitForURL("**/checkout");
+
+  // ✅ robuste (évite dépendance texte fragile)
+  await expect(page.locator("h1")).toBeVisible();
 });

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openCart } from "../utils/cart";
 
 test("💳 Mock paiement Stripe", async ({ page }) => {
 
