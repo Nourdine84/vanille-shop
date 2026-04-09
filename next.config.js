@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   output: "standalone",
 
   images: {
-    unoptimized: true, // 🔥 évite bugs en dev
     remotePatterns: [
       {
         protocol: "https",
@@ -14,8 +13,14 @@ const nextConfig = {
     ],
   },
 
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
+
   typescript: {
-    ignoreBuildErrors: true, // ⚠️ ok temporaire
+    ignoreBuildErrors: false, // ✅ ON FIX PROPRE
   },
 };
 
