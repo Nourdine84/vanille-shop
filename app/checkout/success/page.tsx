@@ -1,273 +1,153 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useCart } from "@/lib/cart-store";
 
-export default function SuccessContent() {
-  const params = useSearchParams();
-  const sessionId = params.get("session_id");
+function getLogo() {
+  return "/images/logo-vanilleor.png";
+}
 
-  const { clearCart } = useCart();
-
-  const [visible, setVisible] = useState(false);
-  const [redirectTimer, setRedirectTimer] = useState(6);
-
-  useEffect(() => {
-    setTimeout(() => setVisible(true), 200);
-
-    // 🔥 clear panier safe
-    try {
-      clearCart();
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("cart");
-      }
-    } catch (e) {
-      console.warn("Cart cleanup error:", e);
-    }
-
-    // 🔥 auto redirect clean
-    const interval = setInterval(() => {
-      setRedirectTimer((prev) => {
-        if (prev <= 1) {
-          window.location.assign("/products");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
+export default function SuccessPage() {
   return (
-    <div style={container}>
-      <div
-        style={{
-          ...card,
-          opacity: visible ? 1 : 0,
-          transform: visible
-            ? "translateY(0px)"
-            : "translateY(30px)",
-        }}
-      >
-        {/* LOGO */}
-        <div style={logoWrapper}>
-          <Image
-            src="/logo-vanilleor.png" // 🔥 FIX LOGO
-            alt="Vanille’Or"
-            width={150}
-            height={60}
-            priority
+    <div style={page}>
+      <section style={hero}>
+        <div style={overlay} />
+
+        <div style={content}>
+          <img
+            src={getLogo()}
+            alt="VanilleOr"
+            style={logo}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = "/images/default.jpg";
+            }}
           />
-        </div>
 
-        {/* ICON */}
-        <div style={iconWrap}>
-          <div style={iconCircle}>✓</div>
-        </div>
+          <h1 style={title}>Commande validée 🎉</h1>
 
-        <h1 style={title}>Commande confirmée</h1>
-
-        <p style={subtitle}>
-          Merci pour votre confiance chez{" "}
-          <strong style={{ color: "#a16207" }}>
-            Vanille’Or
-          </strong>
-        </p>
-
-        {sessionId && (
-          <p style={orderId}>
-            Référence : {sessionId.slice(0, 12)}
+          <p style={text}>
+            Merci pour votre confiance. Votre commande a été confirmée avec
+            succès.
           </p>
-        )}
 
-        {/* TIMELINE */}
-        <div style={timeline}>
-          <Step text="Paiement" active />
-          <Step text="Préparation" />
-          <Step text="Expédition" />
-          <Step text="Livraison" />
+          <p style={subText}>
+            Vous recevrez un email de confirmation dans quelques instants.
+          </p>
+
+          <div style={actions}>
+            <Link href="/products" style={btnPrimary}>
+              Continuer mes achats
+            </Link>
+
+            <Link href="/" style={btnGhost}>
+              Retour accueil
+            </Link>
+          </div>
+
+          <div style={trust}>
+            <p>✔ Paiement sécurisé Stripe</p>
+            <p>✔ Expédition rapide depuis la France</p>
+            <p>✔ Qualité premium Madagascar</p>
+          </div>
+
+          <p style={signature}>
+            Développé par <strong>Akm.Consulting</strong>
+          </p>
         </div>
-
-        {/* INFO PREMIUM */}
-        <div style={infoBox}>
-          <p>📦 Préparation en cours</p>
-          <p>🚚 Expédition sous 24-48h</p>
-          <p>📧 Confirmation envoyée par email</p>
-        </div>
-
-        {/* CTA */}
-        <div style={actions}>
-          <Link href="/products" style={primaryBtn}>
-            Continuer mes achats
-          </Link>
-
-          <Link href="/b2b" style={secondaryBtn}>
-            Accéder à l’offre pro
-          </Link>
-        </div>
-
-        {/* REDIRECT */}
-        <p style={redirectText}>
-          Redirection automatique dans {redirectTimer}s
-        </p>
-      </div>
+      </section>
     </div>
   );
 }
 
-/* =========================
-   STEP COMPONENT
-========================= */
+const page = {
+  minHeight: "100vh",
+  background: "#000",
+};
 
-function Step({ text, active = false }: { text: string; active?: boolean }) {
-  return (
-    <div style={step}>
-      <div
-        style={{
-          ...dot,
-          background: active ? "#16a34a" : "#ddd",
-        }}
-      />
-      <span
-        style={{
-          color: active ? "#111" : "#999",
-          fontWeight: active ? 600 : 400,
-        }}
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
-
-/* =========================
-   STYLES PREMIUM
-========================= */
-
-const container = {
+const hero = {
+  position: "relative" as const,
   minHeight: "100vh",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "linear-gradient(180deg,#f8f4ee,#fcfaf7)",
+  backgroundImage: "url('/images/hero-vanille.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+};
+
+const overlay = {
+  position: "absolute" as const,
+  inset: 0,
+  background: "linear-gradient(180deg, rgba(0,0,0,0.7), rgba(0,0,0,0.85))",
+};
+
+const content = {
+  position: "relative" as const,
+  zIndex: 2,
+  textAlign: "center" as const,
+  color: "white",
+  maxWidth: "600px",
   padding: "20px",
 };
 
-const card = {
-  background: "white",
-  padding: "45px 30px",
-  borderRadius: "26px",
-  textAlign: "center" as const,
-  maxWidth: "540px",
-  width: "100%",
-  boxShadow: "0 30px 70px rgba(0,0,0,0.08)",
-  transition: "all 0.4s ease",
-};
-
-const logoWrapper = {
+const logo = {
+  width: "180px",
   marginBottom: "25px",
-};
-
-const iconWrap = {
-  display: "flex",
-  justifyContent: "center",
-  marginBottom: "15px",
-};
-
-const iconCircle = {
-  width: "60px",
-  height: "60px",
-  borderRadius: "50%",
-  background: "#16a34a",
-  color: "white",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "28px",
-  fontWeight: 700,
+  objectFit: "contain" as const,
 };
 
 const title = {
-  fontSize: "32px",
+  fontSize: "34px",
+  fontWeight: 800,
+  marginBottom: "15px",
+};
+
+const text = {
+  fontSize: "16px",
   marginBottom: "10px",
+  color: "#ddd",
 };
 
-const subtitle = {
-  color: "#666",
-  marginBottom: "10px",
+const subText = {
+  fontSize: "14px",
+  color: "#bbb",
+  marginBottom: "25px",
 };
-
-const orderId = {
-  fontSize: "12px",
-  color: "#999",
-};
-
-/* TIMELINE */
-
-const timeline = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginTop: "30px",
-  marginBottom: "30px",
-};
-
-const step = {
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "center",
-  gap: "6px",
-  fontSize: "12px",
-};
-
-const dot = {
-  width: "10px",
-  height: "10px",
-  borderRadius: "50%",
-};
-
-/* INFO */
-
-const infoBox = {
-  background: "#faf7f2",
-  padding: "18px",
-  borderRadius: "16px",
-  marginBottom: "22px",
-  border: "1px solid #eee",
-};
-
-/* CTA */
 
 const actions = {
   display: "flex",
-  flexDirection: "column" as const,
-  gap: "10px",
+  justifyContent: "center",
+  gap: "12px",
+  flexWrap: "wrap" as const,
 };
 
-const primaryBtn = {
-  padding: "15px",
-  background: "linear-gradient(135deg,#a16207,#7c4a03)",
+const btnPrimary = {
+  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
   color: "white",
-  borderRadius: "14px",
+  padding: "14px 22px",
+  borderRadius: "12px",
   textDecoration: "none",
   fontWeight: 700,
 };
 
-const secondaryBtn = {
-  padding: "13px",
-  background: "#f3f4f6",
-  borderRadius: "14px",
+const btnGhost = {
+  background: "rgba(255,255,255,0.1)",
+  backdropFilter: "blur(10px)",
+  color: "white",
+  padding: "14px 22px",
+  borderRadius: "12px",
   textDecoration: "none",
-  color: "#111",
+  border: "1px solid rgba(255,255,255,0.2)",
 };
 
-/* REDIRECT */
+const trust = {
+  marginTop: "30px",
+  fontSize: "13px",
+  color: "#ccc",
+  lineHeight: 1.6,
+};
 
-const redirectText = {
-  marginTop: "15px",
+const signature = {
+  marginTop: "30px",
   fontSize: "12px",
-  color: "#999",
+  color: "#888",
 };

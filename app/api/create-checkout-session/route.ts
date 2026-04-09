@@ -1,22 +1,24 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/* =========================
-   INIT STRIPE (SAFE)
-========================= */
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("❌ STRIPE_SECRET_KEY manquante");
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-/* =========================
-   BASE URL SAFE
-========================= */
+type CartItem = {
+  id: string;
+  name: string;
+  priceCents: number;
+  quantity: number;
+  imageUrl?: string;
+};
+
 function getBaseUrl(req: Request) {
   const origin = req.headers.get("origin");
 
@@ -29,53 +31,59 @@ function getBaseUrl(req: Request) {
   return "http://localhost:3000";
 }
 
-/* =========================
-   POST CHECKOUT
-========================= */
+function normalizeProductId(rawId: string) {
+  if (!rawId) return "";
+  return rawId.split("-")[0];
+}
+
 export async function POST(req: Request) {
   try {
-    /* =========================
-       SAFE JSON PARSE
-    ========================= */
-    let body: any;
+    let body: { cart?: CartItem[] };
 
     try {
       body = await req.json();
     } catch {
-      console.error("❌ JSON invalide");
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    console.log("🧾 BODY:", body);
+    const cart = body.cart;
 
-    /* =========================
-       VALIDATION PANIER
-    ========================= */
-    if (!body.cart || !Array.isArray(body.cart) || body.cart.length === 0) {
+    if (!Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: "Panier vide" }, { status: 400 });
     }
 
     const baseUrl = getBaseUrl(req);
 
-    /* =========================
-       VALIDATION PRODUITS
-    ========================= */
-    for (const item of body.cart) {
-      if (!item.id || !item.priceCents || !item.quantity) {
+    const validatedCart: CartItem[] = [];
+
+    for (const item of cart) {
+      if (
+        !item ||
+        typeof item.id !== "string" ||
+        typeof item.name !== "string" ||
+        typeof item.priceCents !== "number" ||
+        typeof item.quantity !== "number"
+      ) {
         return NextResponse.json(
           { error: "Produit invalide" },
           { status: 400 }
         );
       }
 
-      const cleanId = item.id.split("-")[0];
+      if (item.quantity <= 0 || item.priceCents <= 0) {
+        return NextResponse.json(
+          { error: `Valeurs invalides pour ${item.name}` },
+          { status: 400 }
+        );
+      }
+
+      const cleanId = normalizeProductId(item.id);
 
       const product = await prisma.product.findUnique({
         where: { id: cleanId },
       });
 
-      if (!product) {
-        console.error("❌ Produit introuvable:", cleanId);
+      if (!product || !product.isActive) {
         return NextResponse.json(
           { error: `Produit introuvable: ${item.name}` },
           { status: 404 }
@@ -88,14 +96,18 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
+
+      validatedCart.push({
+        id: product.id,
+        name: product.name,
+        priceCents: product.priceCents,
+        quantity: item.quantity,
+        imageUrl: item.imageUrl || product.imageUrl,
+      });
     }
 
-    /* =========================
-       CALCUL PRIX
-    ========================= */
-    const subtotal = body.cart.reduce(
-      (acc: number, item: any) =>
-        acc + item.priceCents * item.quantity,
+    const subtotal = validatedCart.reduce(
+      (acc, item) => acc + item.priceCents * item.quantity,
       0
     );
 
@@ -103,30 +115,21 @@ export async function POST(req: Request) {
     const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
     const total = subtotal + shippingCost;
 
-    console.log("💰 TOTAL:", total);
-
-    /* =========================
-       CREATE ORDER
-    ========================= */
     const order = await prisma.order.create({
       data: {
         status: "PENDING",
         totalCents: total,
         currency: "EUR",
-        items: body.cart,
+        items: validatedCart,
       },
     });
 
-    console.log("🧾 ORDER CREATED:", order.id);
-
-    /* =========================
-       STRIPE LINE ITEMS
-    ========================= */
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      body.cart.map((item: any) => {
-        const imageUrl = item.imageUrl?.startsWith("http")
-          ? item.imageUrl
-          : `${baseUrl}${item.imageUrl || "/images/product-vanille.jpg"}`;
+      validatedCart.map((item) => {
+        const resolvedImageUrl =
+          item.imageUrl && item.imageUrl.startsWith("http")
+            ? item.imageUrl
+            : `${baseUrl}${item.imageUrl || "/images/product-vanille.jpg"}`;
 
         return {
           price_data: {
@@ -134,7 +137,7 @@ export async function POST(req: Request) {
             product_data: {
               name: item.name,
               description: "Vanille premium de Madagascar — Vanille’Or",
-              images: [imageUrl],
+              images: [resolvedImageUrl],
             },
             unit_amount: item.priceCents,
           },
@@ -155,38 +158,25 @@ export async function POST(req: Request) {
       });
     }
 
-    /* =========================
-       CREATE STRIPE SESSION
-    ========================= */
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
-
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/checkout?error=1`,
-
       billing_address_collection: "required",
-
       shipping_address_collection: {
         allowed_countries: ["FR", "BE", "CH"],
       },
-
       phone_number_collection: {
         enabled: true,
       },
-
       metadata: {
         orderId: order.id,
         source: "vanilleor-shop",
       },
     });
 
-    console.log("💳 STRIPE SESSION:", session.id);
-
-    /* =========================
-       LINK ORDER
-    ========================= */
     await prisma.order.update({
       where: { id: order.id },
       data: {
@@ -194,15 +184,9 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log("✅ READY TO PAY:", session.url);
-
     return NextResponse.json({ url: session.url });
-
   } catch (error: any) {
-    console.error("🔥 STRIPE FULL ERROR:");
-    console.error(error);
-    console.error("MESSAGE:", error?.message);
-    console.error("TYPE:", error?.type);
+    console.error("🔥 STRIPE FULL ERROR:", error);
 
     return NextResponse.json(
       { error: error?.message || "Erreur Stripe" },
@@ -211,9 +195,6 @@ export async function POST(req: Request) {
   }
 }
 
-/* =========================
-   GET DEBUG
-========================= */
 export async function GET() {
   return NextResponse.json({
     message: "API checkout OK",
