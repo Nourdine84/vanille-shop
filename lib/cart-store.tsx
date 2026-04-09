@@ -2,10 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-/* =========================
-   TYPES
-========================= */
-
 export type CartItem = {
   id: string;
   name: string;
@@ -14,16 +10,8 @@ export type CartItem = {
   imageUrl?: string;
 };
 
-/* =========================
-   GLOBAL STORE
-========================= */
-
 let globalCart: CartItem[] = [];
 let listeners: ((cart: CartItem[]) => void)[] = [];
-
-/* =========================
-   HELPERS
-========================= */
 
 function notify() {
   listeners.forEach((l) => l([...globalCart]));
@@ -47,34 +35,29 @@ function loadFromStorage() {
     if (stored) {
       globalCart = JSON.parse(stored);
     }
-  } catch (error) {
-    console.error("❌ CART LOAD ERROR:", error);
+  } catch {
     globalCart = [];
   }
 }
 
-/* =========================
-   HOOK
-========================= */
-
 export function useCart() {
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  /* 🔄 Init + Sync */
   useEffect(() => {
     loadFromStorage();
     setCart([...globalCart]);
 
+    const timeout = setTimeout(() => {
+      notify();
+    }, 50);
+
     listeners.push(setCart);
 
     return () => {
+      clearTimeout(timeout);
       listeners = listeners.filter((l) => l !== setCart);
     };
   }, []);
-
-  /* =========================
-     ACTIONS
-  ========================= */
 
   const addToCart = (item: CartItem) => {
     const existing = globalCart.find((i) => i.id === item.id);
@@ -82,20 +65,12 @@ export function useCart() {
     let newCart: CartItem[];
 
     if (existing) {
-      const newQty = existing.quantity + item.quantity;
-
-      if (newQty <= 0) {
-        newCart = globalCart.filter((i) => i.id !== item.id);
-      } else {
-        newCart = globalCart.map((i) =>
-          i.id === item.id
-            ? { ...i, quantity: newQty }
-            : i
-        );
-      }
+      newCart = globalCart.map((i) =>
+        i.id === item.id
+          ? { ...i, quantity: i.quantity + item.quantity }
+          : i
+      );
     } else {
-      if (item.quantity <= 0) return;
-
       newCart = [...globalCart, item];
     }
 
@@ -103,37 +78,25 @@ export function useCart() {
   };
 
   const updateQuantity = (id: string, quantity: number) => {
-    let newCart: CartItem[];
-
-    if (quantity <= 0) {
-      newCart = globalCart.filter((i) => i.id !== id);
-    } else {
-      newCart = globalCart.map((i) =>
-        i.id === id ? { ...i, quantity } : i
-      );
-    }
+    let newCart =
+      quantity <= 0
+        ? globalCart.filter((i) => i.id !== id)
+        : globalCart.map((i) =>
+            i.id === id ? { ...i, quantity } : i
+          );
 
     save(newCart);
   };
 
   const removeFromCart = (id: string) => {
-    const newCart = globalCart.filter((i) => i.id !== id);
-    save(newCart);
+    save(globalCart.filter((i) => i.id !== id));
   };
 
   const clearCart = () => {
     globalCart = [];
-
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("cart");
-    }
-
+    localStorage.removeItem("cart");
     notify();
   };
-
-  /* =========================
-     EXPORT
-  ========================= */
 
   return {
     cart,

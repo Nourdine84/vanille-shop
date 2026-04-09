@@ -6,17 +6,12 @@ test("Augmenter quantité produit", async ({ page }) => {
 
   await page.getByRole("button", { name: "Ajouter" }).first().click();
 
-  const miniCart = page.getByTestId("mini-cart");
-
-  if (!(await miniCart.isVisible())) {
-    await page.getByTestId("cart-button").click();
-  }
+  await page.getByTestId("cart-button").click();
 
   await expect(page.getByText("Votre panier")).toBeVisible();
 
-  const plusBtn = page.getByRole("button", { name: "+" }).first();
-  await plusBtn.click();
+  await page.getByRole("button", { name: "+" }).first().click();
 
-  // 🔥 FIX FINAL (seul fiable)
+  // 🔥 FIX STABLE
   await expect(page.getByTestId("item-quantity")).toHaveText("2");
 });

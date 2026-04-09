@@ -2,25 +2,23 @@
 
 import { useCart } from "@/lib/cart-store";
 import { useUIStore } from "@/components/ui-providers";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
-
-/* =========================
-   HELPERS
-========================= */
 
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-/* =========================
-   COMPONENT
-========================= */
+const FREE_SHIPPING = 5000; // 50€
 
 export default function MiniCart() {
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const { isCartOpen, closeCart } = useUIStore();
+
+  // 🔥 CRITICAL FIX → évite double render React StrictMode
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const subtotal = useMemo(
     () =>
@@ -28,125 +26,95 @@ export default function MiniCart() {
     [cart]
   );
 
-  const freeShippingThreshold = 5000;
-  const remaining = Math.max(0, freeShippingThreshold - subtotal);
-  const progress = Math.min(
-    100,
-    freeShippingThreshold > 0
-      ? (subtotal / freeShippingThreshold) * 100
-      : 100
-  );
+  const progress = Math.min((subtotal / FREE_SHIPPING) * 100, 100);
 
-  /* =========================
-     AUTO CLOSE SI VIDE
-  ========================= */
   useEffect(() => {
-    if (cart.length === 0 && isCartOpen) {
-      closeCart();
-    }
+    if (cart.length === 0 && isCartOpen) closeCart();
   }, [cart.length, isCartOpen, closeCart]);
 
-  /* =========================
-     HIDE IF CLOSED OR EMPTY
-  ========================= */
-  if (!isCartOpen || cart.length === 0) return null;
+  // ❌ sécurité render
+  if (!mounted || !isCartOpen) return null;
 
   return (
-    <div style={overlay} onClick={closeCart} aria-hidden={!isCartOpen}>
+    <div
+      data-testid="cart-overlay"
+      style={overlay}
+      onClick={closeCart}
+    >
       <aside
+        id="mini-cart-root" // 🔥 UNIQUE POUR PLAYWRIGHT
+        data-testid="mini-cart"
         style={panel}
         onClick={(e) => e.stopPropagation()}
-        aria-label="Mini panier"
       >
         {/* HEADER */}
         <div style={header}>
-          <div>
-            <p style={eyebrow}>VanilleOr</p>
-            <h3 style={title}>Votre panier</h3>
-          </div>
-
-          <button
-            type="button"
-            onClick={closeCart}
-            style={closeBtn}
-            aria-label="Fermer le panier"
-          >
+          <h3 style={title}>Votre panier</h3>
+          <button onClick={closeCart} style={closeBtn}>
             ✕
           </button>
         </div>
 
         {/* SHIPPING */}
         <div style={shippingBox}>
-          {remaining > 0 ? (
-            <>
-              <p style={shippingText}>
-                Encore <strong>{formatPrice(remaining)}</strong> pour la
-                livraison offerte
-              </p>
-
-              <div style={bar}>
-                <div
-                  style={{
-                    ...fill,
-                    width: `${progress}%`,
-                  }}
-                />
-              </div>
-            </>
+          {subtotal >= FREE_SHIPPING ? (
+            <p style={free}>🎉 Livraison offerte</p>
           ) : (
-            <div style={free}>🎉 Livraison offerte débloquée</div>
+            <p style={shippingText}>
+              Plus que{" "}
+              <strong>
+                {formatPrice(FREE_SHIPPING - subtotal)}
+              </strong>{" "}
+              pour la livraison offerte
+            </p>
           )}
+
+          <div style={bar}>
+            <div style={{ ...fill, width: `${progress}%` }} />
+          </div>
         </div>
 
         {/* ITEMS */}
-        <div style={items}>
+        <div style={items} data-testid="cart-items">
           {cart.map((item) => (
-            <div key={item.id} style={itemRow}>
+            <div
+              key={item.id}
+              data-testid={`cart-item-${item.id}`} // 🔥 UNIQUE
+              style={itemRow}
+            >
               <img
                 src={getImageUrl(item.imageUrl)}
                 alt={item.name}
                 style={img}
               />
 
-              <div style={itemMain}>
-                <div style={itemTop}>
-                  <p style={name}>{item.name}</p>
-
-                  <button
-                    type="button"
-                    onClick={() => removeFromCart(item.id)}
-                    style={remove}
-                  >
-                    Supprimer
-                  </button>
-                </div>
+              <div style={itemContent}>
+                <p style={name}>{item.name}</p>
 
                 <p style={unitPrice}>
-                  {formatPrice(item.priceCents)} / unité
+                  {formatPrice(item.priceCents)}
                 </p>
 
                 <div style={qtyPriceRow}>
                   <div style={qtyRow}>
                     <button
-                      type="button"
+                      style={qtyBtn}
                       onClick={() =>
                         updateQuantity(item.id, item.quantity - 1)
                       }
-                      style={qtyBtn}
-                      aria-label={`Diminuer la quantité de ${item.name}`}
                     >
                       −
                     </button>
 
-                    <span style={qtyValue}>{item.quantity}</span>
+                    <span data-testid="item-quantity" style={qtyValue}>
+                      {item.quantity}
+                    </span>
 
                     <button
-                      type="button"
+                      style={qtyBtn}
                       onClick={() =>
                         updateQuantity(item.id, item.quantity + 1)
                       }
-                      style={qtyBtn}
-                      aria-label={`Augmenter la quantité de ${item.name}`}
                     >
                       +
                     </button>
@@ -156,6 +124,14 @@ export default function MiniCart() {
                     {formatPrice(item.priceCents * item.quantity)}
                   </p>
                 </div>
+
+                <button
+                  data-testid={`remove-item-${item.id}`}
+                  style={remove}
+                  onClick={() => removeFromCart(item.id)}
+                >
+                  Supprimer
+                </button>
               </div>
             </div>
           ))}
@@ -163,24 +139,25 @@ export default function MiniCart() {
 
         {/* FOOTER */}
         <div style={footer}>
-          <div style={total}>
+          <div style={total} data-testid="cart-total">
             <span>Total</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
 
-          <p style={footerHint}>
-            Livraison calculée à l’étape suivante.
-          </p>
-
-          <Link href="/checkout" style={cta} onClick={closeCart}>
-            Commander 🔒
+          <Link
+            href="/checkout"
+            onClick={closeCart}
+            style={cta}
+            data-testid="checkout-button"
+          >
+            Commander
           </Link>
 
-          <Link href="/cart" style={link} onClick={closeCart}>
-            Voir le panier
-          </Link>
-
-          <button type="button" onClick={clearCart} style={clearBtn}>
+          <button
+            onClick={clearCart}
+            style={clearBtn}
+            data-testid="clear-cart"
+          >
             Vider le panier
           </button>
         </div>
@@ -189,262 +166,180 @@ export default function MiniCart() {
   );
 }
 
-/* =========================
-   STYLE
-========================= */
+/* ================= STYLE SHOPIFY++ ================= */
 
-const overlay: React.CSSProperties = {
-  position: "fixed",
+const overlay = {
+  position: "fixed" as const,
   inset: 0,
-  background: "rgba(0,0,0,0.48)",
-  backdropFilter: "blur(3px)",
+  background: "rgba(0,0,0,0.5)",
+  backdropFilter: "blur(4px)",
   zIndex: 9999,
-  animation: "fadeIn 0.18s ease-out",
 };
 
-const panel: React.CSSProperties = {
-  position: "absolute",
+const panel = {
+  position: "absolute" as const,
   right: 0,
   top: 0,
   width: "100%",
-  maxWidth: "410px",
+  maxWidth: "420px",
   height: "100%",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf8f3 100%)",
+  background: "linear-gradient(180deg,#fff,#fbf8f3)",
   padding: "20px",
   display: "flex",
-  flexDirection: "column",
-  boxShadow: "-18px 0 40px rgba(0,0,0,0.16)",
-  borderTopLeftRadius: 22,
-  borderBottomLeftRadius: 22,
-  animation: "slideInRight 0.22s ease-out",
+  flexDirection: "column" as const,
+  borderTopLeftRadius: 20,
+  borderBottomLeftRadius: 20,
+  boxShadow: "-20px 0 50px rgba(0,0,0,0.2)",
 };
 
-const header: React.CSSProperties = {
+const header = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "12px",
-  marginBottom: "14px",
+  marginBottom: "10px",
 };
 
-const eyebrow: React.CSSProperties = {
-  margin: 0,
-  fontSize: "12px",
-  color: "#a16207",
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
+const title = {
+  fontSize: "22px",
+  fontWeight: 800,
 };
 
-const title: React.CSSProperties = {
-  margin: "6px 0 0",
-  fontSize: "26px",
-  color: "#111",
-};
-
-const closeBtn: React.CSSProperties = {
+const closeBtn = {
+  border: "none",
   background: "#f3f4f6",
-  border: "1px solid #e5e7eb",
-  borderRadius: "999px",
-  width: "38px",
-  height: "38px",
-  fontSize: "18px",
+  borderRadius: "50%",
+  width: "34px",
+  height: "34px",
   cursor: "pointer",
-  color: "#111",
 };
 
-const shippingBox: React.CSSProperties = {
-  marginBottom: "14px",
-  padding: "14px",
+const shippingBox = {
+  marginBottom: "12px",
+  padding: "12px",
   background: "#fff7ed",
+  borderRadius: "12px",
   border: "1px solid #f3dfc1",
-  borderRadius: "14px",
 };
 
-const shippingText: React.CSSProperties = {
+const shippingText = {
   fontSize: "13px",
-  color: "#6b4b17",
-  margin: "0 0 10px",
-  lineHeight: 1.5,
+  marginBottom: "6px",
 };
 
-const bar: React.CSSProperties = {
-  height: "8px",
+const free = {
+  fontWeight: 700,
+  color: "#065f46",
+};
+
+const bar = {
+  height: "6px",
   background: "#eee",
   borderRadius: "999px",
-  overflow: "hidden",
 };
 
-const fill: React.CSSProperties = {
+const fill = {
   height: "100%",
-  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
-  borderRadius: "999px",
-  transition: "width 0.25s ease",
+  background: "#a16207",
 };
 
-const free: React.CSSProperties = {
-  background: "#ecfdf5",
-  color: "#065f46",
-  padding: "10px 12px",
-  borderRadius: "10px",
-  fontSize: "13px",
-  fontWeight: 700,
-};
-
-const items: React.CSSProperties = {
+const items = {
   flex: 1,
-  overflowY: "auto",
-  paddingRight: "4px",
+  overflowY: "auto" as const,
 };
 
-const itemRow: React.CSSProperties = {
+const itemRow = {
   display: "flex",
-  gap: "12px",
-  marginBottom: "14px",
-  padding: "12px",
-  borderRadius: "16px",
-  background: "white",
-  border: "1px solid #eee4d4",
-};
-
-const img: React.CSSProperties = {
-  width: "72px",
-  height: "72px",
-  borderRadius: "12px",
-  objectFit: "cover",
-  background: "#f8f5ef",
-  flexShrink: 0,
-};
-
-const itemMain: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-};
-
-const itemTop: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
   gap: "10px",
-  alignItems: "flex-start",
-};
-
-const name: React.CSSProperties = {
-  margin: 0,
-  fontWeight: 700,
-  color: "#111",
-  lineHeight: 1.35,
-};
-
-const unitPrice: React.CSSProperties = {
-  margin: "6px 0 10px",
-  fontSize: "12px",
-  color: "#777",
-};
-
-const qtyPriceRow: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-};
-
-const qtyRow: React.CSSProperties = {
-  display: "inline-flex",
-  gap: "8px",
-  alignItems: "center",
-  background: "#faf7f2",
-  border: "1px solid #eee4d4",
-  borderRadius: "999px",
-  padding: "4px 8px",
-};
-
-const qtyBtn: React.CSSProperties = {
-  width: "26px",
-  height: "26px",
-  border: "none",
+  marginBottom: "12px",
+  padding: "10px",
+  borderRadius: "14px",
   background: "white",
-  borderRadius: "999px",
-  cursor: "pointer",
-  fontSize: "16px",
-  color: "#111",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
 };
 
-const qtyValue: React.CSSProperties = {
-  minWidth: "16px",
-  textAlign: "center",
+const img = {
+  width: "70px",
+  height: "70px",
+  borderRadius: "10px",
+  objectFit: "cover" as const,
+};
+
+const itemContent = {
+  flex: 1,
+};
+
+const name = {
   fontWeight: 700,
-  color: "#111",
 };
 
-const price: React.CSSProperties = {
-  margin: 0,
-  fontWeight: 800,
-  color: "#111",
-  whiteSpace: "nowrap",
-};
-
-const remove: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#b91c1c",
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  fontWeight: 700,
-  padding: 0,
-};
-
-const footer: React.CSSProperties = {
-  borderTop: "1px solid #eee",
-  paddingTop: "14px",
-  marginTop: "8px",
-};
-
-const total: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  fontWeight: 800,
-  marginBottom: "8px",
-  fontSize: "18px",
-  color: "#111",
-};
-
-const footerHint: React.CSSProperties = {
-  margin: "0 0 12px",
+const unitPrice = {
   fontSize: "12px",
   color: "#777",
 };
 
-const cta: React.CSSProperties = {
+const qtyPriceRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const qtyRow = {
+  display: "flex",
+  gap: "6px",
+};
+
+const qtyBtn = {
+  border: "none",
+  background: "#f3f4f6",
+  borderRadius: "50%",
+  width: "24px",
+  height: "24px",
+  cursor: "pointer",
+};
+
+const qtyValue = {
+  fontWeight: 700,
+};
+
+const price = {
+  fontWeight: 800,
+};
+
+const remove = {
+  fontSize: "12px",
+  color: "#dc2626",
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+};
+
+const footer = {
+  borderTop: "1px solid #eee",
+  paddingTop: "12px",
+};
+
+const total = {
+  display: "flex",
+  justifyContent: "space-between",
+  fontWeight: 800,
+  marginBottom: "10px",
+};
+
+const cta = {
   display: "block",
-  textAlign: "center",
-  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
+  textAlign: "center" as const,
+  background: "#a16207",
   color: "white",
   padding: "14px",
   borderRadius: "12px",
   textDecoration: "none",
   fontWeight: 800,
-  boxShadow: "0 12px 28px rgba(183,121,31,0.28)",
 };
 
-const link: React.CSSProperties = {
-  display: "block",
-  textAlign: "center",
-  marginTop: "10px",
-  fontSize: "14px",
-  color: "#111",
-  textDecoration: "none",
-  fontWeight: 600,
-};
-
-const clearBtn: React.CSSProperties = {
-  marginTop: "12px",
+const clearBtn = {
+  marginTop: "8px",
   width: "100%",
-  background: "white",
-  border: "1px solid #e5e7eb",
-  padding: "11px 12px",
+  padding: "10px",
   borderRadius: "10px",
-  fontWeight: 700,
-  color: "#7c2d12",
+  border: "1px solid #ddd",
+  background: "white",
   cursor: "pointer",
 };

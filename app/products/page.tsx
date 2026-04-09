@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
-
-/* =========================
-   TYPES
-========================= */
+import AddToCart from "@/components/add-to-cart";
 
 type Product = {
   id: string;
@@ -18,17 +15,9 @@ type Product = {
   stock?: number;
 };
 
-/* =========================
-   HELPERS
-========================= */
-
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
 }
-
-/* =========================
-   PAGE
-========================= */
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -44,17 +33,11 @@ export default function ProductsPage() {
 
   return (
     <div style={page}>
-      {/* ================= HERO ================= */}
       <section style={hero}>
         <div style={overlay} />
-
         <div style={heroContent}>
           <p style={heroTag}>VanilleOr</p>
-
-          <h1 style={heroTitle}>
-            Nos produits d’exception
-          </h1>
-
+          <h1 style={heroTitle}>Nos produits d’exception</h1>
           <p style={heroSubtitle}>
             Découvrez notre sélection premium de vanille et d’épices,
             directement issue de Madagascar.
@@ -62,7 +45,6 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      {/* ================= CONTENT ================= */}
       <div style={container}>
         {loading && <p style={center}>Chargement...</p>}
 
@@ -75,42 +57,52 @@ export default function ProductsPage() {
             const isOut = p.stock === 0;
 
             return (
-              <Link
-                key={p.id}
-                href={`/products/${p.slug}`}
-                style={card}
-              >
-                {/* BADGES */}
-                {p.badge && !isOut && (
-                  <span style={badge}>{p.badge}</span>
-                )}
+              <div key={p.id} style={card}>
+                <Link
+                  href={`/products/${p.slug}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  {p.badge && !isOut && (
+                    <span style={badge}>{p.badge}</span>
+                  )}
 
-                {isOut && <span style={out}>ÉPUISÉ</span>}
+                  {isOut && <span style={out}>ÉPUISÉ</span>}
 
-                {/* IMAGE */}
-                <img
-                  src={getImageUrl(p.imageUrl)}
-                  alt={p.name}
-                  style={img}
-                />
+                  <img
+                    src={getImageUrl(p.imageUrl)}
+                    alt={p.name}
+                    style={img}
+                  />
 
-                {/* CONTENT */}
-                <div style={content}>
-                  <h3 style={name}>{p.name}</h3>
+                  <div style={content}>
+                    <h3 style={name}>{p.name}</h3>
 
-                  <p style={price}>
-                    {formatPrice(p.priceCents)}
-                  </p>
+                    <p style={price}>
+                      {formatPrice(p.priceCents)}
+                    </p>
+                  </div>
+                </Link>
 
-                  <span style={ctaMini}>Voir →</span>
+                {/* CTA ZONE */}
+                <div style={ctaContainer}>
+                  <Link href={`/products/${p.slug}`} style={ctaVoir}>
+                    Voir
+                  </Link>
+
+                  {isOut ? (
+                    <button disabled style={ctaDisabled}>
+                      Épuisé
+                    </button>
+                  ) : (
+                    <AddToCart product={p} />
+                  )}
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
       </div>
 
-      {/* ================= SIGNATURE ================= */}
       <div style={signature}>
         Site développé par <strong>Akm.Consulting</strong>
       </div>
@@ -118,16 +110,12 @@ export default function ProductsPage() {
   );
 }
 
-/* =========================
-   STYLES
-========================= */
+/* ========================= STYLES ========================= */
 
 const page = {
   background: "#f8f5ef",
   minHeight: "100vh",
 };
-
-/* HERO */
 
 const hero = {
   position: "relative" as const,
@@ -168,8 +156,6 @@ const heroSubtitle = {
   marginTop: "10px",
 };
 
-/* CONTENT */
-
 const container = {
   maxWidth: "1100px",
   margin: "0 auto",
@@ -180,25 +166,17 @@ const center = {
   textAlign: "center" as const,
 };
 
-/* GRID */
-
 const grid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
   gap: "24px",
 };
 
-/* CARD */
-
 const card = {
-  position: "relative" as const,
   background: "white",
   borderRadius: "18px",
   overflow: "hidden",
-  textDecoration: "none",
-  color: "#111",
   boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-  transition: "0.2s",
 };
 
 const img = {
@@ -221,11 +199,35 @@ const price = {
   fontWeight: 700,
 };
 
-const ctaMini = {
-  display: "block",
-  marginTop: "8px",
-  fontSize: "13px",
+/* CTA */
+
+const ctaContainer = {
+  display: "flex",
+  gap: "10px",
+  padding: "0 15px 15px",
+};
+
+const baseBtn = {
+  flex: 1,
+  padding: "12px",
+  borderRadius: "10px",
   fontWeight: 600,
+  textAlign: "center" as const,
+  fontSize: "14px",
+};
+
+const ctaVoir = {
+  ...baseBtn,
+  background: "#111",
+  color: "white",
+  textDecoration: "none",
+};
+
+const ctaDisabled = {
+  ...baseBtn,
+  background: "#e5e7eb",
+  color: "#9ca3af",
+  border: "none",
 };
 
 /* BADGES */
@@ -251,8 +253,6 @@ const out = {
   borderRadius: "999px",
   fontSize: "12px",
 };
-
-/* SIGNATURE */
 
 const signature = {
   textAlign: "center" as const,

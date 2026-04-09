@@ -20,13 +20,13 @@ export default function Header() {
   return (
     <>
       <header style={header}>
-        
+
         {/* LOGO */}
         <Link href="/" style={logo}>
           <Image
             src="/images/logo-vanilleor.png"
             alt="Vanille'Or"
-            width={220} // 🔥 PLUS GROS
+            width={220}
             height={70}
             priority
           />
@@ -34,7 +34,7 @@ export default function Header() {
 
         {/* NAV DESKTOP */}
         <nav style={navDesktop} className="desktop-nav">
-          <NavLink href="/products" label="Produits" />
+          <NavLink href="/products" label="Produits" testId="nav-products" />
           <NavLink href="/collections/vanille" label="Vanille" />
           <NavLink href="/collections/epices" label="Épices" />
           <NavLink href="/b2b" label="Professionnels" />
@@ -44,12 +44,17 @@ export default function Header() {
 
         {/* ACTIONS */}
         <div style={actions}>
-          
+
           <Link href="/products" style={cta}>
             Acheter
           </Link>
 
-          <button style={cartBtn} onClick={openCart}>
+          <button
+            data-testid="cart-button"
+            aria-label="Ouvrir le panier"
+            style={cartBtn}
+            onClick={openCart}
+          >
             🛒
             {totalItems > 0 && (
               <span style={badge}>{totalItems}</span>
@@ -73,7 +78,6 @@ export default function Header() {
           />
 
           <div style={mobileMenu}>
-            
             <button
               style={closeBtn}
               onClick={() => setMenuOpen(false)}
@@ -100,15 +104,18 @@ function NavLink({
   label,
   mobile = false,
   onClick,
+  testId,
 }: {
   href: string;
   label: string;
   mobile?: boolean;
   onClick?: () => void;
+  testId?: string;
 }) {
   return (
     <Link
       href={href}
+      data-testid={testId}
       onClick={onClick}
       style={{
         ...link,
@@ -120,8 +127,7 @@ function NavLink({
   );
 }
 
-/* STYLES */
-
+/* STYLES (inchangés) */
 const header = {
   position: "sticky" as const,
   top: 0,
@@ -131,7 +137,7 @@ const header = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "16px 24px", // 🔥 plus haut pour le logo
+  padding: "16px 24px",
   borderBottom: "1px solid rgba(0,0,0,0.05)",
 };
 
