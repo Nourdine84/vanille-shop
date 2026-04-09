@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /* =========================
-   UPDATE ORDER STATUS
+   UPDATE ORDER STATUS (PRO SAFE)
 ========================= */
 
 export async function POST(req: Request) {
@@ -18,50 +18,43 @@ export async function POST(req: Request) {
     const trackingNumberRaw = formData.get("trackingNumber") as string;
     const carrierRaw = formData.get("carrier") as string;
 
-    /* =========================
-       VALIDATION
-    ========================= */
+    /* ================= VALIDATION ================= */
 
     if (!orderId) {
-      return NextResponse.json(
-        { error: "orderId manquant" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "orderId manquant" }, { status: 400 });
     }
 
     if (!statusRaw) {
-      return NextResponse.json(
-        { error: "status manquant" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "status manquant" }, { status: 400 });
     }
 
     if (!Object.values(OrderStatus).includes(statusRaw as OrderStatus)) {
-      return NextResponse.json(
-        { error: "status invalide" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "status invalide" }, { status: 400 });
     }
 
     const status = statusRaw as OrderStatus;
 
-    /* =========================
-       CLEAN DATA
-    ========================= */
+    /* ================= CLEAN ================= */
 
     const trackingNumber =
-      trackingNumberRaw && trackingNumberRaw.trim() !== ""
-        ? trackingNumberRaw.trim()
-        : null;
+      trackingNumberRaw?.trim() ? trackingNumberRaw.trim() : null;
 
-    const carrier =
-      carrierRaw && carrierRaw.trim() !== ""
-        ? carrierRaw.trim()
-        : null;
+    const carrier = carrierRaw?.trim() ? carrierRaw.trim() : null;
 
-    /* =========================
-       UPDATE
-    ========================= */
+    /* ================= CHECK EXIST ================= */
+
+    const existing = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Commande introuvable" },
+        { status: 404 }
+      );
+    }
+
+    /* ================= UPDATE ================= */
 
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
@@ -74,9 +67,7 @@ export async function POST(req: Request) {
 
     console.log("✅ ORDER UPDATED:", updatedOrder.id);
 
-    /* =========================
-       REDIRECT BACK (UX CLEAN)
-    ========================= */
+    /* ================= REDIRECT ================= */
 
     return NextResponse.redirect(new URL("/admin/orders", req.url));
 

@@ -45,7 +45,7 @@ export default async function AdminOrdersPage({
 
   /* ================= FILTER ================= */
 
-  const statusRaw = searchParams?.status?.trim() || "";
+  const statusRaw = (searchParams?.status || "").trim();
 
   const status = Object.values(OrderStatus).includes(
     statusRaw as OrderStatus
@@ -85,7 +85,11 @@ export default async function AdminOrdersPage({
       {/* FILTRE */}
       <div style={card}>
         <form method="GET" style={filterRow}>
-          <select name="status" defaultValue={status} style={input}>
+          <select
+            name="status"
+            defaultValue={status ?? ""}
+            style={input}
+          >
             <option value="">Tous les statuts</option>
             {Object.values(OrderStatus).map((s) => (
               <option key={s} value={s}>
@@ -106,9 +110,15 @@ export default async function AdminOrdersPage({
       ) : (
         <div style={listWrapper}>
           {orders.map((order) => {
-            const items = Array.isArray(order.items)
-              ? (order.items as OrderItem[])
-              : [];
+            let items: OrderItem[] = [];
+
+            try {
+              if (Array.isArray(order.items)) {
+                items = order.items as OrderItem[];
+              }
+            } catch (e) {
+              console.warn("⚠️ items parsing error", e);
+            }
 
             return (
               <div key={order.id} style={orderCard}>
@@ -129,7 +139,7 @@ export default async function AdminOrdersPage({
                   </div>
                 </div>
 
-                {/* TRACKING BLOCK 🔥 */}
+                {/* TRACKING */}
                 {order.trackingNumber && (
                   <div style={trackingBox}>
                     📦 Tracking : <strong>{order.trackingNumber}</strong>
@@ -174,7 +184,8 @@ export default async function AdminOrdersPage({
                       <div key={`${item.id}-${index}`} style={itemRow}>
                         <span>{item.name}</span>
                         <span>
-                          {item.quantity} × {formatPrice(item.priceCents)}
+                          {item.quantity} ×{" "}
+                          {formatPrice(item.priceCents)}
                         </span>
                       </div>
                     ))
@@ -183,11 +194,15 @@ export default async function AdminOrdersPage({
 
                 {/* UPDATE */}
                 <form
-                  action="/api/admin/orders/update-status"
+                  action="/api/admin/update-status"
                   method="POST"
                   style={statusForm}
                 >
-                  <input type="hidden" name="orderId" value={order.id} />
+                  <input
+                    type="hidden"
+                    name="orderId"
+                    value={order.id}
+                  />
 
                   <select
                     name="status"
@@ -201,7 +216,6 @@ export default async function AdminOrdersPage({
                     ))}
                   </select>
 
-                  {/* TRACKING INPUT */}
                   <input
                     name="trackingNumber"
                     placeholder="Tracking"
@@ -209,7 +223,6 @@ export default async function AdminOrdersPage({
                     style={input}
                   />
 
-                  {/* CARRIER */}
                   <select
                     name="carrier"
                     defaultValue={order.carrier || ""}
