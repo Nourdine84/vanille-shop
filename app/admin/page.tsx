@@ -10,6 +10,8 @@ type SearchParams = {
   period?: string;
 };
 
+/* ================= HELPERS ================= */
+
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
@@ -29,39 +31,63 @@ function getPeriodDays(period?: string) {
 }
 
 function formatPercent(value: number) {
+  if (!isFinite(value)) return "0 %";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)} %`;
 }
 
 function getGrowth(current: number, previous: number) {
-  if (previous === 0 && current === 0) return 0;
-  if (previous === 0) return 100;
+  if (!previous && !current) return 0;
+  if (!previous) return 100;
   return ((current - previous) / previous) * 100;
 }
 
+/* ================= GROUP ================= */
+
 function groupOrdersByDay(orders: any[]) {
-  const map: Record<string, { revenue: number; count: number }> = {};
+  const map = new Map<
+    string,
+    { revenue: number; count: number; date: Date }
+  >();
 
   orders.forEach((order) => {
-    const date = new Date(order.createdAt).toLocaleDateString("fr-FR");
+    const dateObj = new Date(order.createdAt);
 
-    if (!map[date]) {
-      map[date] = { revenue: 0, count: 0 };
+    const key = dateObj.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+    });
+
+    if (!map.has(key)) {
+      map.set(key, {
+        revenue: 0,
+        count: 0,
+        date: dateObj,
+      });
     }
+
+    const entry = map.get(key)!;
 
     if (order.status === "PAID") {
-      map[date].revenue += order.totalCents / 100;
+      entry.revenue += order.totalCents / 100;
     }
 
-    map[date].count += 1;
+    entry.count += 1;
   });
 
-  const labels = Object.keys(map);
-  const revenue = labels.map((label) => map[label].revenue);
-  const ordersCount = labels.map((label) => map[label].count);
+  // 🔥 TRI PRO (important pour graph)
+  const sorted = Array.from(map.entries()).sort(
+    (a, b) => a[1].date.getTime() - b[1].date.getTime()
+  );
 
-  return { labels, revenue, ordersCount };
+  return {
+    labels: sorted.map(([k]) => k),
+    revenue: sorted.map(([, v]) => v.revenue),
+    ordersCount: sorted.map(([, v]) => v.count),
+  };
 }
+
+/* ================= PAGE ================= */
 
 export default async function AdminDashboard({
   searchParams,
@@ -70,27 +96,27 @@ export default async function AdminDashboard({
 }) {
   const isAdmin = cookies().get("admin")?.value === "true";
 
-  if (!isAdmin) {
-    redirect("/admin/login");
-  }
+  if (!isAdmin) redirect("/admin/login");
 
   const period = searchParams?.period || "30d";
   const periodDays = getPeriodDays(period);
 
   const now = new Date();
+
   const currentStart =
     periodDays === null
       ? null
-      : new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+      : new Date(now.getTime() - periodDays * 86400000);
 
   const previousStart =
     periodDays === null
       ? null
-      : new Date(now.getTime() - periodDays * 2 * 24 * 60 * 60 * 1000);
+      : new Date(now.getTime() - periodDays * 2 * 86400000);
 
   let recentProducts: any[] = [];
   let recentOrders: any[] = [];
   let allOrders: any[] = [];
+
   let totalProducts = 0;
   let activeProducts = 0;
   let outOfStockProducts = 0;
@@ -116,17 +142,14 @@ export default async function AdminDashboard({
         orderBy: { createdAt: "asc" },
       }),
       prisma.product.count(),
-      prisma.product.count({
-        where: { isActive: true },
-      }),
-      prisma.product.count({
-        where: { stock: { lte: 0 } },
-      }),
+      prisma.product.count({ where: { isActive: true } }),
+      prisma.product.count({ where: { stock: { lte: 0 } } }),
     ]);
 
     recentProducts = recentProductsData;
     recentOrders = recentOrdersData;
     allOrders = allOrdersData;
+
     totalProducts = totalProductsCount;
     activeProducts = activeProductsCount;
     outOfStockProducts = outOfStockCount;
@@ -134,26 +157,32 @@ export default async function AdminDashboard({
     console.error("❌ DASHBOARD ERROR:", error);
   }
 
+  /* ================= FILTER ================= */
+
   const filteredOrders =
     currentStart === null
       ? allOrders
-      : allOrders.filter((order) => new Date(order.createdAt) >= currentStart);
+      : allOrders.filter(
+          (o) => new Date(o.createdAt) >= currentStart
+        );
 
   const previousOrders =
-    periodDays === null || previousStart === null || currentStart === null
+    !previousStart || !currentStart
       ? []
-      : allOrders.filter((order) => {
-          const createdAt = new Date(order.createdAt);
-          return createdAt >= previousStart && createdAt < currentStart;
+      : allOrders.filter((o) => {
+          const d = new Date(o.createdAt);
+          return d >= previousStart && d < currentStart;
         });
 
+  /* ================= KPI ================= */
+
   const totalRevenue = filteredOrders.reduce(
-    (acc, order) => acc + (order.status === "PAID" ? order.totalCents : 0),
+    (acc, o) => acc + (o.status === "PAID" ? o.totalCents : 0),
     0
   );
 
   const previousRevenue = previousOrders.reduce(
-    (acc, order) => acc + (order.status === "PAID" ? order.totalCents : 0),
+    (acc, o) => acc + (o.status === "PAID" ? o.totalCents : 0),
     0
   );
 
@@ -164,27 +193,30 @@ export default async function AdminDashboard({
   const pendingOrders = filteredOrders.filter((o) => o.status === "PENDING").length;
   const shippedOrders = filteredOrders.filter((o) => o.status === "SHIPPED").length;
 
-  const aov = paidOrders > 0 ? Math.round(totalRevenue / paidOrders) : 0;
+  const aov = paidOrders ? Math.round(totalRevenue / paidOrders) : 0;
 
   const revenueGrowth = getGrowth(totalRevenue, previousRevenue);
   const ordersGrowth = getGrowth(totalOrders, previousTotalOrders);
 
-  const { labels, revenue, ordersCount } = groupOrdersByDay(filteredOrders);
+  const { labels, revenue, ordersCount } =
+    groupOrdersByDay(filteredOrders);
+
+  /* ================= UI ================= */
 
   return (
     <div style={container}>
       <div style={topBar}>
         <div>
           <h1 style={title}>📊 Dashboard</h1>
-          <p style={subtitle}>Vue globale de l’activité Vanille’Or</p>
+          <p style={subtitle}>Vue globale Vanille’Or</p>
         </div>
 
         <form method="GET" style={periodForm}>
           <select name="period" defaultValue={period} style={select}>
-            <option value="7d">7 derniers jours</option>
-            <option value="30d">30 derniers jours</option>
-            <option value="90d">90 derniers jours</option>
-            <option value="all">Depuis le début</option>
+            <option value="7d">7 jours</option>
+            <option value="30d">30 jours</option>
+            <option value="90d">90 jours</option>
+            <option value="all">Tout</option>
           </select>
 
           <button type="submit" style={filterBtn}>
@@ -193,148 +225,81 @@ export default async function AdminDashboard({
         </form>
       </div>
 
+      {/* KPI */}
       <div style={grid4}>
         <KpiCard
-          title="💰 Chiffre d’affaires"
+          title="💰 CA"
           value={formatPrice(totalRevenue)}
-          hint={period === "all" ? "Vue globale" : `Évolution: ${formatPercent(revenueGrowth)}`}
+          hint={formatPercent(revenueGrowth)}
         />
         <KpiCard
           title="📦 Commandes"
           value={totalOrders}
-          hint={period === "all" ? "Vue globale" : `Évolution: ${formatPercent(ordersGrowth)}`}
+          hint={formatPercent(ordersGrowth)}
         />
         <KpiCard
           title="🧾 Panier moyen"
           value={formatPrice(aov)}
-          hint="Basé sur les commandes payées"
+          hint="Commandes payées"
         />
         <KpiCard
           title="⏳ En attente"
           value={pendingOrders}
-          hint={`Payées: ${paidOrders} • Expédiées: ${shippedOrders}`}
+          hint={`Payées: ${paidOrders}`}
         />
       </div>
 
-      <div style={grid3}>
-        <KpiCard
-          title="🛍 Produits"
-          value={totalProducts}
-          hint={`Actifs: ${activeProducts}`}
-        />
-        <KpiCard
-          title="✅ Actifs"
-          value={activeProducts}
-          hint="Disponibles à la vente"
-        />
-        <KpiCard
-          title="⚠️ Épuisés"
-          value={outOfStockProducts}
-          hint="Stock à réapprovisionner"
-        />
-      </div>
-
+      {/* GRAPH */}
       <div style={card}>
         <h2 style={sectionTitle}>📈 Performance</h2>
+
         {labels.length === 0 ? (
-          <p style={emptyText}>Aucune donnée disponible pour cette période.</p>
+          <p style={emptyText}>Aucune donnée</p>
         ) : (
-          <RevenueChart labels={labels} revenue={revenue} orders={ordersCount} />
+          <RevenueChart
+            labels={labels}
+            revenue={revenue}
+            orders={ordersCount}
+          />
         )}
       </div>
 
+      {/* ORDERS */}
       <div style={card}>
         <h2 style={sectionTitle}>🧾 Dernières commandes</h2>
 
         {recentOrders.length === 0 ? (
           <p style={emptyText}>Aucune commande</p>
         ) : (
-          recentOrders.map((order) => (
-            <div key={order.id} style={row}>
+          recentOrders.map((o) => (
+            <div key={o.id} style={row}>
               <div>
-                <strong>{order.id.slice(0, 8)}</strong>
+                <strong>{o.id.slice(0, 8)}</strong>
                 <p style={muted}>
-                  {new Date(order.createdAt).toLocaleString("fr-FR")}
+                  {new Date(o.createdAt).toLocaleString("fr-FR")}
                 </p>
               </div>
 
               <div style={rowRight}>
-                <StatusBadge status={order.status} />
-                <span>{formatPrice(order.totalCents)}</span>
-                <a href={`/admin/orders/${order.id}`} style={linkBtn}>
-                  Voir
-                </a>
+                <StatusBadge status={o.status} />
+                <span>{formatPrice(o.totalCents)}</span>
               </div>
             </div>
           ))
         )}
-      </div>
-
-      <div style={card}>
-        <h2 style={sectionTitle}>🆕 Derniers produits</h2>
-
-        {recentProducts.length === 0 ? (
-          <p style={emptyText}>Aucun produit</p>
-        ) : (
-          recentProducts.map((product) => (
-            <div key={product.id} style={row}>
-              <div>
-                <strong>{product.name}</strong>
-                <p style={muted}>{product.slug}</p>
-              </div>
-
-              <div style={rowRight}>
-                {product.badge && <span style={badge}>{product.badge}</span>}
-                <span>{formatPrice(product.priceCents)}</span>
-                <span
-                  style={{
-                    color: product.stock <= 0 ? "#dc2626" : "#16a34a",
-                    fontWeight: 600,
-                  }}
-                >
-                  {product.stock <= 0 ? "Rupture" : "OK"}
-                </span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div style={card}>
-        <h2 style={sectionTitle}>⚡ Actions rapides</h2>
-
-        <div style={actions}>
-          <a href="/admin/products" style={btnPrimary}>
-            ➕ Ajouter produit
-          </a>
-
-          <a href="/admin/products" style={btnSecondary}>
-            📦 Voir produits
-          </a>
-
-          <a href="/admin/orders" style={btnDark}>
-            🧾 Voir commandes
-          </a>
-        </div>
       </div>
     </div>
   );
 }
 
-function KpiCard({
-  title,
-  value,
-  hint,
-}: {
-  title: string;
-  value: string | number;
-  hint?: string;
-}) {
+/* ================= COMPONENTS ================= */
+
+function KpiCard({ title, value, hint }: any) {
   return (
     <div style={card}>
       <h3 style={cardTitle}>{title}</h3>
       <p style={valueStyle}>{value}</p>
-      {hint ? <p style={hintStyle}>{hint}</p> : null}
+      {hint && <p style={hintStyle}>{hint}</p>}
     </div>
   );
 }
@@ -350,180 +315,65 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span
-      style={{
-        background: colors[status] || "#999",
-        color: "white",
-        padding: "4px 8px",
-        borderRadius: "999px",
-        fontSize: "12px",
-        fontWeight: 700,
-      }}
-    >
+    <span style={{ ...badge, background: colors[status] || "#999" }}>
       {status}
     </span>
   );
 }
 
-const container = {
-  padding: "30px",
-};
+/* ================= STYLE ================= */
+
+const container = { padding: 30 };
+const title = { fontSize: 28 };
+const subtitle = { color: "#666" };
 
 const topBar = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "20px",
-  marginBottom: "20px",
-  flexWrap: "wrap" as const,
+  marginBottom: 20,
 };
 
-const title = {
-  fontSize: "28px",
-  marginBottom: "6px",
-};
-
-const subtitle = {
-  margin: 0,
-  color: "#666",
-  fontSize: "14px",
-};
-
-const periodForm = {
-  display: "flex",
-  gap: "10px",
-  alignItems: "center",
-  flexWrap: "wrap" as const,
-};
-
-const select = {
-  padding: "10px 12px",
-  borderRadius: "8px",
-  border: "1px solid #ddd",
-  background: "white",
-};
-
-const filterBtn = {
-  background: "#111",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "10px 14px",
-  cursor: "pointer",
-};
+const periodForm = { display: "flex", gap: 10 };
+const select = { padding: 10, borderRadius: 8, border: "1px solid #ddd" };
+const filterBtn = { background: "#111", color: "white", padding: 10 };
 
 const grid4 = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
-  gap: "20px",
-  marginBottom: "20px",
-};
-
-const grid3 = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, 1fr)",
-  gap: "20px",
-  marginBottom: "20px",
+  gridTemplateColumns: "repeat(4,1fr)",
+  gap: 20,
 };
 
 const card = {
   background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  marginBottom: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.05)",
+  padding: 20,
+  borderRadius: 12,
+  marginTop: 20,
 };
 
-const cardTitle = {
-  margin: 0,
-  fontSize: "15px",
-};
+const cardTitle = { margin: 0 };
+const valueStyle = { fontSize: 22, fontWeight: 700 };
+const hintStyle = { fontSize: 12, color: "#666" };
 
-const valueStyle = {
-  fontSize: "24px",
-  fontWeight: 700,
-  margin: "10px 0 6px 0",
-};
-
-const hintStyle = {
-  margin: 0,
-  color: "#666",
-  fontSize: "12px",
-};
-
-const sectionTitle = {
-  marginBottom: "15px",
-};
+const sectionTitle = { marginBottom: 10 };
+const emptyText = { color: "#666" };
 
 const row = {
   display: "flex",
   justifyContent: "space-between",
   padding: "10px 0",
-  borderBottom: "1px solid #eee",
-  gap: "20px",
 };
 
 const rowRight = {
   display: "flex",
-  gap: "12px",
+  gap: 10,
   alignItems: "center",
-  flexWrap: "wrap" as const,
 };
 
-const muted = {
-  color: "#777",
-  fontSize: "12px",
-};
+const muted = { fontSize: 12, color: "#777" };
 
 const badge = {
-  background: "#f59e0b",
   color: "white",
   padding: "4px 8px",
-  borderRadius: "8px",
-  fontSize: "12px",
-};
-
-const linkBtn = {
-  background: "#f3f4f6",
-  color: "#111",
-  padding: "6px 10px",
-  borderRadius: "8px",
-  textDecoration: "none",
-  fontSize: "12px",
-  fontWeight: 600,
-};
-
-const actions = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap" as const,
-};
-
-const btnPrimary = {
-  background: "#a16207",
-  color: "white",
-  padding: "10px 14px",
-  borderRadius: "8px",
-  textDecoration: "none",
-};
-
-const btnSecondary = {
-  background: "#2563eb",
-  color: "white",
-  padding: "10px 14px",
-  borderRadius: "8px",
-  textDecoration: "none",
-};
-
-const btnDark = {
-  background: "#111",
-  color: "white",
-  padding: "10px 14px",
-  borderRadius: "8px",
-  textDecoration: "none",
-};
-
-const emptyText = {
-  color: "#666",
-  fontSize: "14px",
+  borderRadius: 999,
+  fontSize: 12,
 };
