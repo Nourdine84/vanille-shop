@@ -9,3 +9,7 @@ export async function openCart(page: Page) {
 
   await expect(cart).toBeVisible();
 }
+
+export async function addFirstProduct(page: Page) {
+  await page.getByRole("button", { name: "Ajouter" }).first().click();
+}
