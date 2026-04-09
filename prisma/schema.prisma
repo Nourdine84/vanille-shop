@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // ✅ FIX FINAL
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -29,7 +29,7 @@ model Product {
   isActive    Boolean  @default(true)
   category    String   @default("vanille")
   subCategory String?
-  badge       String?  // ✅ badge ajouté
+  badge       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -75,6 +75,19 @@ model B2BRequest {
   @@index([createdAt])
 }
 
+model BlogPost {
+  id         String   @id @default(cuid())
+  title      String
+  slug       String   @unique
+  excerpt    String?
+  content    String
+  coverImage String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([slug])
+}
+
 enum OrderStatus {
   PENDING
   PAID
@@ -88,17 +101,4 @@ enum B2BStatus {
   NEW
   CONTACTED
   CLOSED
-}
-
-model BlogPost {
-  id        String   @id @default(cuid())
-  title     String
-  slug      String   @unique
-  excerpt   String?
-  content   String
-  coverImage String? // 🔥 AJOUT
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([slug])
 }
