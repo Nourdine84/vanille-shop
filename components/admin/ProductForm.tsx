@@ -16,23 +16,20 @@ function generateSlug(name: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-/* 🔥 NORMALISATION IMAGE ULTRA SAFE */
+/* 🔥 NORMALISATION SAFE (Cloudinary OK) */
 function normalizeImageInput(input: string) {
   const value = input.trim();
 
   if (!value) return "";
 
-  // URL externe → OK
+  // ✅ URL externe (Cloudinary inclus)
   if (value.startsWith("http")) return value;
 
-  // 🔥 On garde uniquement le nom du fichier
-  const fileName = value
-    .replace(/^.*[\\/]/, "") // enlève dossier
+  return value
+    .replace(/^.*[\\/]/, "")
     .replace(/^images\//, "")
     .replace(/^products\//, "")
     .replace(/^collections\//, "");
-
-  return fileName;
 }
 
 /* =========================
@@ -50,18 +47,51 @@ export default function ProductForm() {
   const [imageUrl, setImageUrl] = useState("");
 
   /* =========================
-     IMAGE PREVIEW
+     IMAGE UPLOAD CLOUDINARY
   ========================= */
 
-  function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // preview instant
     const previewUrl = URL.createObjectURL(file);
     setPreview(previewUrl);
 
-    // 🔥 IMPORTANT → nom fichier seulement
-    setImageUrl(file.name);
+    try {
+      setLoading(true);
+      setMessage("Upload en cours...");
+      setIsError(false);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || "Upload échoué");
+      }
+
+      // 🔥 URL CLOUDINARY
+      setImageUrl(data.url);
+
+      setMessage("✅ Image uploadée");
+      setIsError(false);
+
+    } catch (error) {
+      console.error("❌ UPLOAD ERROR:", error);
+
+      setIsError(true);
+      setMessage("Erreur upload image");
+
+    } finally {
+      setLoading(false);
+    }
   }
 
   /* =========================
@@ -87,10 +117,8 @@ export default function ProductForm() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    /* 🔥 SLUG SAFE */
     formData.set("slug", generateSlug(slug || name));
 
-    /* 🔥 IMAGE SAFE */
     const normalizedImage = normalizeImageInput(
       formData.get("imageUrl")?.toString() || ""
     );
@@ -107,9 +135,7 @@ export default function ProductForm() {
 
       try {
         data = await res.json();
-      } catch {
-        // fallback si redirect serveur
-      }
+      } catch {}
 
       if (!res.ok) {
         setIsError(true);
@@ -179,10 +205,10 @@ export default function ProductForm() {
         )}
       </div>
 
-      {/* IMAGE NAME */}
+      {/* IMAGE URL */}
       <input
         name="imageUrl"
-        placeholder="Nom fichier (ex: cannelle.jpg)"
+        placeholder="URL image (auto via upload)"
         value={imageUrl}
         onChange={(e) => setImageUrl(e.target.value)}
         style={input}
@@ -238,7 +264,7 @@ export default function ProductForm() {
 
       {/* SUBMIT */}
       <button type="submit" style={button} disabled={loading}>
-        {loading ? "Enregistrement..." : "Créer le produit"}
+        {loading ? "Traitement..." : "Créer le produit"}
       </button>
 
       {/* MESSAGE */}
