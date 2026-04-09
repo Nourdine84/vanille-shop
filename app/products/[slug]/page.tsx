@@ -2,12 +2,14 @@ import React from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import AddToCartButton from "./AddToCartButton";
+import AddToCart from "@/components/add-to-cart";
 import { getImageUrl } from "@/lib/image";
 import RecommendedProducts from "@/components/RecommendedProducts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+/* ========================= HELPERS ========================= */
 
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
@@ -22,6 +24,8 @@ function normalizeSlug(input: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+/* ========================= PAGE ========================= */
 
 export default async function ProductDetailPage({
   params,
@@ -40,6 +44,7 @@ export default async function ProductDetailPage({
     },
   });
 
+  // fallback slug partiel
   if (!product) {
     product = await prisma.product.findFirst({
       where: {
@@ -52,6 +57,7 @@ export default async function ProductDetailPage({
     });
   }
 
+  // fallback nom
   if (!product) {
     product = await prisma.product.findFirst({
       where: {
@@ -64,22 +70,23 @@ export default async function ProductDetailPage({
     });
   }
 
-  if (!product) {
-    return notFound();
-  }
+  if (!product) return notFound();
 
   const isOutOfStock = product.stock <= 0;
 
   return (
     <div style={page}>
+      {/* BREADCRUMB */}
       <div style={breadcrumb}>
         <Link href="/">Accueil</Link> /{" "}
         <Link href="/products">Produits</Link> /{" "}
         <strong>{product.name}</strong>
       </div>
 
+      {/* HERO */}
       <div style={heroCard}>
         <div style={layout}>
+          {/* IMAGE */}
           <div style={imageBox}>
             <img
               src={getImageUrl(product.imageUrl)}
@@ -88,24 +95,32 @@ export default async function ProductDetailPage({
             />
           </div>
 
+          {/* CONTENT */}
           <div style={contentCol}>
             <p style={category}>{product.category}</p>
 
             <h1 style={title}>{product.name}</h1>
 
+            {/* BADGES */}
             <div style={badges}>
-              {product.badge ? <span style={badge}>{product.badge}</span> : null}
-              {product.stock < 5 && !isOutOfStock ? (
+              {product.badge && <span style={badge}>{product.badge}</span>}
+
+              {product.stock < 5 && !isOutOfStock && (
                 <span style={badgeDanger}>⚠ Stock limité</span>
-              ) : null}
+              )}
             </div>
 
+            {/* PRICE */}
             <p style={price}>{formatPrice(product.priceCents)}</p>
 
+            {/* STOCK */}
             <p style={stock}>
-              {isOutOfStock ? "❌ Rupture" : `✅ En stock : ${product.stock}`}
+              {isOutOfStock
+                ? "❌ Rupture de stock"
+                : `✅ En stock : ${product.stock}`}
             </p>
 
+            {/* VALUE */}
             <div style={valueBox}>
               ⭐ Qualité premium Madagascar
               <br />
@@ -114,12 +129,14 @@ export default async function ProductDetailPage({
               👨‍🍳 Idéal pâtisserie & cuisine
             </div>
 
+            {/* DESCRIPTION */}
             <p style={description}>
               {product.description || "Description à venir."}
             </p>
 
+            {/* CTA */}
             {!isOutOfStock ? (
-              <AddToCartButton
+              <AddToCart
                 product={{
                   id: product.id,
                   name: product.name,
@@ -127,11 +144,16 @@ export default async function ProductDetailPage({
                   imageUrl: getImageUrl(product.imageUrl),
                 }}
               />
-            ) : null}
+            ) : (
+              <button disabled style={ctaDisabled}>
+                Produit épuisé
+              </button>
+            )}
           </div>
         </div>
       </div>
 
+      {/* RECO */}
       <div style={recoSection}>
         <RecommendedProducts
           currentProductId={product.id}
@@ -141,6 +163,8 @@ export default async function ProductDetailPage({
     </div>
   );
 }
+
+/* ========================= STYLES ========================= */
 
 const page: React.CSSProperties = {
   maxWidth: 1200,
@@ -189,19 +213,16 @@ const category: React.CSSProperties = {
   color: "#a16207",
   marginBottom: 8,
   fontWeight: 700,
-  textTransform: "capitalize",
 };
 
 const title: React.CSSProperties = {
   fontSize: 38,
-  lineHeight: 1.1,
-  margin: "0 0 14px 0",
+  marginBottom: 14,
 };
 
 const badges: React.CSSProperties = {
   display: "flex",
   gap: 10,
-  flexWrap: "wrap",
   marginBottom: 16,
 };
 
@@ -211,7 +232,6 @@ const badge: React.CSSProperties = {
   borderRadius: 10,
   color: "white",
   fontSize: 13,
-  fontWeight: 700,
 };
 
 const badgeDanger: React.CSSProperties = {
@@ -220,14 +240,12 @@ const badgeDanger: React.CSSProperties = {
   borderRadius: 10,
   color: "white",
   fontSize: 13,
-  fontWeight: 700,
 };
 
 const price: React.CSSProperties = {
   fontSize: 30,
   fontWeight: 800,
   marginBottom: 10,
-  color: "#111",
 };
 
 const stock: React.CSSProperties = {
@@ -240,13 +258,20 @@ const valueBox: React.CSSProperties = {
   padding: 15,
   borderRadius: 12,
   margin: "15px 0",
-  lineHeight: 1.7,
-  border: "1px solid #f4dfbf",
 };
 
 const description: React.CSSProperties = {
-  lineHeight: 1.75,
-  color: "#444",
+  lineHeight: 1.7,
+};
+
+const ctaDisabled: React.CSSProperties = {
+  background: "#e5e7eb",
+  color: "#9ca3af",
+  padding: "14px",
+  borderRadius: "12px",
+  border: "none",
+  fontWeight: 700,
+  width: "100%",
 };
 
 const recoSection: React.CSSProperties = {
