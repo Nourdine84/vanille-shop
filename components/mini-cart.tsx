@@ -1,6 +1,6 @@
 "use client";
 
-import { useCart } from "@/lib/cart-store";
+import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -10,163 +10,171 @@ function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-const FREE_SHIPPING = 5000; // 50€
+const FREE_SHIPPING = 5000;
 
 export default function MiniCart() {
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const { isCartOpen, closeCart } = useUIStore();
 
-  // 🔥 CRITICAL FIX → évite double render React StrictMode
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const subtotal = useMemo(
-    () =>
-      cart.reduce((acc, item) => acc + item.priceCents * item.quantity, 0),
+    () => cart.reduce((acc, item) => acc + item.priceCents * item.quantity, 0),
     [cart]
   );
 
   const progress = Math.min((subtotal / FREE_SHIPPING) * 100, 100);
 
-  useEffect(() => {
-    if (cart.length === 0 && isCartOpen) closeCart();
-  }, [cart.length, isCartOpen, closeCart]);
-
-  // ❌ sécurité render
-  if (!mounted || !isCartOpen) return null;
+  if (!mounted) return null;
 
   return (
     <div
       data-testid="cart-overlay"
-      style={overlay}
+      style={{
+        ...overlay,
+        opacity: isCartOpen ? 1 : 0,
+        pointerEvents: isCartOpen ? "auto" : "none",
+      }}
       onClick={closeCart}
+      aria-hidden={!isCartOpen}
     >
       <aside
-        id="mini-cart-root" // 🔥 UNIQUE POUR PLAYWRIGHT
+        id="mini-cart-root"
         data-testid="mini-cart"
-        style={panel}
+        style={{
+          ...panel,
+          transform: isCartOpen ? "translateX(0)" : "translateX(100%)",
+        }}
         onClick={(e) => e.stopPropagation()}
+        aria-hidden={!isCartOpen}
       >
-        {/* HEADER */}
         <div style={header}>
           <h3 style={title}>Votre panier</h3>
-          <button onClick={closeCart} style={closeBtn}>
+          <button type="button" onClick={closeCart} style={closeBtn} aria-label="Fermer le panier">
             ✕
           </button>
         </div>
 
-        {/* SHIPPING */}
-        <div style={shippingBox}>
-          {subtotal >= FREE_SHIPPING ? (
-            <p style={free}>🎉 Livraison offerte</p>
-          ) : (
-            <p style={shippingText}>
-              Plus que{" "}
-              <strong>
-                {formatPrice(FREE_SHIPPING - subtotal)}
-              </strong>{" "}
-              pour la livraison offerte
-            </p>
-          )}
-
-          <div style={bar}>
-            <div style={{ ...fill, width: `${progress}%` }} />
+        {cart.length === 0 ? (
+          <div style={emptyBox}>
+            <p data-testid="cart-empty">Votre panier est vide</p>
           </div>
-        </div>
-
-        {/* ITEMS */}
-        <div style={items} data-testid="cart-items">
-          {cart.map((item) => (
-            <div
-              key={item.id}
-              data-testid={`cart-item-${item.id}`} // 🔥 UNIQUE
-              style={itemRow}
-            >
-              <img
-                src={getImageUrl(item.imageUrl)}
-                alt={item.name}
-                style={img}
-              />
-
-              <div style={itemContent}>
-                <p style={name}>{item.name}</p>
-
-                <p style={unitPrice}>
-                  {formatPrice(item.priceCents)}
+        ) : (
+          <>
+            <div style={shippingBox}>
+              {subtotal >= FREE_SHIPPING ? (
+                <p style={free}>🎉 Livraison offerte</p>
+              ) : (
+                <p style={shippingText}>
+                  Plus que <strong>{formatPrice(FREE_SHIPPING - subtotal)}</strong>{" "}
+                  pour la livraison offerte
                 </p>
+              )}
 
-                <div style={qtyPriceRow}>
-                  <div style={qtyRow}>
-                    <button
-                      style={qtyBtn}
-                      onClick={() =>
-                        updateQuantity(item.id, item.quantity - 1)
-                      }
-                    >
-                      −
-                    </button>
-
-                    <span data-testid="item-quantity" style={qtyValue}>
-                      {item.quantity}
-                    </span>
-
-                    <button
-                      style={qtyBtn}
-                      onClick={() =>
-                        updateQuantity(item.id, item.quantity + 1)
-                      }
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <p style={price}>
-                    {formatPrice(item.priceCents * item.quantity)}
-                  </p>
-                </div>
-
-                <button
-                  data-testid={`remove-item-${item.id}`}
-                  style={remove}
-                  onClick={() => removeFromCart(item.id)}
-                >
-                  Supprimer
-                </button>
+              <div style={bar}>
+                <div style={{ ...fill, width: `${progress}%` }} />
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* FOOTER */}
-        <div style={footer}>
-          <div style={total} data-testid="cart-total">
-            <span>Total</span>
-            <span>{formatPrice(subtotal)}</span>
-          </div>
+            <div style={items} data-testid="cart-items">
+              {cart.map((item, index) => (
+                <div
+                  key={item.id}
+                  data-testid="cart-item"
+                  style={itemRow}
+                >
+                  <div data-testid={`cart-item-${index}`} style={{ display: "contents" }}>
+                    <img
+                      src={getImageUrl(item.imageUrl)}
+                      alt={item.name}
+                      style={img}
+                    />
 
-          <Link
-            href="/checkout"
-            onClick={closeCart}
-            style={cta}
-            data-testid="checkout-button"
-          >
-            Commander
-          </Link>
+                    <div style={itemContent}>
+                      <p style={name}>{item.name}</p>
 
-          <button
-            onClick={clearCart}
-            style={clearBtn}
-            data-testid="clear-cart"
-          >
-            Vider le panier
-          </button>
-        </div>
+                      <p style={unitPrice}>{formatPrice(item.priceCents)}</p>
+
+                      <div style={qtyPriceRow}>
+                        <div style={qtyRow}>
+                          <button
+                            type="button"
+                            data-testid="decrease-qty"
+                            style={qtyBtn}
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            aria-label="Diminuer la quantité"
+                          >
+                            -
+                          </button>
+
+                          <span data-testid="item-quantity" style={qtyValue}>
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            data-testid="increase-qty"
+                            style={qtyBtn}
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            aria-label="Augmenter la quantité"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <p style={price}>
+                          {formatPrice(item.priceCents * item.quantity)}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        data-testid="remove-item"
+                        style={remove}
+                        onClick={() => removeFromCart(item.id)}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={footer}>
+              <div style={total} data-testid="cart-total">
+                <span>Total</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+
+              <Link
+                href="/checkout"
+                onClick={closeCart}
+                style={cta}
+                data-testid="checkout-button"
+              >
+                Commander
+              </Link>
+
+              <button
+                type="button"
+                onClick={clearCart}
+                style={clearBtn}
+                data-testid="clear-cart"
+              >
+                Vider le panier
+              </button>
+            </div>
+          </>
+        )}
       </aside>
     </div>
   );
 }
-
-/* ================= STYLE SHOPIFY++ ================= */
 
 const overlay = {
   position: "fixed" as const,
@@ -174,6 +182,7 @@ const overlay = {
   background: "rgba(0,0,0,0.5)",
   backdropFilter: "blur(4px)",
   zIndex: 9999,
+  transition: "0.2s",
 };
 
 const panel = {
@@ -190,6 +199,7 @@ const panel = {
   borderTopLeftRadius: 20,
   borderBottomLeftRadius: 20,
   boxShadow: "-20px 0 50px rgba(0,0,0,0.2)",
+  transition: "0.25s",
 };
 
 const header = {
@@ -210,6 +220,12 @@ const closeBtn = {
   width: "34px",
   height: "34px",
   cursor: "pointer",
+};
+
+const emptyBox = {
+  textAlign: "center" as const,
+  padding: "40px 0",
+  color: "#666",
 };
 
 const shippingBox = {

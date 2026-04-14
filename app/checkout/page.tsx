@@ -1,20 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useCart } from "@/lib/cart-store";
+import { useCart, type CartItem } from "@/lib/cart-context";
 import CrossSell from "@/components/cross-sell";
 
-type CartItem = {
-  id: string;
-  name: string;
-  priceCents: number;
-  quantity: number;
-  imageUrl?: string;
-};
-
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+function formatPrice(price: number) {
+  return price.toFixed(2).replace(".", ",") + " €";
 }
 
 export default function CheckoutPage() {
@@ -29,13 +20,13 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => {
     return cart.reduce(
-      (acc, item) => acc + item.priceCents * item.quantity,
+      (acc: number, item: CartItem) => acc + item.price * item.quantity,
       0
     );
   }, [cart]);
 
-  const freeShippingThreshold = 5000;
-  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
+  const freeShippingThreshold = 50;
+  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 4.9;
   const total = subtotal + shippingCost;
 
   const remaining = Math.max(0, freeShippingThreshold - subtotal);
@@ -56,7 +47,9 @@ export default function CheckoutPage() {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data?.error || "Erreur checkout");
+      }
 
       window.location.href = data.url;
     } catch (err) {
@@ -70,7 +63,6 @@ export default function CheckoutPage() {
 
   return (
     <div style={page}>
-      {/* HERO */}
       <section style={hero}>
         <div style={heroOverlay} />
 
@@ -87,35 +79,36 @@ export default function CheckoutPage() {
         </div>
       </section>
 
-      {/* CONTENT */}
       <div style={container}>
         <div style={grid}>
-          
-          {/* LEFT */}
           <div>
             <div style={card}>
               <h2 style={sectionTitle}>Votre panier</h2>
 
-              {cart.map((item) => (
-                <div key={item.id} style={itemRow}>
-                  <img
-                    src={item.imageUrl || "/images/default.jpg"}
-                    style={image}
-                  />
+              {cart.length === 0 ? (
+                <p style={meta}>Votre panier est vide.</p>
+              ) : (
+                cart.map((item: CartItem) => (
+                  <div key={item.id} style={itemRow}>
+                    <img
+                      src={item.image || "/images/default.jpg"}
+                      alt={item.name}
+                      style={image}
+                    />
 
-                  <div style={{ flex: 1 }}>
-                    <p style={name}>{item.name}</p>
-                    <p style={meta}>Quantité : {item.quantity}</p>
+                    <div style={{ flex: 1 }}>
+                      <p style={name}>{item.name}</p>
+                      <p style={meta}>Quantité : {item.quantity}</p>
+                    </div>
+
+                    <p style={price}>
+                      {formatPrice(item.price * item.quantity)}
+                    </p>
                   </div>
-
-                  <p style={price}>
-                    {formatPrice(item.priceCents * item.quantity)}
-                  </p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
-            {/* TRUST */}
             <div style={trust}>
               <p>✔ Paiement sécurisé Stripe</p>
               <p>✔ Produits premium Madagascar</p>
@@ -125,11 +118,9 @@ export default function CheckoutPage() {
             <CrossSell />
           </div>
 
-          {/* RIGHT */}
           <div style={summary}>
             <h2 style={sectionTitle}>Résumé</h2>
 
-            {/* 🔥 LIVRAISON PREMIUM */}
             {remaining > 0 ? (
               <div style={shippingBox}>
                 Ajoutez encore{" "}
@@ -150,9 +141,7 @@ export default function CheckoutPage() {
             <div style={row}>
               <span>Livraison</span>
               <span>
-                {shippingCost === 0
-                  ? "Offerte"
-                  : formatPrice(shippingCost)}
+                {shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
               </span>
             </div>
 
@@ -169,14 +158,12 @@ export default function CheckoutPage() {
                 ...cta,
                 opacity: loading ? 0.7 : 1,
               }}
-              disabled={loading}
+              disabled={loading || cart.length === 0}
             >
               {loading ? "Redirection..." : "Payer maintenant 🔒"}
             </button>
 
-            <p style={secure}>
-              Paiement sécurisé via Stripe
-            </p>
+            <p style={secure}>Paiement sécurisé via Stripe</p>
           </div>
         </div>
       </div>
@@ -186,135 +173,127 @@ export default function CheckoutPage() {
 
 /* ================= STYLE ================= */
 
-const page = {
+const page: React.CSSProperties = {
   background: "#f8f5ef",
   minHeight: "100vh",
 };
 
-/* HERO */
-
-const hero = {
-  position: "relative" as const,
+const hero: React.CSSProperties = {
+  position: "relative",
   height: "280px",
   backgroundImage: "url('/images/hero-vanille.jpg')",
   backgroundSize: "cover",
 };
 
-const heroOverlay = {
-  position: "absolute" as const,
+const heroOverlay: React.CSSProperties = {
+  position: "absolute",
   inset: 0,
   background: "rgba(0,0,0,0.6)",
 };
 
-const heroContent = {
-  position: "relative" as const,
+const heroContent: React.CSSProperties = {
+  position: "relative",
   zIndex: 2,
-  textAlign: "center" as const,
+  textAlign: "center",
   color: "white",
   paddingTop: "70px",
 };
 
-const heroTag = {
+const heroTag: React.CSSProperties = {
   color: "#d4af37",
   fontSize: "26px",
   fontWeight: 900,
   letterSpacing: "0.3em",
 };
 
-const heroTitle = {
+const heroTitle: React.CSSProperties = {
   fontSize: "28px",
   marginTop: "10px",
 };
 
-const heroSub = {
+const heroSub: React.CSSProperties = {
   color: "#ddd",
 };
 
-/* LAYOUT */
-
-const container = {
+const container: React.CSSProperties = {
   maxWidth: "1100px",
   margin: "0 auto",
   padding: "30px",
 };
 
-const grid = {
+const grid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "2fr 1fr",
   gap: "30px",
 };
 
-/* CARD */
-
-const card = {
+const card: React.CSSProperties = {
   background: "white",
   borderRadius: "16px",
   padding: "20px",
 };
 
-const itemRow = {
+const itemRow: React.CSSProperties = {
   display: "flex",
   gap: "15px",
   marginBottom: "15px",
   alignItems: "center",
 };
 
-const image = {
+const image: React.CSSProperties = {
   width: "70px",
   height: "70px",
   borderRadius: "10px",
-  objectFit: "cover" as const,
+  objectFit: "cover",
 };
 
-const name = { fontWeight: 700 };
+const name: React.CSSProperties = {
+  fontWeight: 700,
+};
 
-const meta = {
+const meta: React.CSSProperties = {
   fontSize: "13px",
   color: "#666",
 };
 
-const price = { fontWeight: 700 };
+const price: React.CSSProperties = {
+  fontWeight: 700,
+};
 
-/* TRUST */
-
-const trust = {
+const trust: React.CSSProperties = {
   marginTop: "20px",
   background: "#fff7ed",
   padding: "15px",
   borderRadius: "12px",
 };
 
-/* SUMMARY */
-
-const summary = {
+const summary: React.CSSProperties = {
   background: "white",
   borderRadius: "16px",
   padding: "20px",
-  position: "sticky" as const,
+  position: "sticky",
   top: "20px",
 };
 
-const sectionTitle = {
+const sectionTitle: React.CSSProperties = {
   fontSize: "20px",
   marginBottom: "15px",
 };
 
-const row = {
+const row: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   marginBottom: "10px",
 };
 
-const totalRow = {
+const totalRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   fontWeight: 800,
   fontSize: "18px",
 };
 
-/* SHIPPING UX */
-
-const shippingBox = {
+const shippingBox: React.CSSProperties = {
   background: "#fff4df",
   padding: "12px",
   borderRadius: "12px",
@@ -322,7 +301,7 @@ const shippingBox = {
   fontSize: "14px",
 };
 
-const shippingFree = {
+const shippingFree: React.CSSProperties = {
   background: "#ecfdf5",
   padding: "12px",
   borderRadius: "12px",
@@ -331,9 +310,7 @@ const shippingFree = {
   fontWeight: 600,
 };
 
-/* CTA */
-
-const cta = {
+const cta: React.CSSProperties = {
   marginTop: "20px",
   width: "100%",
   padding: "14px",
@@ -345,8 +322,8 @@ const cta = {
   cursor: "pointer",
 };
 
-const secure = {
-  textAlign: "center" as const,
+const secure: React.CSSProperties = {
+  textAlign: "center",
   marginTop: "10px",
   fontSize: "12px",
   color: "#777",

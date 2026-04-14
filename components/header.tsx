@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { useCart } from "@/lib/cart-store";
+import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 
 export default function Header() {
