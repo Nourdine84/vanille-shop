@@ -1,77 +1,86 @@
 "use client";
 
+import { useMemo } from "react";
+import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
 
-function formatPrice(price: number) {
-  return (price / 100).toFixed(2).replace(".", ",") + " €";
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-const FREE_SHIPPING = 5000;
+const FREE_SHIPPING_CENTS = 5000;
 
 export default function MiniCart() {
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const { isCartOpen, closeCart } = useUIStore();
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const subtotal = useMemo(
     () => cart.reduce((acc, item) => acc + item.priceCents * item.quantity, 0),
     [cart]
   );
 
-  const progress = Math.min((subtotal / FREE_SHIPPING) * 100, 100);
+  const remainingForFreeShipping = Math.max(
+    FREE_SHIPPING_CENTS - subtotal,
+    0
+  );
 
-  if (!mounted) return null;
+  const progress = Math.min(
+    (subtotal / FREE_SHIPPING_CENTS) * 100,
+    100
+  );
 
   return (
-    <div
-      data-testid="cart-overlay"
-      style={{
-        ...overlay,
-        opacity: isCartOpen ? 1 : 0,
-        pointerEvents: isCartOpen ? "auto" : "none",
-      }}
-      onClick={closeCart}
-      aria-hidden={!isCartOpen}
-    >
+    <>
+      <div
+        aria-hidden={!isCartOpen}
+        onClick={closeCart}
+        style={{
+          ...overlay,
+          opacity: isCartOpen ? 1 : 0,
+          pointerEvents: isCartOpen ? "auto" : "none",
+        }}
+      />
+
       <aside
-        id="mini-cart-root"
+        aria-hidden={!isCartOpen}
         data-testid="mini-cart"
         style={{
           ...panel,
           transform: isCartOpen ? "translateX(0)" : "translateX(100%)",
+          visibility: isCartOpen ? "visible" : "hidden",
         }}
-        onClick={(e) => e.stopPropagation()}
-        aria-hidden={!isCartOpen}
       >
         <div style={header}>
           <h3 style={title}>Votre panier</h3>
-          <button type="button" onClick={closeCart} style={closeBtn} aria-label="Fermer le panier">
+
+          <button
+            type="button"
+            onClick={closeCart}
+            style={closeBtn}
+            aria-label="Fermer le panier"
+          >
             ✕
           </button>
         </div>
 
         {cart.length === 0 ? (
           <div style={emptyBox}>
-            <p data-testid="cart-empty">Votre panier est vide</p>
+            <p data-testid="cart-empty" style={emptyText}>
+              Votre panier est vide
+            </p>
           </div>
         ) : (
           <>
             <div style={shippingBox}>
-              {subtotal >= FREE_SHIPPING ? (
+              {subtotal >= FREE_SHIPPING_CENTS ? (
                 <p style={free}>🎉 Livraison offerte</p>
               ) : (
                 <p style={shippingText}>
-                  Plus que <strong>{formatPrice(FREE_SHIPPING - subtotal)}</strong>{" "}
-                  pour la livraison offerte
+                  Plus que{" "}
+                  <strong>{formatPrice(remainingForFreeShipping)}</strong> pour
+                  la livraison offerte
                 </p>
               )}
 
@@ -82,64 +91,65 @@ export default function MiniCart() {
 
             <div style={items} data-testid="cart-items">
               {cart.map((item, index) => (
-                <div
-                  key={item.id}
-                  data-testid="cart-item"
-                  style={itemRow}
-                >
-                  <div data-testid={`cart-item-${index}`} style={{ display: "contents" }}>
-                    <img
-                      src={getImageUrl(item.imageUrl)}
-                      alt={item.name}
-                      style={img}
-                    />
+                <div key={item.id} data-testid="cart-item" style={itemRow}>
+                  <img
+                    src={getImageUrl(item.imageUrl)}
+                    alt={item.name}
+                    style={img}
+                  />
 
-                    <div style={itemContent}>
-                      <p style={name}>{item.name}</p>
+                  <div
+                    data-testid={`cart-item-${index}`}
+                    style={itemContent}
+                  >
+                    <p style={name}>{item.name}</p>
 
-                      <p style={unitPrice}>{formatPrice(item.priceCents)}</p>
+                    <p style={unitPrice}>{formatPrice(item.priceCents)}</p>
 
-                      <div style={qtyPriceRow}>
-                        <div style={qtyRow}>
-                          <button
-                            type="button"
-                            data-testid="decrease-qty"
-                            style={qtyBtn}
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            aria-label="Diminuer la quantité"
-                          >
-                            -
-                          </button>
+                    <div style={qtyPriceRow}>
+                      <div style={qtyRow}>
+                        <button
+                          type="button"
+                          data-testid="decrease-qty"
+                          style={qtyBtn}
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity - 1)
+                          }
+                          aria-label="Diminuer la quantité"
+                        >
+                          -
+                        </button>
 
-                          <span data-testid="item-quantity" style={qtyValue}>
-                            {item.quantity}
-                          </span>
+                        <span data-testid="item-quantity" style={qtyValue}>
+                          {item.quantity}
+                        </span>
 
-                          <button
-                            type="button"
-                            data-testid="increase-qty"
-                            style={qtyBtn}
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            aria-label="Augmenter la quantité"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        <p style={price}>
-                          {formatPrice(item.priceCents * item.quantity)}
-                        </p>
+                        <button
+                          type="button"
+                          data-testid="increase-qty"
+                          style={qtyBtn}
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity + 1)
+                          }
+                          aria-label="Augmenter la quantité"
+                        >
+                          +
+                        </button>
                       </div>
 
-                      <button
-                        type="button"
-                        data-testid="remove-item"
-                        style={remove}
-                        onClick={() => removeFromCart(item.id)}
-                      >
-                        Supprimer
-                      </button>
+                      <p style={price}>
+                        {formatPrice(item.priceCents * item.quantity)}
+                      </p>
                     </div>
+
+                    <button
+                      type="button"
+                      data-testid="remove-item"
+                      style={removeBtn}
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      Supprimer
+                    </button>
                   </div>
                 </div>
               ))}
@@ -154,7 +164,7 @@ export default function MiniCart() {
               <Link
                 href="/checkout"
                 onClick={closeCart}
-                style={cta}
+                style={checkoutBtn}
                 data-testid="checkout-button"
               >
                 Commander
@@ -172,63 +182,71 @@ export default function MiniCart() {
           </>
         )}
       </aside>
-    </div>
+    </>
   );
 }
 
-const overlay = {
-  position: "fixed" as const,
+const overlay: React.CSSProperties = {
+  position: "fixed",
   inset: 0,
   background: "rgba(0,0,0,0.5)",
   backdropFilter: "blur(4px)",
-  zIndex: 9999,
-  transition: "0.2s",
+  zIndex: 9998,
+  transition: "opacity 0.2s ease",
 };
 
-const panel = {
-  position: "absolute" as const,
-  right: 0,
+const panel: React.CSSProperties = {
+  position: "fixed",
   top: 0,
+  right: 0,
   width: "100%",
   maxWidth: "420px",
-  height: "100%",
+  height: "100vh",
   background: "linear-gradient(180deg,#fff,#fbf8f3)",
   padding: "20px",
   display: "flex",
-  flexDirection: "column" as const,
+  flexDirection: "column",
   borderTopLeftRadius: 20,
   borderBottomLeftRadius: 20,
   boxShadow: "-20px 0 50px rgba(0,0,0,0.2)",
-  transition: "0.25s",
+  transition: "transform 0.25s ease, visibility 0.25s ease",
+  zIndex: 9999,
 };
 
-const header = {
+const header: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
+  alignItems: "center",
   marginBottom: "10px",
 };
 
-const title = {
+const title: React.CSSProperties = {
   fontSize: "22px",
   fontWeight: 800,
+  margin: 0,
 };
 
-const closeBtn = {
+const closeBtn: React.CSSProperties = {
   border: "none",
   background: "#f3f4f6",
   borderRadius: "50%",
   width: "34px",
   height: "34px",
   cursor: "pointer",
+  fontSize: "16px",
 };
 
-const emptyBox = {
-  textAlign: "center" as const,
+const emptyBox: React.CSSProperties = {
+  textAlign: "center",
   padding: "40px 0",
-  color: "#666",
 };
 
-const shippingBox = {
+const emptyText: React.CSSProperties = {
+  color: "#666",
+  margin: 0,
+};
+
+const shippingBox: React.CSSProperties = {
   marginBottom: "12px",
   padding: "12px",
   background: "#fff7ed",
@@ -236,33 +254,37 @@ const shippingBox = {
   border: "1px solid #f3dfc1",
 };
 
-const shippingText = {
+const shippingText: React.CSSProperties = {
   fontSize: "13px",
   marginBottom: "6px",
 };
 
-const free = {
+const free: React.CSSProperties = {
   fontWeight: 700,
   color: "#065f46",
+  margin: 0,
 };
 
-const bar = {
+const bar: React.CSSProperties = {
   height: "6px",
   background: "#eee",
   borderRadius: "999px",
+  overflow: "hidden",
 };
 
-const fill = {
+const fill: React.CSSProperties = {
   height: "100%",
   background: "#a16207",
+  transition: "width 0.25s ease",
 };
 
-const items = {
+const items: React.CSSProperties = {
   flex: 1,
-  overflowY: "auto" as const,
+  overflowY: "auto",
+  paddingRight: "4px",
 };
 
-const itemRow = {
+const itemRow: React.CSSProperties = {
   display: "flex",
   gap: "10px",
   marginBottom: "12px",
@@ -271,38 +293,44 @@ const itemRow = {
   background: "white",
 };
 
-const img = {
+const img: React.CSSProperties = {
   width: "70px",
   height: "70px",
   borderRadius: "10px",
-  objectFit: "cover" as const,
+  objectFit: "cover",
+  flexShrink: 0,
 };
 
-const itemContent = {
+const itemContent: React.CSSProperties = {
   flex: 1,
+  minWidth: 0,
 };
 
-const name = {
+const name: React.CSSProperties = {
   fontWeight: 700,
+  margin: "0 0 4px",
 };
 
-const unitPrice = {
+const unitPrice: React.CSSProperties = {
   fontSize: "12px",
   color: "#777",
+  margin: "0 0 8px",
 };
 
-const qtyPriceRow = {
+const qtyPriceRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+  gap: "10px",
 };
 
-const qtyRow = {
+const qtyRow: React.CSSProperties = {
   display: "flex",
   gap: "6px",
+  alignItems: "center",
 };
 
-const qtyBtn = {
+const qtyBtn: React.CSSProperties = {
   border: "none",
   background: "#f3f4f6",
   borderRadius: "50%",
@@ -311,37 +339,43 @@ const qtyBtn = {
   cursor: "pointer",
 };
 
-const qtyValue = {
+const qtyValue: React.CSSProperties = {
   fontWeight: 700,
+  minWidth: "18px",
+  textAlign: "center",
 };
 
-const price = {
+const price: React.CSSProperties = {
   fontWeight: 800,
+  margin: 0,
 };
 
-const remove = {
+const removeBtn: React.CSSProperties = {
+  marginTop: "8px",
   fontSize: "12px",
   color: "#dc2626",
   border: "none",
   background: "transparent",
   cursor: "pointer",
+  padding: 0,
 };
 
-const footer = {
+const footer: React.CSSProperties = {
   borderTop: "1px solid #eee",
   paddingTop: "12px",
+  marginTop: "10px",
 };
 
-const total = {
+const total: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   fontWeight: 800,
   marginBottom: "10px",
 };
 
-const cta = {
+const checkoutBtn: React.CSSProperties = {
   display: "block",
-  textAlign: "center" as const,
+  textAlign: "center",
   background: "#a16207",
   color: "white",
   padding: "14px",
@@ -350,7 +384,7 @@ const cta = {
   fontWeight: 800,
 };
 
-const clearBtn = {
+const clearBtn: React.CSSProperties = {
   marginTop: "8px",
   width: "100%",
   padding: "10px",

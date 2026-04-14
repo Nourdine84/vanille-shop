@@ -3,9 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* =========================
-   TYPES
-========================= */
+/* ================= TYPES ================= */
 
 type ProductPayload = {
   id?: string | null;
@@ -22,11 +20,10 @@ type ProductPayload = {
   unit?: string;
   isPack?: boolean | string;
   packItems?: string | null;
+  pricing?: any; // 🔥 NEW
 };
 
-/* =========================
-   UTILS
-========================= */
+/* ================= UTILS ================= */
 
 function normalizeSlug(input: string) {
   return input
@@ -39,79 +36,56 @@ function normalizeSlug(input: string) {
 }
 
 function normalizeImageUrl(image?: string) {
-  if (!image || image.trim() === "") {
-    return "default.jpg";
-  }
+  if (!image || image.trim() === "") return "default.jpg";
 
-  const clean = image
-    .trim()
-    .replace(/^\/+/, "")
-    .replace(/^products\//, "")
+  const clean = image.trim();
+
+  if (clean.startsWith("http")) return clean;
+
+  return clean
+    .replace(/^.*[\\/]/, "")
     .replace(/^images\//, "")
-    .replace(/^image\//, "")
-    .replace(/^imae\//, "");
-
-  if (clean.startsWith("http://") || clean.startsWith("https://")) {
-    return clean;
-  }
-
-  return clean;
+    .replace(/^products\//, "");
 }
 
 function normalizeUnit(unit?: string) {
-  const value = (unit || "g").trim().toLowerCase();
-  if (value === "cl" || value === "l" || value === "g") return value;
+  const u = (unit || "g").toLowerCase();
+  if (["g", "cl", "l"].includes(u)) return u;
   return "g";
 }
 
-/* =========================
-   PARSE BODY SAFE
-========================= */
+/* ================= PARSE ================= */
 
 async function parseBody(req: Request): Promise<ProductPayload> {
-  const contentType = req.headers.get("content-type") || "";
+  const formData = await req.formData();
 
-  if (
-    contentType.includes("multipart/form-data") ||
-    contentType.includes("application/x-www-form-urlencoded")
-  ) {
-    const formData = await req.formData();
+  return {
+    id: formData.get("id")?.toString() || null,
+    name: formData.get("name")?.toString() || "",
+    slug: formData.get("slug")?.toString() || "",
+    description: formData.get("description")?.toString() || "",
+    imageUrl: formData.get("imageUrl")?.toString() || "",
+    category: formData.get("category")?.toString() || "vanille",
+    subCategory: formData.get("subCategory")?.toString() || null,
+    badge: formData.get("badge")?.toString() || null,
+    priceCents: formData.get("priceCents")?.toString() || 0,
+    stock: formData.get("stock")?.toString() || 0,
+    isActive: formData.get("isActive") === "on",
+    unit: formData.get("unit")?.toString() || "g",
+    isPack: formData.get("isPack") === "on",
+    packItems: formData.get("packItems")?.toString() || null,
 
-    return {
-      id: formData.get("id")?.toString() || null,
-      name: formData.get("name")?.toString() || "",
-      slug: formData.get("slug")?.toString() || "",
-      description: formData.get("description")?.toString() || "",
-      imageUrl: formData.get("imageUrl")?.toString() || "",
-      category: formData.get("category")?.toString() || "vanille",
-      subCategory: formData.get("subCategory")?.toString() || null,
-      badge: formData.get("badge")?.toString() || null,
-      priceCents: formData.get("priceCents")?.toString() || 0,
-      stock: formData.get("stock")?.toString() || 0,
-      isActive: formData.get("isActive") === "on",
-      unit: formData.get("unit")?.toString() || "g",
-      isPack: formData.get("isPack") === "on",
-      packItems: formData.get("packItems")?.toString() || null,
-    };
-  }
-
-  if (contentType.includes("application/json")) {
-    return await req.json();
-  }
-
-  throw new Error("Content-Type non supporté");
+    // 🔥 NEW PRICING
+    pricing: formData.get("pricing")
+      ? JSON.parse(formData.get("pricing")!.toString())
+      : null,
+  };
 }
 
-/* =========================
-   POST (CREATE + UPDATE)
-========================= */
+/* ================= POST ================= */
 
 export async function POST(req: Request) {
   try {
-    if (process.env.NEXT_PHASE === "phase-production-build") {
-      return NextResponse.json({ ok: true });
-    }
-
     const { prisma } = await import("@/lib/prisma");
     const body = await parseBody(req);
 
@@ -121,109 +95,37 @@ export async function POST(req: Request) {
 
     const priceCents = Number(body.priceCents || 0);
     const stock = Number(body.stock || 0);
-    const imageUrl = normalizeImageUrl(body.imageUrl);
-    const category = body.category?.trim().toLowerCase() || "vanille";
-    const unit = normalizeUnit(body.unit);
-
-    const subCategory =
-      body.subCategory && body.subCategory.trim() !== ""
-        ? body.subCategory.trim()
-        : null;
-
-    const badge =
-      body.badge && body.badge.trim() !== ""
-        ? body.badge.trim()
-        : null;
-
-    const isActive =
-      body.isActive === true ||
-      body.isActive === "true" ||
-      body.isActive === "on";
-
-    const isPack =
-      body.isPack === true ||
-      body.isPack === "true" ||
-      body.isPack === "on";
-
-    const packItems =
-      body.packItems && body.packItems.trim() !== ""
-        ? body.packItems.trim()
-        : null;
-
-    if (!name || !slug) {
-      return NextResponse.json(
-        { error: "Nom et slug requis" },
-        { status: 400 }
-      );
-    }
-
-    if (!priceCents || Number.isNaN(priceCents) || priceCents <= 0) {
-      return NextResponse.json(
-        { error: "Prix invalide" },
-        { status: 400 }
-      );
-    }
 
     const data = {
       name,
       slug,
       description: body.description?.trim() || "",
       priceCents,
-      imageUrl,
-      stock: Number.isNaN(stock) ? 0 : stock,
-      category,
-      subCategory,
-      badge,
-      isActive,
-      unit,
-      isPack,
-      packItems,
+      imageUrl: normalizeImageUrl(body.imageUrl),
+      stock,
+      category: body.category || "vanille",
+      subCategory: body.subCategory,
+      badge: body.badge,
+      isActive: body.isActive === true,
+      unit: normalizeUnit(body.unit),
+      isPack: body.isPack === true,
+      packItems: body.packItems,
+
+      // 🔥 PRICING
+      pricing: body.pricing,
     };
 
+    if (!name || !slug) {
+      return NextResponse.json({ error: "Nom requis" }, { status: 400 });
+    }
+
+    if (priceCents <= 0) {
+      return NextResponse.json({ error: "Prix invalide" }, { status: 400 });
+    }
+
     if (!id) {
-      const exists = await prisma.product.findUnique({
-        where: { slug },
-      });
-
-      if (exists) {
-        return NextResponse.json(
-          { error: "Slug déjà utilisé" },
-          { status: 400 }
-        );
-      }
-
       const created = await prisma.product.create({ data });
-
-      console.log("✅ PRODUCT CREATED:", created.id);
-
-      return NextResponse.json({
-        success: true,
-        product: created,
-      });
-    }
-
-    const existing = await prisma.product.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      return NextResponse.json(
-        { error: "Produit introuvable" },
-        { status: 404 }
-      );
-    }
-
-    if (existing.slug !== slug) {
-      const exists = await prisma.product.findUnique({
-        where: { slug },
-      });
-
-      if (exists) {
-        return NextResponse.json(
-          { error: "Slug déjà utilisé" },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json({ success: true, product: created });
     }
 
     const updated = await prisma.product.update({
@@ -231,21 +133,10 @@ export async function POST(req: Request) {
       data,
     });
 
-    console.log("✏️ PRODUCT UPDATED:", updated.id);
+    return NextResponse.json({ success: true, product: updated });
 
-    return NextResponse.json({
-      success: true,
-      product: updated,
-    });
-  } catch (error: any) {
-    console.error("🔥 PRODUCT API ERROR:", error);
-
-    return NextResponse.json(
-      {
-        error: "Erreur serveur",
-        message: error?.message || "unknown",
-      },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    console.error(err);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

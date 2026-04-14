@@ -3,7 +3,11 @@
 import { UIProvider } from "./ui-providers";
 import { CartProvider } from "@/lib/cart-context";
 
-export default function Providers({ children }: any) {
+type Props = {
+  children: React.ReactNode;
+};
+
+export default function Providers({ children }: Props) {
   return (
     <UIProvider>
       <CartProvider>

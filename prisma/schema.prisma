@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/* ================= USER ================= */
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -17,22 +19,35 @@ model User {
   orders    Order[]
 }
 
+/* ================= PRODUCT ================= */
+
 model Product {
   id          String   @id @default(cuid())
   slug        String   @unique
   name        String
   description String
+
+  // 🔥 PRIX BASE (toujours utilisé si pas de variations)
   priceCents  Int
   currency    String   @default("EUR")
+
+  // 🔥 UNITÉ PRODUIT
+  unit        String   @default("g") // g, ml, l
+
+  // 🔥 PRICING DYNAMIQUE (100g / 250g / 1kg OU ml/L)
+  pricing     Json?    // { small: 1200, medium: 2500, large: 9000 }
+
   imageUrl    String
   stock       Int      @default(0)
   isActive    Boolean  @default(true)
+
   category    String   @default("vanille")
   subCategory String?
   badge       String?
 
+  // 🔥 PACK SYSTEM
   isPack      Boolean  @default(false)
-  packItems   String?   // 🔥 AJOUT ICI
+  packItems   String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -41,6 +56,8 @@ model Product {
   @@index([isActive])
   @@index([isPack])
 }
+
+/* ================= ORDER ================= */
 
 model Order {
   id              String      @id @default(cuid())
@@ -56,11 +73,14 @@ model Order {
   carrier         String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+
   user            User?       @relation(fields: [userId], references: [id])
 
   @@index([createdAt])
   @@index([status])
 }
+
+/* ================= B2B ================= */
 
 model B2BRequest {
   id          String    @id @default(cuid())
@@ -80,6 +100,8 @@ model B2BRequest {
   @@index([createdAt])
 }
 
+/* ================= BLOG ================= */
+
 model BlogPost {
   id         String   @id @default(cuid())
   title      String
@@ -92,6 +114,8 @@ model BlogPost {
 
   @@index([slug])
 }
+
+/* ================= ENUM ================= */
 
 enum OrderStatus {
   PENDING
