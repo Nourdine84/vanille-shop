@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useCart } from "@/lib/cart-store";
+import { useCart } from "@/lib/cart-context";
 
 export default function SuccessContent() {
   const params = useSearchParams();

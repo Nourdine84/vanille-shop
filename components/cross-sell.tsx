@@ -1,6 +1,6 @@
 "use client";
 
-import { useCart } from "@/lib/cart-store";
+import { useCart } from "@/lib/cart-context";
 
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";

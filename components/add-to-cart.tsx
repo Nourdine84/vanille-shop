@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useCart } from "@/lib/cart-store";
+import React from "react";
+import { useCart } from "@/lib/cart-context";
+import { useUIStore } from "@/components/ui-providers";
 
 type Product = {
   id: string;
@@ -10,49 +11,46 @@ type Product = {
   imageUrl?: string;
 };
 
-export default function AddToCart({ product }: { product: Product }) {
+type Props = {
+  product: Product;
+};
+
+export default function AddToCart({ product }: Props) {
   const { addToCart } = useCart();
-  const [loading, setLoading] = useState(false);
+  const { openCart } = useUIStore();
 
-  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();        // 🔥 évite navigation du Link parent
-    e.stopPropagation();       // 🔥 évite double trigger
-
-    if (loading) return;       // 🔥 anti double click
-
-    setLoading(true);
-
+  const handleAdd = () => {
     addToCart({
       id: product.id,
       name: product.name,
       priceCents: product.priceCents,
+      imageUrl: product.imageUrl,
       quantity: 1,
-      imageUrl: product.imageUrl || "/images/product-vanille.jpg",
     });
 
-    // petit délai pour éviter spam + QA stable
-    setTimeout(() => setLoading(false), 300);
+    openCart();
   };
 
   return (
     <button
-      data-testid="add-to-cart"                     // 🔥 important pour tests
-      aria-label="Ajouter"
-      onClick={handleAddToCart}
-      disabled={loading}
-      style={{
-        background: "#a16207",
-        color: "white",
-        padding: "12px 20px",
-        borderRadius: "10px",
-        border: "none",
-        cursor: loading ? "not-allowed" : "pointer",
-        fontWeight: 600,
-        opacity: loading ? 0.7 : 1,
-        transition: "0.2s",
-      }}
+      type="button"
+      data-testid="add-to-cart"
+      onClick={handleAdd}
+      style={btn}
     >
-      {loading ? "Ajout..." : "Ajouter"}
+      Ajouter au panier
     </button>
   );
 }
+
+const btn: React.CSSProperties = {
+  marginTop: 20,
+  width: "100%",
+  background: "#a16207",
+  color: "white",
+  padding: "14px",
+  borderRadius: "12px",
+  border: "none",
+  fontWeight: 700,
+  cursor: "pointer",
+};

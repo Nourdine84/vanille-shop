@@ -9,10 +9,8 @@ import RecommendedProducts from "@/components/RecommendedProducts";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/* ========================= HELPERS ========================= */
-
-function formatPrice(price: number) {
-  return (price / 100).toFixed(2).replace(".", ",") + " €";
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 function normalizeSlug(input: string) {
@@ -24,8 +22,6 @@ function normalizeSlug(input: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
-
-/* ========================= PAGE ========================= */
 
 export default async function ProductDetailPage({
   params,
@@ -44,7 +40,6 @@ export default async function ProductDetailPage({
     },
   });
 
-  // fallback slug partiel
   if (!product) {
     product = await prisma.product.findFirst({
       where: {
@@ -57,7 +52,6 @@ export default async function ProductDetailPage({
     });
   }
 
-  // fallback nom
   if (!product) {
     product = await prisma.product.findFirst({
       where: {
@@ -73,35 +67,31 @@ export default async function ProductDetailPage({
   if (!product) return notFound();
 
   const isOutOfStock = product.stock <= 0;
+  const productImageUrl = getImageUrl(product.imageUrl);
 
   return (
     <div style={page}>
-      {/* BREADCRUMB */}
       <div style={breadcrumb}>
         <Link href="/">Accueil</Link> /{" "}
         <Link href="/products">Produits</Link> /{" "}
         <strong>{product.name}</strong>
       </div>
 
-      {/* HERO */}
       <div style={heroCard}>
         <div style={layout}>
-          {/* IMAGE */}
           <div style={imageBox}>
             <img
-              src={getImageUrl(product.imageUrl)}
+              src={productImageUrl}
               alt={product.name}
               style={image}
             />
           </div>
 
-          {/* CONTENT */}
           <div style={contentCol}>
             <p style={category}>{product.category}</p>
 
             <h1 style={title}>{product.name}</h1>
 
-            {/* BADGES */}
             <div style={badges}>
               {product.badge && <span style={badge}>{product.badge}</span>}
 
@@ -110,17 +100,14 @@ export default async function ProductDetailPage({
               )}
             </div>
 
-            {/* PRICE */}
             <p style={price}>{formatPrice(product.priceCents)}</p>
 
-            {/* STOCK */}
             <p style={stock}>
               {isOutOfStock
                 ? "❌ Rupture de stock"
                 : `✅ En stock : ${product.stock}`}
             </p>
 
-            {/* VALUE */}
             <div style={valueBox}>
               ⭐ Qualité premium Madagascar
               <br />
@@ -129,23 +116,21 @@ export default async function ProductDetailPage({
               👨‍🍳 Idéal pâtisserie & cuisine
             </div>
 
-            {/* DESCRIPTION */}
             <p style={description}>
               {product.description || "Description à venir."}
             </p>
 
-            {/* CTA */}
             {!isOutOfStock ? (
               <AddToCart
                 product={{
                   id: product.id,
                   name: product.name,
                   priceCents: product.priceCents,
-                  imageUrl: getImageUrl(product.imageUrl),
+                  imageUrl: productImageUrl,
                 }}
               />
             ) : (
-              <button disabled style={ctaDisabled}>
+              <button type="button" disabled style={ctaDisabled}>
                 Produit épuisé
               </button>
             )}
@@ -153,7 +138,6 @@ export default async function ProductDetailPage({
         </div>
       </div>
 
-      {/* RECO */}
       <div style={recoSection}>
         <RecommendedProducts
           currentProductId={product.id}
@@ -163,8 +147,6 @@ export default async function ProductDetailPage({
     </div>
   );
 }
-
-/* ========================= STYLES ========================= */
 
 const page: React.CSSProperties = {
   maxWidth: 1200,

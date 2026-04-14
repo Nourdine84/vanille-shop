@@ -1,13 +1,14 @@
 "use client";
 
 import { UIProvider } from "./ui-providers";
-import MiniCart from "./mini-cart";
+import { CartProvider } from "@/lib/cart-context";
 
 export default function Providers({ children }: any) {
   return (
     <UIProvider>
-      {children}
-      <MiniCart /> {/* 🔥 GLOBAL */}
+      <CartProvider>
+        {children}
+      </CartProvider>
     </UIProvider>
   );
 }

@@ -1,51 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useCart } from "@/lib/cart-store";
+import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
-import MiniCart from "@/components/mini-cart";
 
 export default function HeaderWrapper() {
   const { cart } = useCart();
-  const { isCartOpen, openCart, closeCart } = useUIStore();
+  const { openCart } = useUIStore();
 
-  const totalItems = cart.reduce(
-    (acc: number, item: any) => acc + item.quantity,
+  const totalItems = cart?.reduce(
+    (acc, item) => acc + item.quantity,
     0
-  );
+  ) || 0;
+  
 
   return (
-    <>
-      <header style={header}>
-        {/* LOGO */}
-        <Link href="/" style={logo}>
-          Vanille’Or
-          <span style={sub}>AKM.Consulting</span>
-        </Link>
+    <header style={header}>
+      {/* LOGO */}
+      <Link href="/" style={logo}>
+        Vanille’Or
+        <span style={sub}>AKM.Consulting</span>
+      </Link>
 
-        {/* NAV */}
-        <nav style={nav}>
-          <Link href="/products">Produits</Link>
-          <Link href="/collections/vanille">Vanille</Link>
-          <Link href="/collections/epices">Épices</Link>
-        </nav>
+      {/* NAV */}
+      <nav style={nav}>
+        <Link href="/products">Produits</Link>
+        <Link href="/collections/vanille">Vanille</Link>
+        <Link href="/collections/epices">Épices</Link>
+      </nav>
 
-        {/* PANIER */}
-        <div
-          style={cartWrapper}
-          onClick={() => openCart()}
-        >
-          🛒
+      {/* PANIER */}
+      <div
+        style={cartWrapper}
+        onClick={openCart}
+        data-testid="cart-button"
+      >
+        🛒
 
-          {totalItems > 0 && (
-            <span style={badge}>{totalItems}</span>
-          )}
-        </div>
-      </header>
-
-      {/* 🔥 ICI LE FIX CRITIQUE */}
-      <MiniCart open={isCartOpen} onClose={closeCart} />
-    </>
+        {totalItems > 0 && (
+          <span style={badge}>{totalItems}</span>
+        )}
+      </div>
+    </header>
   );
 }
 

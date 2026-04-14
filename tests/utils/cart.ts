@@ -1,13 +1,13 @@
-import { expect, Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 
 export async function openCart(page: Page) {
-  const cart = page.getByTestId("mini-cart").first();
+  const cart = page.getByTestId("mini-cart");
 
-  if (!(await cart.isVisible())) {
+  if (!(await cart.first().isVisible())) {
     await page.getByTestId("cart-button").click();
   }
 
-  await expect(cart).toBeVisible();
+  await expect(cart.first()).toBeVisible();
 }
 
 export async function addFirstProduct(page: Page) {

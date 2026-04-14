@@ -22,19 +22,13 @@ export default function RootLayout({
     <html lang="fr">
       <body style={bodyStyle}>
         <Providers>
-          {/* HEADER */}
           <Header />
-
-          {/* MINI CART (sécurisé côté client) */}
           <MiniCart />
 
-          {/* CONTENT */}
           <main style={main}>{children}</main>
 
-          {/* FOOTER */}
           <footer style={footer}>
             <div style={footerContainer}>
-              {/* BRAND */}
               <div>
                 <h3 style={footerTitle}>Vanille’Or</h3>
                 <p style={footerText}>
@@ -43,7 +37,6 @@ export default function RootLayout({
                 </p>
               </div>
 
-              {/* NAV */}
               <div>
                 <h4 style={footerSubtitle}>Navigation</h4>
                 <FooterLink href="/products" label="Produits" />
@@ -52,7 +45,6 @@ export default function RootLayout({
                 <FooterLink href="/b2b" label="Professionnels" />
               </div>
 
-              {/* SUPPORT */}
               <div>
                 <h4 style={footerSubtitle}>Support</h4>
                 <FooterLink href="/reclamation" label="Réclamation / SAV" />
@@ -61,7 +53,6 @@ export default function RootLayout({
               </div>
             </div>
 
-            {/* BOTTOM */}
             <div style={footerBottom}>
               © {new Date().getFullYear()} Vanille’Or — Tous droits réservés
             </div>
@@ -71,10 +62,6 @@ export default function RootLayout({
     </html>
   );
 }
-
-/* =========================
-   COMPONENT
-========================= */
 
 function FooterLink({
   href,
@@ -90,10 +77,6 @@ function FooterLink({
   );
 }
 
-/* =========================
-   STYLES
-========================= */
-
 const bodyStyle: React.CSSProperties = {
   margin: 0,
   background: "#f8f5ef",
@@ -103,8 +86,6 @@ const bodyStyle: React.CSSProperties = {
 const main: React.CSSProperties = {
   minHeight: "80vh",
 };
-
-/* FOOTER */
 
 const footer: React.CSSProperties = {
   background: "#111",

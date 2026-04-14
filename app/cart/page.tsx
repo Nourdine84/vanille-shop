@@ -1,6 +1,6 @@
 "use client";
 
-import { useCart } from "@/lib/cart-store";
+import { useCart } from "@/lib/cart-context";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -28,10 +28,6 @@ export default function CartPage() {
 
   const isEmpty = cart.length === 0;
 
-  /* =========================
-     ACTIONS
-  ========================= */
-
   const handleCheckout = () => {
     if (isEmpty) {
       setShowEmptyPopup(true);
@@ -41,21 +37,14 @@ export default function CartPage() {
     window.location.href = "/checkout";
   };
 
-  /* =========================
-     RENDER
-  ========================= */
-
   return (
     <div style={container}>
       <div style={wrapper}>
         <h1 style={title}>Votre panier</h1>
 
-        {/* EMPTY */}
         {isEmpty && (
           <div style={emptyBox}>
-            <p style={{ marginBottom: 10 }}>
-              Votre panier est vide
-            </p>
+            <p style={{ marginBottom: 10 }}>Votre panier est vide</p>
 
             <Link href="/products" style={ctaPrimary}>
               Voir les produits
@@ -63,13 +52,12 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* LIST */}
         {!isEmpty &&
           cart.map((item) => {
             const isMax = item.quantity >= 99;
 
             return (
-              <div key={item.id} style={card}>
+              <div key={item.id} style={card} data-testid="cart-item">
                 <img
                   src={item.imageUrl || "/images/product-vanille.jpg"}
                   alt={item.name}
@@ -79,13 +67,11 @@ export default function CartPage() {
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0 }}>{item.name}</h3>
 
-                  <p style={priceText}>
-                    {formatPrice(item.priceCents)}
-                  </p>
+                  <p style={priceText}>{formatPrice(item.priceCents)}</p>
 
-                  {/* QUANTITY */}
                   <div style={qtyBox}>
                     <button
+                      type="button"
                       style={qtyBtn}
                       onClick={() =>
                         updateQuantity(
@@ -97,9 +83,10 @@ export default function CartPage() {
                       −
                     </button>
 
-                    <span>{item.quantity}</span>
+                    <span data-testid="item-quantity">{item.quantity}</span>
 
                     <button
+                      type="button"
                       style={{
                         ...qtyBtn,
                         opacity: isMax ? 0.5 : 1,
@@ -115,10 +102,11 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                {/* REMOVE */}
                 <button
+                  type="button"
                   onClick={() => removeFromCart(item.id)}
                   style={removeBtn}
+                  data-testid="remove-item"
                 >
                   ✕
                 </button>
@@ -126,22 +114,20 @@ export default function CartPage() {
             );
           })}
 
-        {/* SUMMARY */}
         {!isEmpty && (
           <div style={summary}>
-            <h2>Total : {formatPrice(total)}</h2>
+            <h2 data-testid="cart-total">Total : {formatPrice(total)}</h2>
 
             <div style={ctaRow}>
-              <button
-                style={checkoutBtn}
-                onClick={handleCheckout}
-              >
+              <button type="button" style={checkoutBtn} onClick={handleCheckout}>
                 Passer au paiement
               </button>
 
               <button
+                type="button"
                 style={clearBtn}
                 onClick={clearCart}
+                data-testid="clear-cart"
               >
                 Vider le panier
               </button>
@@ -150,7 +136,6 @@ export default function CartPage() {
         )}
       </div>
 
-      {/* POPUP */}
       {showEmptyPopup && (
         <div
           style={popupOverlay}
@@ -160,15 +145,14 @@ export default function CartPage() {
             style={popup}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginBottom: 10 }}>
-              Panier vide
-            </h3>
+            <h3 style={{ marginBottom: 10 }}>Panier vide</h3>
 
             <p style={{ color: "#666" }}>
               Ajoutez des produits avant de continuer
             </p>
 
             <button
+              type="button"
               onClick={() => setShowEmptyPopup(false)}
               style={ctaPrimary}
             >

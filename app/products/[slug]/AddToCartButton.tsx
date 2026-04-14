@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useCart } from "@/lib/cart-store";
+import { useCart } from "@/lib/cart-context"; // ✅ FIX
 import { useUIStore } from "@/components/ui-providers";
 
 type ProductForCart = {
@@ -21,16 +21,25 @@ export default function AddToCartButton({ product }: Props) {
 
   const handleAddToCart = () => {
     addToCart({
-      ...product,
+      id: product.id,
+      name: product.name,
+      price: product.priceCents, // ✅ ON GARDE EN CENTIMES
+      image: product.imageUrl,
       quantity: 1,
     });
 
-    openCart();
+    // ouverture mini-cart fluide
+    setTimeout(() => openCart(), 50);
   };
 
   return (
-    <button type="button" onClick={handleAddToCart} style={btn}>
-      Ajouter au panier
+    <button
+      type="button"
+      onClick={handleAddToCart}
+      style={btn}
+      data-testid="add-to-cart"
+    >
+      Ajouter
     </button>
   );
 }
