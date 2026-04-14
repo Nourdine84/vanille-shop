@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 
@@ -11,19 +11,26 @@ type Product = {
   imageUrl?: string;
 };
 
-type Props = {
-  product: Product;
-};
+const quantities = [
+  { label: "10g", multiplier: 1 },
+  { label: "50g", multiplier: 5 },
+  { label: "100g", multiplier: 10 },
+  { label: "200g", multiplier: 20 },
+  { label: "500g", multiplier: 50 },
+  { label: "1kg", multiplier: 100 },
+];
 
-export default function AddToCart({ product }: Props) {
+export default function AddToCart({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { openCart } = useUIStore();
 
+  const [selected, setSelected] = useState(quantities[0]);
+
   const handleAdd = () => {
     addToCart({
-      id: product.id,
-      name: product.name,
-      priceCents: product.priceCents,
+      id: `${product.id}-${selected.label}`, // 🔥 unique ID
+      name: `${product.name} (${selected.label})`,
+      priceCents: product.priceCents * selected.multiplier,
       imageUrl: product.imageUrl,
       quantity: 1,
     });
@@ -32,19 +39,51 @@ export default function AddToCart({ product }: Props) {
   };
 
   return (
-    <button
-      type="button"
-      data-testid="add-to-cart"
-      onClick={handleAdd}
-      style={btn}
-    >
-      Ajouter au panier
-    </button>
+    <div>
+      {/* SELECT */}
+      <div style={selectRow}>
+        {quantities.map((q) => (
+          <button
+            key={q.label}
+            onClick={() => setSelected(q)}
+            style={{
+              ...selectBtn,
+              background:
+                selected.label === q.label ? "#a16207" : "#f3f4f6",
+              color: selected.label === q.label ? "white" : "#333",
+            }}
+          >
+            {q.label}
+          </button>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <button onClick={handleAdd} style={btn}>
+        Ajouter au panier
+      </button>
+    </div>
   );
 }
 
-const btn: React.CSSProperties = {
-  marginTop: 20,
+/* STYLE */
+
+const selectRow = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+  marginBottom: "12px",
+};
+
+const selectBtn = {
+  padding: "8px 12px",
+  borderRadius: "8px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "13px",
+};
+
+const btn = {
   width: "100%",
   background: "#a16207",
   color: "white",

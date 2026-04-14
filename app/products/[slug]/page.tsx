@@ -1,73 +1,76 @@
-import React from "react";
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import AddToCart from "@/components/add-to-cart";
-import { getImageUrl } from "@/lib/image";
-import RecommendedProducts from "@/components/RecommendedProducts";
+"use client";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+import { useState } from "react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { getImageUrl } from "@/lib/image";
+import { useCart } from "@/lib/cart-context";
+
+/* ================= UTILS ================= */
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-function normalizeSlug(input: string) {
-  return input
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+/* ================= PAGE ================= */
 
 export default async function ProductDetailPage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const urlSlug = normalizeSlug(params.slug);
-
-  let product = await prisma.product.findFirst({
+  const product = await prisma.product.findFirst({
     where: {
       isActive: true,
-      slug: {
-        equals: urlSlug,
-        mode: "insensitive",
-      },
+      slug: params.slug,
     },
   });
 
-  if (!product) {
-    product = await prisma.product.findFirst({
-      where: {
-        isActive: true,
-        slug: {
-          contains: urlSlug,
-          mode: "insensitive",
-        },
-      },
-    });
-  }
-
-  if (!product) {
-    product = await prisma.product.findFirst({
-      where: {
-        isActive: true,
-        name: {
-          contains: urlSlug.replace(/-/g, " "),
-          mode: "insensitive",
-        },
-      },
-    });
-  }
-
   if (!product) return notFound();
 
-  const isOutOfStock = product.stock <= 0;
-  const productImageUrl = getImageUrl(product.imageUrl);
+  const image = getImageUrl(product.imageUrl);
+
+  return (
+    <ClientProduct product={product} image={image} />
+  );
+}
+
+/* ================= CLIENT ================= */
+
+function ClientProduct({
+  product,
+  image,
+}: {
+  product: any;
+  image: string;
+}) {
+  const { addToCart } = useCart();
+
+  const unit = product.unit || "g";
+
+  const quantities =
+    unit === "g"
+      ? [
+          { label: "10g", multiplier: 1 },
+          { label: "50g", multiplier: 5 },
+          { label: "100g", multiplier: 10 },
+          { label: "200g", multiplier: 20 },
+          { label: "500g", multiplier: 50 },
+          { label: "1kg", multiplier: 100 },
+        ]
+      : [
+          { label: "10cl", multiplier: 1 },
+          { label: "25cl", multiplier: 2.5 },
+          { label: "50cl", multiplier: 5 },
+          { label: "1L", multiplier: 10 },
+        ];
+
+  const [selected, setSelected] = useState(quantities[2]);
+
+  const dynamicPrice = product.priceCents * selected.multiplier;
+
+  const isOut = product.stock <= 0;
 
   return (
     <div style={page}>
@@ -77,185 +80,116 @@ export default async function ProductDetailPage({
         <strong>{product.name}</strong>
       </div>
 
-      <div style={heroCard}>
+      <div style={card}>
         <div style={layout}>
-          <div style={imageBox}>
-            <img
-              src={productImageUrl}
-              alt={product.name}
-              style={image}
-            />
-          </div>
+          <img src={image} style={img} />
 
-          <div style={contentCol}>
-            <p style={category}>{product.category}</p>
+          <div>
+            <h1>{product.name}</h1>
 
-            <h1 style={title}>{product.name}</h1>
+            <p style={price}>{formatPrice(dynamicPrice)}</p>
 
-            <div style={badges}>
-              {product.badge && <span style={badge}>{product.badge}</span>}
-
-              {product.stock < 5 && !isOutOfStock && (
-                <span style={badgeDanger}>⚠ Stock limité</span>
-              )}
-            </div>
-
-            <p style={price}>{formatPrice(product.priceCents)}</p>
-
-            <p style={stock}>
-              {isOutOfStock
-                ? "❌ Rupture de stock"
-                : `✅ En stock : ${product.stock}`}
+            <p>
+              {isOut
+                ? "❌ Rupture"
+                : `✅ Stock : ${product.stock}`}
             </p>
 
-            <div style={valueBox}>
-              ⭐ Qualité premium Madagascar
-              <br />
-              🚀 Livraison rapide
-              <br />
-              👨‍🍳 Idéal pâtisserie & cuisine
+            {/* 🔥 SELECT QUANTITÉ */}
+            <div style={qtyRow}>
+              {quantities.map((q) => (
+                <button
+                  key={q.label}
+                  onClick={() => setSelected(q)}
+                  style={{
+                    ...qtyBtn,
+                    background:
+                      selected.label === q.label ? "#a16207" : "#eee",
+                    color:
+                      selected.label === q.label ? "white" : "#333",
+                  }}
+                >
+                  {q.label}
+                </button>
+              ))}
             </div>
 
-            <p style={description}>
-              {product.description || "Description à venir."}
-            </p>
+            <p style={desc}>{product.description}</p>
 
-            {!isOutOfStock ? (
-              <AddToCart
-                product={{
-                  id: product.id,
-                  name: product.name,
-                  priceCents: product.priceCents,
-                  imageUrl: productImageUrl,
-                }}
-              />
-            ) : (
-              <button type="button" disabled style={ctaDisabled}>
-                Produit épuisé
+            {!isOut && (
+              <button
+                style={btn}
+                onClick={() =>
+                  addToCart({
+                    id: `${product.id}-${selected.label}`,
+                    name: `${product.name} (${selected.label})`,
+                    priceCents: dynamicPrice,
+                    imageUrl: image,
+                    quantity: 1,
+                  })
+                }
+              >
+                Ajouter au panier
               </button>
             )}
           </div>
         </div>
       </div>
-
-      <div style={recoSection}>
-        <RecommendedProducts
-          currentProductId={product.id}
-          category={product.category || undefined}
-        />
-      </div>
     </div>
   );
 }
 
-const page: React.CSSProperties = {
-  maxWidth: 1200,
-  margin: "0 auto",
-  padding: 40,
+/* ================= STYLE ================= */
+
+const page = { padding: 40 };
+
+const breadcrumb = { marginBottom: 20 };
+
+const card = {
+  background: "white",
+  padding: 20,
+  borderRadius: 20,
 };
 
-const breadcrumb: React.CSSProperties = {
-  marginBottom: 20,
-};
-
-const heroCard: React.CSSProperties = {
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf8f3 100%)",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 18px 40px rgba(20,20,20,0.06)",
-  border: "1px solid rgba(180,140,80,0.12)",
-};
-
-const layout: React.CSSProperties = {
+const layout = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: 40,
-  alignItems: "start",
 };
 
-const imageBox: React.CSSProperties = {
-  background: "white",
-  padding: 18,
-  borderRadius: 18,
-  border: "1px solid #efe6d7",
-};
-
-const image: React.CSSProperties = {
+const img = {
   width: "100%",
-  borderRadius: 16,
-  objectFit: "cover",
-  display: "block",
+  borderRadius: 20,
 };
 
-const contentCol: React.CSSProperties = {
-  minWidth: 0,
+const price = {
+  fontSize: 28,
+  fontWeight: 800,
 };
 
-const category: React.CSSProperties = {
-  color: "#a16207",
-  marginBottom: 8,
-  fontWeight: 700,
-};
-
-const title: React.CSSProperties = {
-  fontSize: 38,
-  marginBottom: 14,
-};
-
-const badges: React.CSSProperties = {
+const qtyRow = {
   display: "flex",
   gap: 10,
-  marginBottom: 16,
+  margin: "20px 0",
+  flexWrap: "wrap" as const,
 };
 
-const badge: React.CSSProperties = {
-  background: "#f59e0b",
-  padding: "6px 10px",
+const qtyBtn = {
+  padding: "8px 12px",
   borderRadius: 10,
-  color: "white",
-  fontSize: 13,
-};
-
-const badgeDanger: React.CSSProperties = {
-  background: "#dc2626",
-  padding: "6px 10px",
-  borderRadius: 10,
-  color: "white",
-  fontSize: 13,
-};
-
-const price: React.CSSProperties = {
-  fontSize: 30,
-  fontWeight: 800,
-  marginBottom: 10,
-};
-
-const stock: React.CSSProperties = {
-  marginBottom: 16,
-  fontWeight: 600,
-};
-
-const valueBox: React.CSSProperties = {
-  background: "#fff7ed",
-  padding: 15,
-  borderRadius: 12,
-  margin: "15px 0",
-};
-
-const description: React.CSSProperties = {
-  lineHeight: 1.7,
-};
-
-const ctaDisabled: React.CSSProperties = {
-  background: "#e5e7eb",
-  color: "#9ca3af",
-  padding: "14px",
-  borderRadius: "12px",
   border: "none",
-  fontWeight: 700,
-  width: "100%",
+  cursor: "pointer",
 };
 
-const recoSection: React.CSSProperties = {
-  marginTop: 56,
+const desc = {
+  margin: "20px 0",
+};
+
+const btn = {
+  background: "#a16207",
+  color: "white",
+  padding: 14,
+  borderRadius: 12,
+  border: "none",
+  width: "100%",
 };

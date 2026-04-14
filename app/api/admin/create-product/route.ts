@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +11,9 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
 
+    /* =========================
+       FIELDS
+    ========================= */
     const name = formData.get("name");
     const slug = formData.get("slug");
     const description = formData.get("description");
@@ -20,6 +23,10 @@ export async function POST(req: Request) {
     const category = formData.get("category");
     const subCategory = formData.get("subCategory");
     const isActive = formData.get("isActive");
+
+    // 🔥 NEW PACK FIELDS
+    const isPack = formData.get("isPack");
+    const packItems = formData.get("packItems");
 
     /* =========================
        VALIDATION
@@ -51,6 +58,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (isNaN(parsedStock) || parsedStock < 0) {
+      return NextResponse.json(
+        { error: "Stock invalide" },
+        { status: 400 }
+      );
+    }
+
     /* =========================
        CREATE
     ========================= */
@@ -70,6 +84,13 @@ export async function POST(req: Request) {
             : null,
 
         isActive: isActive === "on",
+
+        // 🔥 PACK SUPPORT
+        isPack: isPack === "on",
+        packItems:
+          typeof packItems === "string" && packItems.trim()
+            ? packItems.trim()
+            : null,
       },
     });
 
