@@ -1,299 +1,340 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
-
-/* =========================
-   TYPES
-========================= */
 
 type Product = {
   id: string;
   slug: string;
   name: string;
-  description: string;
   priceCents: number;
   imageUrl?: string;
-  stock?: number;
-  badge?: string | null;
+  isPack?: boolean;
   category?: string;
 };
 
-/* =========================
-   HELPERS
-========================= */
-
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+function getPackBadge(name: string) {
+  const normalized = name.toLowerCase();
+
+  if (normalized.includes("pro")) return "Best Seller";
+  if (normalized.includes("premium")) return "Promo";
+  if (normalized.includes("decouverte")) return "Découverte";
+
+  return "Pack";
 }
 
 const SPICES_KEYWORDS = [
   "cannelle",
   "poivre",
   "girofle",
-  "épice",
   "epice",
+  "épice",
   "cacao",
 ];
 
-/* =========================
-   PAGE
-========================= */
-
 export default function EpicesPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    fetch("/api/products")
+    let mounted = true;
+
+    fetch("/api/products", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        const filtered = data.filter((p: Product) => {
-          const haystack = `${p.name} ${p.category || ""}`.toLowerCase();
-          return SPICES_KEYWORDS.some((keyword) =>
-            haystack.includes(keyword)
-          );
-        });
-
-        setProducts(filtered);
+        if (!mounted) return;
+        setAllProducts(Array.isArray(data) ? data.filter(Boolean) : []);
       })
-      .catch(() => console.error("❌ FETCH EPICES ERROR"))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (mounted) setAllProducts([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  const products = useMemo(() => {
+    return allProducts.filter((p) => {
+      if (!p || !p.id || p.isPack) return false;
+      const haystack = `${p.name} ${p.category || ""}`.toLowerCase();
+      return SPICES_KEYWORDS.some((k) => haystack.includes(k));
+    });
+  }, [allProducts]);
+
+  const packs = useMemo(
+    () => allProducts.filter((p) => p?.isPack),
+    [allProducts]
+  );
 
   return (
     <div style={page}>
-      {/* ================= HERO ================= */}
       <section style={hero}>
         <div style={overlay} />
-
         <div style={heroContent}>
           <p style={heroTag}>VanilleOr</p>
-
           <h1 style={heroTitle}>L’univers Épices</h1>
-
           <p style={heroSubtitle}>
-            Sublimez vos créations avec des épices premium sélectionnées pour
-            leur intensité, leur richesse aromatique et leur caractère unique.
+            Des épices premium sélectionnées pour sublimer vos créations.
           </p>
         </div>
       </section>
 
-      {/* ================= CONTENT ================= */}
       <div style={container}>
-        {loading && <p style={center}>Chargement...</p>}
-
-        {!loading && products.length === 0 && (
-          <p style={center}>Aucune épice disponible</p>
-        )}
-
         <div style={grid}>
-          {products.map((p) => {
-            const isOut = p.stock === 0;
+          {products.map((p) => (
+            <Link key={p.id} href={`/products/${p.slug}`} style={card}>
+              <img
+                src={getImageUrl(p.imageUrl)}
+                style={img}
+                alt={p.name}
+              />
 
-            return (
-              <Link
-                key={p.id}
-                href={`/products/${p.slug}`}
-                style={card}
-              >
-                {/* BADGES */}
-                {p.badge && !isOut && (
-                  <span style={badge}>{p.badge}</span>
-                )}
-
-                {isOut && <span style={out}>ÉPUISÉ</span>}
-
-                {/* IMAGE */}
-                <img
-                  src={getImageUrl(p.imageUrl)}
-                  alt={p.name}
-                  style={img}
-                />
-
-                {/* CONTENT */}
-                <div style={content}>
-                  <h3 style={name}>{p.name}</h3>
-
-                  <p style={desc}>
-                    {p.description
-                      ? `${p.description.slice(0, 90)}${
-                          p.description.length > 90 ? "..." : ""
-                        }`
-                      : "Épice premium sélectionnée pour sublimer vos préparations."}
-                  </p>
-
-                  <div style={bottomRow}>
-                    <span style={price}>
-                      {formatPrice(p.priceCents)}
-                    </span>
-
-                    <span style={ctaMini}>Voir →</span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+              <div style={content}>
+                <h3 style={productName}>{p.name}</h3>
+                <p style={price}>{formatPrice(p.priceCents)}</p>
+                <span style={cta}>Voir →</span>
+              </div>
+            </Link>
+          ))}
         </div>
-      </div>
 
-      {/* ================= SIGNATURE ================= */}
-      <div style={signature}>
-        Site développé par <strong>Akm.Consulting</strong>
+        {packs.length > 0 && (
+          <section style={packSection}>
+            <div style={packSectionHeader}>
+              <h2 style={packTitle}>Nos Packs Premium</h2>
+              <p style={packSubtitle}>
+                Des compositions premium prêtes à découvrir, pensées pour offrir
+                plus de valeur et une expérience plus complète.
+              </p>
+            </div>
+
+            <div style={packGrid}>
+              {packs.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/products/${p.slug}`}
+                  style={packCard}
+                >
+                  <div style={packImageWrapper}>
+                    <img
+                      src={getImageUrl(p.imageUrl)}
+                      style={packImg}
+                      alt={p.name}
+                    />
+                    <span style={packBadge}>{getPackBadge(p.name)}</span>
+                  </div>
+
+                  <div style={packContent}>
+                    <h3 style={packName}>{p.name}</h3>
+
+                    <p style={packDesc}>
+                      Une sélection premium VanilleOr pensée pour enrichir vos
+                      créations et découvrir la gamme autrement.
+                    </p>
+
+                    <div style={packBottom}>
+                      <span style={packPrice}>
+                        {formatPrice(p.priceCents)}
+                      </span>
+
+                      <span style={packCta}>Voir →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
 }
 
-/* =========================
-   STYLES
-========================= */
-
-const page = {
+const page: React.CSSProperties = {
   background: "#f8f5ef",
-  minHeight: "100vh",
 };
 
-/* HERO */
-
-const hero = {
-  position: "relative" as const,
-  height: "300px",
-  backgroundImage: "url('/images/hero-vanille.jpg')",
-  backgroundSize: "cover",
-  backgroundPosition: "center",
+const hero: React.CSSProperties = {
+  position: "relative",
+  height: 300,
+  background: "url('/images/hero-vanille.jpg') center/cover",
 };
 
-const overlay = {
-  position: "absolute" as const,
+const overlay: React.CSSProperties = {
+  position: "absolute",
   inset: 0,
   background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
 };
 
-const heroContent = {
-  position: "relative" as const,
-  zIndex: 2,
-  textAlign: "center" as const,
+const heroContent: React.CSSProperties = {
+  position: "relative",
+  textAlign: "center",
   color: "white",
-  paddingTop: "80px",
+  paddingTop: 80,
 };
 
-const heroTag = {
+const heroTag: React.CSSProperties = {
   color: "#d4af37",
-  fontSize: "22px",
-  fontWeight: 800,
-  letterSpacing: "0.3em",
+  fontWeight: 700,
+  letterSpacing: "0.28em",
+  textTransform: "uppercase",
 };
 
-const heroTitle = {
-  fontSize: "32px",
-  marginTop: "10px",
+const heroTitle: React.CSSProperties = {
+  fontSize: 32,
+  marginTop: 10,
+  marginBottom: 10,
 };
 
-const heroSubtitle = {
+const heroSubtitle: React.CSSProperties = {
   color: "#ddd",
-  marginTop: "10px",
-  maxWidth: "700px",
-  marginInline: "auto",
-};
-
-/* CONTENT */
-
-const container = {
-  maxWidth: "1100px",
+  maxWidth: 760,
   margin: "0 auto",
-  padding: "40px 20px",
+  lineHeight: 1.6,
 };
 
-const center = {
-  textAlign: "center" as const,
+const container: React.CSSProperties = {
+  maxWidth: 1100,
+  margin: "0 auto",
+  padding: "40px 20px 70px",
 };
 
-/* GRID */
-
-const grid = {
+const grid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-  gap: "24px",
+  gap: 24,
 };
 
-/* CARD */
-
-const card = {
-  position: "relative" as const,
+const card: React.CSSProperties = {
   background: "white",
-  borderRadius: "18px",
+  borderRadius: 18,
   overflow: "hidden",
   textDecoration: "none",
   color: "#111",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
 };
 
-const img = {
+const img: React.CSSProperties = {
   width: "100%",
-  height: "220px",
-  objectFit: "cover" as const,
+  height: 220,
+  objectFit: "cover",
 };
 
-const content = {
-  padding: "15px",
+const content: React.CSSProperties = {
+  padding: 15,
 };
 
-const name = {
-  fontWeight: 700,
-  marginBottom: "6px",
+const productName: React.CSSProperties = {
+  margin: 0,
+  marginBottom: 8,
 };
 
-const desc = {
-  color: "#666",
-  fontSize: "14px",
-};
-
-const bottomRow = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginTop: "10px",
-};
-
-const price = {
+const price: React.CSSProperties = {
   color: "#a16207",
   fontWeight: 700,
+  marginBottom: 8,
 };
 
-const ctaMini = {
+const cta: React.CSSProperties = {
   fontWeight: 600,
 };
 
-/* BADGES */
+/* ===== PACKS PREMIUM ===== */
 
-const badge = {
-  position: "absolute" as const,
-  top: "10px",
-  left: "10px",
+const packSection: React.CSSProperties = {
+  marginTop: 70,
+};
+
+const packSectionHeader: React.CSSProperties = {
+  marginBottom: 24,
+};
+
+const packTitle: React.CSSProperties = {
+  fontSize: 24,
+  marginBottom: 8,
+};
+
+const packSubtitle: React.CSSProperties = {
+  color: "#666",
+  maxWidth: 720,
+  lineHeight: 1.6,
+};
+
+const packGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+  gap: 24,
+};
+
+const packCard: React.CSSProperties = {
+  background: "white",
+  borderRadius: 22,
+  overflow: "hidden",
+  textDecoration: "none",
+  color: "#111",
+  boxShadow: "0 14px 34px rgba(0,0,0,0.06)",
+  border: "1px solid rgba(161,98,7,0.08)",
+};
+
+const packImageWrapper: React.CSSProperties = {
+  position: "relative",
+};
+
+const packImg: React.CSSProperties = {
+  width: "100%",
+  height: 210,
+  objectFit: "cover",
+  display: "block",
+};
+
+const packBadge: React.CSSProperties = {
+  position: "absolute",
+  top: 14,
+  left: 14,
   background: "#a16207",
   color: "white",
-  padding: "5px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
+  padding: "6px 12px",
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 700,
+  boxShadow: "0 8px 18px rgba(161,98,7,0.28)",
 };
 
-const out = {
-  position: "absolute" as const,
-  top: "10px",
-  right: "10px",
-  background: "#dc2626",
-  color: "white",
-  padding: "5px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
+const packContent: React.CSSProperties = {
+  padding: 18,
 };
 
-/* SIGNATURE */
+const packName: React.CSSProperties = {
+  margin: 0,
+  marginBottom: 8,
+  fontSize: 22,
+};
 
-const signature = {
-  textAlign: "center" as const,
-  padding: "20px",
-  fontSize: "12px",
-  color: "#777",
+const packDesc: React.CSSProperties = {
+  margin: 0,
+  color: "#666",
+  fontSize: 14,
+  lineHeight: 1.6,
+};
+
+const packBottom: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: 16,
+};
+
+const packPrice: React.CSSProperties = {
+  color: "#a16207",
+  fontWeight: 800,
+  fontSize: 22,
+};
+
+const packCta: React.CSSProperties = {
+  fontWeight: 700,
 };

@@ -20,10 +20,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body style={bodyStyle}>
+      {/* 🔥 FIX CRASH HYDRATION + REMOVECHILD */}
+      <body suppressHydrationWarning style={bodyStyle}>
         <Providers>
           <Header />
-          <MiniCart />
+
+          {/* 🔥 FIX: éviter conflit render/navigation */}
+          <div id="cart-root">
+            <MiniCart />
+          </div>
 
           <main style={main}>{children}</main>
 
@@ -76,6 +81,8 @@ function FooterLink({
     </Link>
   );
 }
+
+/* ================= STYLES ================= */
 
 const bodyStyle: React.CSSProperties = {
   margin: 0,

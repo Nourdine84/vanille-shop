@@ -2,106 +2,59 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // 🔥 IMPORTANT
 import { getImageUrl } from "@/lib/image";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 
-/* ================= TYPES ================= */
-
 type Product = {
   id: string;
-  name: string;
   slug: string;
+  name: string;
   priceCents: number;
   imageUrl?: string;
-  badge?: string | null;
   stock?: number;
+  badge?: string | null;
+  description?: string;
   isPack?: boolean;
-  packItems?: string | null;
-  category?: string;
 };
 
-/* ================= UTILS ================= */
-
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+function formatPrice(price: number) {
+  return (price / 100).toFixed(2).replace(".", ",") + " €";
 }
-
-function formatPackItems(items?: string | null) {
-  if (!items) return [];
-  return items.split("+").map((i) => i.trim());
-}
-
-function getOldPrice(price: number) {
-  return Math.round(price * 1.3);
-}
-
-function getDiscount(current: number, old: number) {
-  return Math.round(((old - current) / old) * 100);
-}
-
-/* ================= PAGE ================= */
 
 export default function ProductsPage() {
-  const pathname = usePathname(); // 🔥 récupération URL
-
-  const [items, setItems] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const { addToCart } = useCart();
   const { openCart } = useUIStore();
 
-  /* ================= LOAD ================= */
-
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
-    async function loadProducts() {
-      try {
-        const res = await fetch("/api/products", { cache: "no-store" });
-        const data = await res.json();
-
-        if (!isMounted) return;
-        setItems(Array.isArray(data) ? data : []);
-      } catch {
-        if (isMounted) setItems([]);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadProducts();
+    fetch("/api/products", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!mounted) return;
+        const safe = Array.isArray(data) ? data.filter(Boolean) : [];
+        setProducts(safe);
+      })
+      .catch(() => {
+        if (mounted) setProducts([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
 
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, []);
 
-  /* ================= CATEGORY DETECTION ================= */
-
-  const currentCategory = useMemo(() => {
-    if (pathname.includes("vanille")) return "vanille";
-    if (pathname.includes("epices")) return "epices";
-    return null;
-  }, [pathname]);
-
-  /* ================= FILTER ================= */
-
-  const products = useMemo(() => {
-    return items.filter(
-      (item) =>
-        !item.isPack &&
-        (!currentCategory || item.category === currentCategory)
-    );
-  }, [items, currentCategory]);
-
-  // 🔥 PACKS TOUJOURS VISIBLES (STRATÉGIE CONVERSION)
-  const packs = useMemo(() => {
-    return items.filter((item) => item.isPack);
-  }, [items]);
-
-  /* ================= ACTION ================= */
+  const visibleProducts = useMemo(
+    () => products.filter((p) => !p?.isPack),
+    [products]
+  );
 
   function handleAdd(product: Product) {
     addToCart({
@@ -115,225 +68,256 @@ export default function ProductsPage() {
     openCart();
   }
 
-  /* ================= RENDER ================= */
-
   return (
     <div style={page}>
+      <section style={hero}>
+        <div style={overlay} />
+        <div style={heroContent}>
+          <p style={heroTag}>VanilleOr</p>
+          <h1 style={heroTitle}>Nos produits d’exception</h1>
+          <p style={heroSubtitle}>
+            Découvrez notre sélection premium de vanille et d’épices.
+          </p>
+        </div>
+      </section>
+
       <div style={container}>
         {loading && <p style={center}>Chargement...</p>}
 
-        {/* PRODUITS */}
-        {!loading && products.length > 0 && (
-          <div style={grid}>
-            {products.map((product) => {
-              const isOut = (product.stock ?? 0) <= 0;
-
-              return (
-                <div key={product.id} style={card}>
-                  <Link href={`/products/${product.slug}`} style={mediaLink}>
-                    <img src={getImageUrl(product.imageUrl)} style={img} />
-                    <div style={content}>
-                      <h3>{product.name}</h3>
-                      <p style={priceStyle}>
-                        {formatPrice(product.priceCents)}
-                      </p>
-                    </div>
-                  </Link>
-
-                  <div style={ctaContainer}>
-                    <Link href={`/products/${product.slug}`} style={ctaVoir}>
-                      Voir
-                    </Link>
-
-                    {isOut ? (
-                      <button disabled style={ctaDisabled}>
-                        Épuisé
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleAdd(product)}
-                        style={ctaAdd}
-                      >
-                        Ajouter
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {!loading && visibleProducts.length === 0 && (
+          <p style={center}>Aucun produit disponible</p>
         )}
 
-        {/* 🔥 PACKS TOUJOURS EN BAS */}
-        {!loading && packs.length > 0 && (
-          <div style={packSection}>
-            <h2 style={packTitle}>🔥 Offres recommandées</h2>
+        <div style={grid}>
+          {visibleProducts.map((p) => {
+            if (!p?.id || !p?.slug) return null;
 
-            <div style={packGrid}>
-              {packs.map((pack) => {
-                const oldPrice = getOldPrice(pack.priceCents);
-                const discount = getDiscount(
-                  pack.priceCents,
-                  oldPrice
-                );
+            const isOut = (p.stock ?? 0) <= 0;
 
-                return (
-                  <div key={pack.id} style={packCard}>
-                    <img src={getImageUrl(pack.imageUrl)} style={packImg} />
+            return (
+              <div key={p.id} style={card}>
+                <div style={mediaWrapper}>
+                  {p.badge && !isOut && <span style={badge}>{p.badge}</span>}
+                  {isOut && <span style={out}>ÉPUISÉ</span>}
 
-                    <h3>{pack.name}</h3>
+                  <Link href={`/products/${p.slug}`} style={mediaLink}>
+                    <img
+                      src={getImageUrl(p.imageUrl)}
+                      alt={p.name}
+                      style={img}
+                    />
+                  </Link>
+                </div>
 
-                    <ul style={packList}>
-                      {formatPackItems(pack.packItems).map((item, i) => (
-                        <li key={i}>✔ {item}</li>
-                      ))}
-                    </ul>
+                <div style={content}>
+                  <h3 style={name}>{p.name}</h3>
 
-                    <div style={priceBox}>
-                      <span style={oldPriceStyle}>
-                        {formatPrice(oldPrice)}
-                      </span>
+                  <p style={desc}>
+                    {p.description
+                      ? `${p.description.slice(0, 90)}${
+                          p.description.length > 90 ? "..." : ""
+                        }`
+                      : "Produit premium sélectionné"}
+                  </p>
 
-                      <span style={packPrice}>
-                        {formatPrice(pack.priceCents)}
-                      </span>
+                  <p style={price}>{formatPrice(p.priceCents)}</p>
+                </div>
 
-                      <span style={discountBadge}>
-                        -{discount}%
-                      </span>
-                    </div>
+                <div style={ctaRow}>
+                  <Link href={`/products/${p.slug}`} style={btnView}>
+                    Voir
+                  </Link>
 
+                  {isOut ? (
+                    <button type="button" disabled style={btnDisabled}>
+                      Épuisé
+                    </button>
+                  ) : (
                     <button
-                      style={packBtn}
-                      onClick={() => handleAdd(pack)}
+                      type="button"
+                      style={btnAdd}
+                      onClick={() => handleAdd(p)}
                     >
                       Ajouter
                     </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ================= STYLES ================= */
-
-const page = { background: "#f8f5ef" };
-const container = { padding: 40 };
-const center = { textAlign: "center" as const };
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-  gap: 20,
+const page: React.CSSProperties = {
+  background: "#f8f5ef",
+  minHeight: "100vh",
 };
 
-const card = { background: "white", borderRadius: 12 };
-const mediaLink = { textDecoration: "none", color: "inherit" };
-
-const img = {
-  width: "100%",
-  height: 200,
-  objectFit: "cover" as const,
+const hero: React.CSSProperties = {
+  position: "relative",
+  height: "300px",
+  backgroundImage: "url('/images/hero-vanille.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
 };
 
-const content = { padding: 15 };
+const overlay: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
+};
 
-const priceStyle = {
-  color: "#a16207",
+const heroContent: React.CSSProperties = {
+  position: "relative",
+  textAlign: "center",
+  color: "white",
+  paddingTop: "85px",
+  paddingInline: "20px",
+};
+
+const heroTag: React.CSSProperties = {
+  color: "#d4af37",
+  letterSpacing: "0.3em",
   fontWeight: 800,
 };
 
-const ctaContainer = {
-  display: "flex",
-  gap: 10,
-  padding: 10,
+const heroTitle: React.CSSProperties = {
+  fontSize: "32px",
+  marginTop: "10px",
+  marginBottom: "10px",
 };
 
-const ctaVoir = {
+const heroSubtitle: React.CSSProperties = {
+  color: "#ddd",
+  maxWidth: "700px",
+  margin: "0 auto",
+};
+
+const container: React.CSSProperties = {
+  padding: "40px 20px",
+  maxWidth: "1200px",
+  margin: "0 auto",
+};
+
+const center: React.CSSProperties = {
+  textAlign: "center",
+};
+
+const grid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))",
+  gap: "24px",
+};
+
+const card: React.CSSProperties = {
+  background: "white",
+  borderRadius: "18px",
+  overflow: "hidden",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  display: "flex",
+  flexDirection: "column",
+};
+
+const mediaWrapper: React.CSSProperties = {
+  position: "relative",
+};
+
+const mediaLink: React.CSSProperties = {
+  display: "block",
+  textDecoration: "none",
+  color: "#111",
+};
+
+const img: React.CSSProperties = {
+  width: "100%",
+  height: "220px",
+  objectFit: "cover",
+  display: "block",
+};
+
+const content: React.CSSProperties = {
+  padding: "15px",
+  flex: 1,
+};
+
+const name: React.CSSProperties = {
+  margin: 0,
+  fontWeight: 700,
+  marginBottom: "8px",
+};
+
+const desc: React.CSSProperties = {
+  color: "#666",
+  fontSize: "14px",
+  margin: "0 0 12px",
+  lineHeight: 1.5,
+};
+
+const price: React.CSSProperties = {
+  color: "#a16207",
+  fontWeight: 700,
+  fontSize: "22px",
+  margin: 0,
+};
+
+const ctaRow: React.CSSProperties = {
+  display: "flex",
+  gap: "8px",
+  padding: "10px 15px 15px",
+};
+
+const btnView: React.CSSProperties = {
   flex: 1,
   background: "#111",
   color: "white",
-  padding: 10,
-  textAlign: "center" as const,
+  padding: "10px",
+  textAlign: "center",
+  textDecoration: "none",
+  borderRadius: "8px",
+  fontWeight: 600,
 };
 
-const ctaAdd = {
+const btnAdd: React.CSSProperties = {
   flex: 1,
   background: "#a16207",
   color: "white",
   border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: 600,
 };
 
-const ctaDisabled = {
+const btnDisabled: React.CSSProperties = {
   flex: 1,
   background: "#eee",
+  border: "none",
+  borderRadius: "8px",
+  color: "#777",
 };
 
-/* PACKS */
-
-const packSection = { marginTop: 60 };
-
-const packTitle = {
-  textAlign: "center" as const,
-  fontSize: 24,
-};
-
-const packGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
-  gap: 20,
-};
-
-const packCard = {
-  background: "white",
-  padding: 20,
-  borderRadius: 16,
-  textAlign: "center" as const,
-};
-
-const packImg = {
-  width: "100%",
-  height: 160,
-  objectFit: "cover" as const,
-};
-
-const packList = {
-  textAlign: "left" as const,
-  marginTop: 10,
-};
-
-const priceBox = {
-  display: "flex",
-  justifyContent: "center",
-  gap: 10,
-};
-
-const oldPriceStyle = {
-  textDecoration: "line-through",
-  color: "#999",
-};
-
-const packPrice = {
-  color: "#a16207",
-  fontWeight: 800,
-};
-
-const discountBadge = {
-  background: "#dc2626",
-  color: "white",
-  padding: "2px 6px",
-  borderRadius: 6,
-};
-
-const packBtn = {
-  marginTop: 10,
+const badge: React.CSSProperties = {
+  position: "absolute",
+  top: 10,
+  left: 10,
   background: "#a16207",
   color: "white",
-  padding: 10,
-  border: "none",
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  zIndex: 2,
+};
+
+const out: React.CSSProperties = {
+  position: "absolute",
+  top: 10,
+  right: 10,
+  background: "#dc2626",
+  color: "white",
+  padding: "4px 8px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  zIndex: 2,
 };
