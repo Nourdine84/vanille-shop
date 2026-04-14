@@ -8,118 +8,267 @@ export default function NewProductPage() {
   const [form, setForm] = useState({
     name: "",
     slug: "",
-    description: "",
     priceCents: "",
     imageUrl: "",
-    stock: "",
+    stock: "0",
+    description: "",
     category: "vanille",
     subCategory: "",
     isActive: true,
+    isPack: false,
+    packItems: "",
   });
 
-  const handleChange = (key: string, value: any) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
+  function handleChange(key: string, value: any) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
 
-  const handleSubmit = async () => {
-    if (!form.name || !form.slug || !form.priceCents) {
-      alert("Champs obligatoires manquants");
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (loading) return;
+
+    /* ================= VALIDATION ================= */
+
+    if (!form.name || !form.slug || !form.priceCents || !form.imageUrl) {
+      alert("❌ Champs obligatoires manquants");
+      return;
+    }
+
+    if (form.isPack && !form.packItems.trim()) {
+      alert("❌ Ajoute le contenu du pack");
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...form,
-          priceCents: Number(form.priceCents),
-          stock: Number(form.stock || 0),
-        }),
-      });
+      const formData = new FormData();
 
-      const data = await res.json();
+      /* ================= DATA ================= */
+
+      formData.append("name", form.name.trim());
+      formData.append("slug", form.slug.trim());
+      formData.append("priceCents", form.priceCents);
+      formData.append("imageUrl", form.imageUrl.trim());
+      formData.append("stock", form.stock || "0");
+      formData.append("description", form.description.trim());
+      formData.append("category", form.category.trim());
+
+      if (form.subCategory.trim()) {
+        formData.append("subCategory", form.subCategory.trim());
+      }
+
+      /* ================= FLAGS ================= */
+
+      if (form.isActive) formData.append("isActive", "on");
+
+      if (form.isPack) {
+        formData.append("isPack", "on");
+
+        if (form.packItems.trim()) {
+          formData.append("packItems", form.packItems.trim());
+        }
+      }
+
+      /* ================= CALL API ================= */
+
+      const res = await fetch("/api/admin/create-product", {
+        method: "POST",
+        body: formData,
+      });
 
       if (res.ok) {
         alert("✅ Produit créé avec succès");
+
+        // reset propre
+        setForm({
+          name: "",
+          slug: "",
+          priceCents: "",
+          imageUrl: "",
+          stock: "0",
+          description: "",
+          category: "vanille",
+          subCategory: "",
+          isActive: true,
+          isPack: false,
+          packItems: "",
+        });
+
         window.location.href = "/admin/products";
       } else {
-        alert(data?.error || "Erreur création");
+        const err = await res.json();
+        alert("❌ " + (err.error || "Erreur serveur"));
       }
     } catch (error) {
       console.error(error);
-      alert("Erreur serveur");
+      alert("❌ Erreur réseau");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div style={{ padding: 40, maxWidth: 600, margin: "auto" }}>
-      <h1 style={{ fontSize: 24, fontWeight: "bold", marginBottom: 20 }}>
-        🧾 Créer un produit
-      </h1>
+    <div style={container}>
+      <h1 style={title}>Créer un produit</h1>
 
-      <input placeholder="Nom" onChange={(e) => handleChange("name", e.target.value)} style={input} />
-      <input placeholder="Slug" onChange={(e) => handleChange("slug", e.target.value)} style={input} />
-      <input placeholder="Prix (centimes)" onChange={(e) => handleChange("priceCents", e.target.value)} style={input} />
-      <input placeholder="Stock" onChange={(e) => handleChange("stock", e.target.value)} style={input} />
-      <input placeholder="Image URL" onChange={(e) => handleChange("imageUrl", e.target.value)} style={input} />
-      <input placeholder="Catégorie (vanille / epices)" onChange={(e) => handleChange("category", e.target.value)} style={input} />
-      <input placeholder="Sous-catégorie" onChange={(e) => handleChange("subCategory", e.target.value)} style={input} />
-
-      <textarea
-        placeholder="Description"
-        onChange={(e) => handleChange("description", e.target.value)}
-        style={{ ...input, height: 100 }}
-      />
-
-      <label style={{ display: "block", marginTop: 10 }}>
+      <form onSubmit={handleSubmit} style={formStyle}>
         <input
-          type="checkbox"
-          checked={form.isActive}
-          onChange={(e) => handleChange("isActive", e.target.checked)}
-        />{" "}
-        Produit actif
-      </label>
+          placeholder="Nom"
+          value={form.name}
+          onChange={(e) => handleChange("name", e.target.value)}
+          style={input}
+          required
+        />
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        style={button}
-      >
-        {loading ? "Création..." : "Créer le produit"}
-      </button>
+        <input
+          placeholder="Slug"
+          value={form.slug}
+          onChange={(e) => handleChange("slug", e.target.value)}
+          style={input}
+          required
+        />
+
+        <input
+          placeholder="Prix (centimes)"
+          type="number"
+          value={form.priceCents}
+          onChange={(e) => handleChange("priceCents", e.target.value)}
+          style={input}
+          required
+        />
+
+        <input
+          placeholder="Image URL"
+          value={form.imageUrl}
+          onChange={(e) => handleChange("imageUrl", e.target.value)}
+          style={input}
+          required
+        />
+
+        <input
+          placeholder="Stock"
+          type="number"
+          value={form.stock}
+          onChange={(e) => handleChange("stock", e.target.value)}
+          style={input}
+        />
+
+        <input
+          placeholder="Catégorie"
+          value={form.category}
+          onChange={(e) => handleChange("category", e.target.value)}
+          style={input}
+        />
+
+        <input
+          placeholder="Sous-catégorie"
+          value={form.subCategory}
+          onChange={(e) => handleChange("subCategory", e.target.value)}
+          style={input}
+        />
+
+        <textarea
+          placeholder="Description"
+          value={form.description}
+          onChange={(e) => handleChange("description", e.target.value)}
+          style={textarea}
+        />
+
+        {/* ACTIF */}
+        <label style={checkboxRow}>
+          <input
+            type="checkbox"
+            checked={form.isActive}
+            onChange={(e) =>
+              handleChange("isActive", e.target.checked)
+            }
+          />
+          Produit actif
+        </label>
+
+        {/* PACK */}
+        <label style={checkboxRow}>
+          <input
+            type="checkbox"
+            checked={form.isPack}
+            onChange={(e) =>
+              handleChange("isPack", e.target.checked)
+            }
+          />
+          Produit pack
+        </label>
+
+        {/* PACK CONTENT */}
+        {form.isPack && (
+          <textarea
+            placeholder="Contenu du pack (ex: 10g vanille + cacao + cannelle)"
+            value={form.packItems}
+            onChange={(e) =>
+              handleChange("packItems", e.target.value)
+            }
+            style={textarea}
+          />
+        )}
+
+        <button
+          type="submit"
+          style={{
+            ...btn,
+            opacity: loading ? 0.6 : 1,
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+          disabled={loading}
+        >
+          {loading ? "Création..." : "Créer le produit"}
+        </button>
+      </form>
     </div>
   );
 }
 
-/* ========================= STYLE ========================= */
+/* ================= STYLE ================= */
+
+const container = {
+  padding: 30,
+};
+
+const title = {
+  marginBottom: 20,
+};
+
+const formStyle = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: 12,
+  maxWidth: 500,
+};
 
 const input = {
-  display: "block",
-  width: "100%",
-  marginTop: 10,
-  padding: 12,
+  padding: 10,
   borderRadius: 8,
   border: "1px solid #ddd",
 };
 
-const button = {
-  marginTop: 20,
-  padding: 14,
+const textarea = {
+  padding: 10,
+  borderRadius: 8,
+  border: "1px solid #ddd",
+  minHeight: 80,
+};
+
+const checkboxRow = {
+  display: "flex",
+  gap: 10,
+  alignItems: "center",
+};
+
+const btn = {
   background: "#a16207",
   color: "white",
-  width: "100%",
-  borderRadius: 10,
+  padding: 12,
   border: "none",
+  borderRadius: 8,
   fontWeight: 600,
-  cursor: "pointer",
 };

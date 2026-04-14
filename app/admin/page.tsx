@@ -75,7 +75,6 @@ function groupOrdersByDay(orders: any[]) {
     entry.count += 1;
   });
 
-  // 🔥 TRI PRO (important pour graph)
   const sorted = Array.from(map.entries()).sort(
     (a, b) => a[1].date.getTime() - b[1].date.getTime()
   );
@@ -120,6 +119,7 @@ export default async function AdminDashboard({
   let totalProducts = 0;
   let activeProducts = 0;
   let outOfStockProducts = 0;
+  let totalPacks = 0; // 🔥 NEW
 
   try {
     const [
@@ -129,6 +129,7 @@ export default async function AdminDashboard({
       totalProductsCount,
       activeProductsCount,
       outOfStockCount,
+      packCount,
     ] = await Promise.all([
       prisma.product.findMany({
         orderBy: { createdAt: "desc" },
@@ -144,6 +145,7 @@ export default async function AdminDashboard({
       prisma.product.count(),
       prisma.product.count({ where: { isActive: true } }),
       prisma.product.count({ where: { stock: { lte: 0 } } }),
+      prisma.product.count({ where: { isPack: true } }), // 🔥 NEW
     ]);
 
     recentProducts = recentProductsData;
@@ -153,6 +155,7 @@ export default async function AdminDashboard({
     totalProducts = totalProductsCount;
     activeProducts = activeProductsCount;
     outOfStockProducts = outOfStockCount;
+    totalPacks = packCount;
   } catch (error) {
     console.error("❌ DASHBOARD ERROR:", error);
   }
@@ -191,7 +194,6 @@ export default async function AdminDashboard({
 
   const paidOrders = filteredOrders.filter((o) => o.status === "PAID").length;
   const pendingOrders = filteredOrders.filter((o) => o.status === "PENDING").length;
-  const shippedOrders = filteredOrders.filter((o) => o.status === "SHIPPED").length;
 
   const aov = paidOrders ? Math.round(totalRevenue / paidOrders) : 0;
 
@@ -227,26 +229,10 @@ export default async function AdminDashboard({
 
       {/* KPI */}
       <div style={grid4}>
-        <KpiCard
-          title="💰 CA"
-          value={formatPrice(totalRevenue)}
-          hint={formatPercent(revenueGrowth)}
-        />
-        <KpiCard
-          title="📦 Commandes"
-          value={totalOrders}
-          hint={formatPercent(ordersGrowth)}
-        />
-        <KpiCard
-          title="🧾 Panier moyen"
-          value={formatPrice(aov)}
-          hint="Commandes payées"
-        />
-        <KpiCard
-          title="⏳ En attente"
-          value={pendingOrders}
-          hint={`Payées: ${paidOrders}`}
-        />
+        <KpiCard title="💰 CA" value={formatPrice(totalRevenue)} hint={formatPercent(revenueGrowth)} />
+        <KpiCard title="📦 Commandes" value={totalOrders} hint={formatPercent(ordersGrowth)} />
+        <KpiCard title="📊 Produits" value={totalProducts} hint={`Actifs: ${activeProducts}`} />
+        <KpiCard title="📦 Packs" value={totalPacks} hint="Produits pack" /> {/* 🔥 NEW */}
       </div>
 
       {/* GRAPH */}
@@ -263,31 +249,6 @@ export default async function AdminDashboard({
           />
         )}
       </div>
-
-      {/* ORDERS */}
-      <div style={card}>
-        <h2 style={sectionTitle}>🧾 Dernières commandes</h2>
-
-        {recentOrders.length === 0 ? (
-          <p style={emptyText}>Aucune commande</p>
-        ) : (
-          recentOrders.map((o) => (
-            <div key={o.id} style={row}>
-              <div>
-                <strong>{o.id.slice(0, 8)}</strong>
-                <p style={muted}>
-                  {new Date(o.createdAt).toLocaleString("fr-FR")}
-                </p>
-              </div>
-
-              <div style={rowRight}>
-                <StatusBadge status={o.status} />
-                <span>{formatPrice(o.totalCents)}</span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   );
 }
@@ -301,23 +262,6 @@ function KpiCard({ title, value, hint }: any) {
       <p style={valueStyle}>{value}</p>
       {hint && <p style={hintStyle}>{hint}</p>}
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    PENDING: "#f59e0b",
-    PAID: "#16a34a",
-    SHIPPED: "#2563eb",
-    DELIVERED: "#7c3aed",
-    FAILED: "#dc2626",
-    CANCELED: "#6b7280",
-  };
-
-  return (
-    <span style={{ ...badge, background: colors[status] || "#999" }}>
-      {status}
-    </span>
   );
 }
 
@@ -356,24 +300,3 @@ const hintStyle = { fontSize: 12, color: "#666" };
 
 const sectionTitle = { marginBottom: 10 };
 const emptyText = { color: "#666" };
-
-const row = {
-  display: "flex",
-  justifyContent: "space-between",
-  padding: "10px 0",
-};
-
-const rowRight = {
-  display: "flex",
-  gap: 10,
-  alignItems: "center",
-};
-
-const muted = { fontSize: 12, color: "#777" };
-
-const badge = {
-  color: "white",
-  padding: "4px 8px",
-  borderRadius: 999,
-  fontSize: 12,
-};

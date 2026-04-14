@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation"; // 🔥 IMPORTANT
 import { getImageUrl } from "@/lib/image";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
+
+/* ================= TYPES ================= */
 
 type Product = {
   id: string;
@@ -12,20 +15,44 @@ type Product = {
   slug: string;
   priceCents: number;
   imageUrl?: string;
-  badge?: string;
+  badge?: string | null;
   stock?: number;
+  isPack?: boolean;
+  packItems?: string | null;
+  category?: string;
 };
+
+/* ================= UTILS ================= */
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
+function formatPackItems(items?: string | null) {
+  if (!items) return [];
+  return items.split("+").map((i) => i.trim());
+}
+
+function getOldPrice(price: number) {
+  return Math.round(price * 1.3);
+}
+
+function getDiscount(current: number, old: number) {
+  return Math.round(((old - current) / old) * 100);
+}
+
+/* ================= PAGE ================= */
+
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const pathname = usePathname(); // 🔥 récupération URL
+
+  const [items, setItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const { addToCart } = useCart();
   const { openCart } = useUIStore();
+
+  /* ================= LOAD ================= */
 
   useEffect(() => {
     let isMounted = true;
@@ -33,24 +60,14 @@ export default function ProductsPage() {
     async function loadProducts() {
       try {
         const res = await fetch("/api/products", { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error("Erreur chargement produits");
-        }
-
         const data = await res.json();
 
-        if (isMounted) {
-          setProducts(Array.isArray(data) ? data : []);
-        }
-      } catch (error) {
-        console.error("Erreur chargement produits", error);
-        if (isMounted) {
-          setProducts([]);
-        }
+        if (!isMounted) return;
+        setItems(Array.isArray(data) ? data : []);
+      } catch {
+        if (isMounted) setItems([]);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     }
 
@@ -60,6 +77,31 @@ export default function ProductsPage() {
       isMounted = false;
     };
   }, []);
+
+  /* ================= CATEGORY DETECTION ================= */
+
+  const currentCategory = useMemo(() => {
+    if (pathname.includes("vanille")) return "vanille";
+    if (pathname.includes("epices")) return "epices";
+    return null;
+  }, [pathname]);
+
+  /* ================= FILTER ================= */
+
+  const products = useMemo(() => {
+    return items.filter(
+      (item) =>
+        !item.isPack &&
+        (!currentCategory || item.category === currentCategory)
+    );
+  }, [items, currentCategory]);
+
+  // 🔥 PACKS TOUJOURS VISIBLES (STRATÉGIE CONVERSION)
+  const packs = useMemo(() => {
+    return items.filter((item) => item.isPack);
+  }, [items]);
+
+  /* ================= ACTION ================= */
 
   function handleAdd(product: Product) {
     addToCart({
@@ -73,254 +115,225 @@ export default function ProductsPage() {
     openCart();
   }
 
+  /* ================= RENDER ================= */
+
   return (
     <div style={page}>
-      <section style={hero}>
-        <div style={overlay} />
-        <div style={heroContent}>
-          <p style={heroTag}>VanilleOr</p>
-          <h1 style={heroTitle}>Nos produits d’exception</h1>
-          <p style={heroSubtitle}>
-            Découvrez notre sélection premium de vanille et d’épices,
-            directement issue de Madagascar.
-          </p>
-        </div>
-      </section>
-
       <div style={container}>
         {loading && <p style={center}>Chargement...</p>}
 
-        {!loading && products.length === 0 && (
-          <p style={center}>Aucun produit disponible</p>
-        )}
+        {/* PRODUITS */}
+        {!loading && products.length > 0 && (
+          <div style={grid}>
+            {products.map((product) => {
+              const isOut = (product.stock ?? 0) <= 0;
 
-        <div style={grid}>
-          {products.map((product) => {
-            const isOut = (product.stock ?? 0) <= 0;
-            const productImageUrl = getImageUrl(product.imageUrl);
-
-            return (
-              <div key={product.id} style={card}>
-                <div style={mediaWrapper}>
-                  <Link
-                    href={`/products/${product.slug}`}
-                    style={mediaLink}
-                  >
-                    {product.badge && !isOut && (
-                      <span style={badge}>{product.badge}</span>
-                    )}
-
-                    {isOut && <span style={out}>ÉPUISÉ</span>}
-
-                    <img
-                      src={productImageUrl}
-                      alt={product.name}
-                      style={img}
-                    />
-
+              return (
+                <div key={product.id} style={card}>
+                  <Link href={`/products/${product.slug}`} style={mediaLink}>
+                    <img src={getImageUrl(product.imageUrl)} style={img} />
                     <div style={content}>
-                      <h3 style={name}>{product.name}</h3>
-                      <p style={price}>{formatPrice(product.priceCents)}</p>
+                      <h3>{product.name}</h3>
+                      <p style={priceStyle}>
+                        {formatPrice(product.priceCents)}
+                      </p>
                     </div>
                   </Link>
+
+                  <div style={ctaContainer}>
+                    <Link href={`/products/${product.slug}`} style={ctaVoir}>
+                      Voir
+                    </Link>
+
+                    {isOut ? (
+                      <button disabled style={ctaDisabled}>
+                        Épuisé
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleAdd(product)}
+                        style={ctaAdd}
+                      >
+                        Ajouter
+                      </button>
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                <div style={ctaContainer}>
-                  <Link href={`/products/${product.slug}`} style={ctaVoir}>
-                    Voir
-                  </Link>
+        {/* 🔥 PACKS TOUJOURS EN BAS */}
+        {!loading && packs.length > 0 && (
+          <div style={packSection}>
+            <h2 style={packTitle}>🔥 Offres recommandées</h2>
 
-                  {isOut ? (
-                    <button type="button" disabled style={ctaDisabled}>
-                      Épuisé
-                    </button>
-                  ) : (
+            <div style={packGrid}>
+              {packs.map((pack) => {
+                const oldPrice = getOldPrice(pack.priceCents);
+                const discount = getDiscount(
+                  pack.priceCents,
+                  oldPrice
+                );
+
+                return (
+                  <div key={pack.id} style={packCard}>
+                    <img src={getImageUrl(pack.imageUrl)} style={packImg} />
+
+                    <h3>{pack.name}</h3>
+
+                    <ul style={packList}>
+                      {formatPackItems(pack.packItems).map((item, i) => (
+                        <li key={i}>✔ {item}</li>
+                      ))}
+                    </ul>
+
+                    <div style={priceBox}>
+                      <span style={oldPriceStyle}>
+                        {formatPrice(oldPrice)}
+                      </span>
+
+                      <span style={packPrice}>
+                        {formatPrice(pack.priceCents)}
+                      </span>
+
+                      <span style={discountBadge}>
+                        -{discount}%
+                      </span>
+                    </div>
+
                     <button
-                      type="button"
-                      onClick={() => handleAdd(product)}
-                      style={ctaAdd}
-                      data-testid={`add-to-cart-${product.id}`}
+                      style={packBtn}
+                      onClick={() => handleAdd(pack)}
                     >
                       Ajouter
                     </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={signature}>
-        Site développé par <strong>Akm.Consulting</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ========================= STYLES ========================= */
+/* ================= STYLES ================= */
 
-const page: React.CSSProperties = {
-  background: "#f8f5ef",
-  minHeight: "100vh",
-};
+const page = { background: "#f8f5ef" };
+const container = { padding: 40 };
+const center = { textAlign: "center" as const };
 
-const hero: React.CSSProperties = {
-  position: "relative",
-  height: "320px",
-  backgroundImage: "url('/images/hero-vanille.jpg')",
-  backgroundSize: "cover",
-  backgroundPosition: "center",
-};
-
-const overlay: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
-};
-
-const heroContent: React.CSSProperties = {
-  position: "relative",
-  zIndex: 2,
-  textAlign: "center",
-  color: "white",
-  paddingTop: "80px",
-};
-
-const heroTag: React.CSSProperties = {
-  color: "#d4af37",
-  fontSize: "22px",
-  fontWeight: 800,
-  letterSpacing: "0.3em",
-};
-
-const heroTitle: React.CSSProperties = {
-  fontSize: "32px",
-  marginTop: "10px",
-};
-
-const heroSubtitle: React.CSSProperties = {
-  color: "#ddd",
-  marginTop: "10px",
-};
-
-const container: React.CSSProperties = {
-  maxWidth: "1100px",
-  margin: "0 auto",
-  padding: "40px 20px",
-};
-
-const center: React.CSSProperties = {
-  textAlign: "center",
-};
-
-const grid: React.CSSProperties = {
+const grid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-  gap: "24px",
+  gap: 20,
 };
 
-const card: React.CSSProperties = {
-  background: "white",
-  borderRadius: "18px",
-  overflow: "hidden",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-};
+const card = { background: "white", borderRadius: 12 };
+const mediaLink = { textDecoration: "none", color: "inherit" };
 
-const mediaWrapper: React.CSSProperties = {
-  position: "relative",
-};
-
-const mediaLink: React.CSSProperties = {
-  display: "block",
-  textDecoration: "none",
-  color: "inherit",
-};
-
-const img: React.CSSProperties = {
+const img = {
   width: "100%",
-  height: "220px",
-  objectFit: "cover",
+  height: 200,
+  objectFit: "cover" as const,
 };
 
-const content: React.CSSProperties = {
-  padding: "15px",
-};
+const content = { padding: 15 };
 
-const name: React.CSSProperties = {
-  fontWeight: 700,
-  marginBottom: "6px",
-};
-
-const price: React.CSSProperties = {
+const priceStyle = {
   color: "#a16207",
-  fontWeight: 700,
+  fontWeight: 800,
 };
 
-const ctaContainer: React.CSSProperties = {
+const ctaContainer = {
   display: "flex",
-  gap: "10px",
-  padding: "0 15px 15px",
+  gap: 10,
+  padding: 10,
 };
 
-const baseBtn: React.CSSProperties = {
+const ctaVoir = {
   flex: 1,
-  padding: "12px",
-  borderRadius: "10px",
-  fontWeight: 600,
-  textAlign: "center",
-  fontSize: "14px",
-};
-
-const ctaVoir: React.CSSProperties = {
-  ...baseBtn,
   background: "#111",
   color: "white",
-  textDecoration: "none",
+  padding: 10,
+  textAlign: "center" as const,
 };
 
-const ctaAdd: React.CSSProperties = {
-  ...baseBtn,
+const ctaAdd = {
+  flex: 1,
   background: "#a16207",
   color: "white",
   border: "none",
-  cursor: "pointer",
 };
 
-const ctaDisabled: React.CSSProperties = {
-  ...baseBtn,
-  background: "#e5e7eb",
-  color: "#9ca3af",
-  border: "none",
+const ctaDisabled = {
+  flex: 1,
+  background: "#eee",
 };
 
-const badge: React.CSSProperties = {
-  position: "absolute",
-  top: "10px",
-  left: "10px",
-  background: "#a16207",
-  color: "white",
-  padding: "5px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  zIndex: 2,
+/* PACKS */
+
+const packSection = { marginTop: 60 };
+
+const packTitle = {
+  textAlign: "center" as const,
+  fontSize: 24,
 };
 
-const out: React.CSSProperties = {
-  position: "absolute",
-  top: "10px",
-  right: "10px",
+const packGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
+  gap: 20,
+};
+
+const packCard = {
+  background: "white",
+  padding: 20,
+  borderRadius: 16,
+  textAlign: "center" as const,
+};
+
+const packImg = {
+  width: "100%",
+  height: 160,
+  objectFit: "cover" as const,
+};
+
+const packList = {
+  textAlign: "left" as const,
+  marginTop: 10,
+};
+
+const priceBox = {
+  display: "flex",
+  justifyContent: "center",
+  gap: 10,
+};
+
+const oldPriceStyle = {
+  textDecoration: "line-through",
+  color: "#999",
+};
+
+const packPrice = {
+  color: "#a16207",
+  fontWeight: 800,
+};
+
+const discountBadge = {
   background: "#dc2626",
   color: "white",
-  padding: "5px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  zIndex: 2,
+  padding: "2px 6px",
+  borderRadius: 6,
 };
 
-const signature: React.CSSProperties = {
-  textAlign: "center",
-  padding: "20px",
-  fontSize: "12px",
-  color: "#777",
+const packBtn = {
+  marginTop: 10,
+  background: "#a16207",
+  color: "white",
+  padding: 10,
+  border: "none",
 };

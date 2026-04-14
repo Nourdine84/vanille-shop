@@ -19,6 +19,9 @@ type ProductPayload = {
   priceCents?: number | string;
   stock?: number | string;
   isActive?: boolean | string;
+  unit?: string;
+  isPack?: boolean | string;
+  packItems?: string | null;
 };
 
 /* =========================
@@ -55,6 +58,12 @@ function normalizeImageUrl(image?: string) {
   return clean;
 }
 
+function normalizeUnit(unit?: string) {
+  const value = (unit || "g").trim().toLowerCase();
+  if (value === "cl" || value === "l" || value === "g") return value;
+  return "g";
+}
+
 /* =========================
    PARSE BODY SAFE
 ========================= */
@@ -80,6 +89,9 @@ async function parseBody(req: Request): Promise<ProductPayload> {
       priceCents: formData.get("priceCents")?.toString() || 0,
       stock: formData.get("stock")?.toString() || 0,
       isActive: formData.get("isActive") === "on",
+      unit: formData.get("unit")?.toString() || "g",
+      isPack: formData.get("isPack") === "on",
+      packItems: formData.get("packItems")?.toString() || null,
     };
   }
 
@@ -111,6 +123,7 @@ export async function POST(req: Request) {
     const stock = Number(body.stock || 0);
     const imageUrl = normalizeImageUrl(body.imageUrl);
     const category = body.category?.trim().toLowerCase() || "vanille";
+    const unit = normalizeUnit(body.unit);
 
     const subCategory =
       body.subCategory && body.subCategory.trim() !== ""
@@ -127,9 +140,15 @@ export async function POST(req: Request) {
       body.isActive === "true" ||
       body.isActive === "on";
 
-    /* =========================
-       VALIDATION
-    ========================= */
+    const isPack =
+      body.isPack === true ||
+      body.isPack === "true" ||
+      body.isPack === "on";
+
+    const packItems =
+      body.packItems && body.packItems.trim() !== ""
+        ? body.packItems.trim()
+        : null;
 
     if (!name || !slug) {
       return NextResponse.json(
@@ -138,16 +157,12 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!priceCents || isNaN(priceCents) || priceCents <= 0) {
+    if (!priceCents || Number.isNaN(priceCents) || priceCents <= 0) {
       return NextResponse.json(
         { error: "Prix invalide" },
         { status: 400 }
       );
     }
-
-    /* =========================
-       DATA
-    ========================= */
 
     const data = {
       name,
@@ -155,16 +170,15 @@ export async function POST(req: Request) {
       description: body.description?.trim() || "",
       priceCents,
       imageUrl,
-      stock: isNaN(stock) ? 0 : stock,
+      stock: Number.isNaN(stock) ? 0 : stock,
       category,
       subCategory,
       badge,
       isActive,
+      unit,
+      isPack,
+      packItems,
     };
-
-    /* =========================
-       CREATE
-    ========================= */
 
     if (!id) {
       const exists = await prisma.product.findUnique({
@@ -187,10 +201,6 @@ export async function POST(req: Request) {
         product: created,
       });
     }
-
-    /* =========================
-       UPDATE
-    ========================= */
 
     const existing = await prisma.product.findUnique({
       where: { id },

@@ -16,13 +16,9 @@ function generateSlug(name: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-/* 🔥 NORMALISATION SAFE (Cloudinary OK) */
 function normalizeImageInput(input: string) {
   const value = input.trim();
-
   if (!value) return "";
-
-  // ✅ URL externe (Cloudinary inclus)
   if (value.startsWith("http")) return value;
 
   return value
@@ -45,16 +41,13 @@ export default function ProductForm() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-
-  /* =========================
-     IMAGE UPLOAD CLOUDINARY
-  ========================= */
+  const [isPack, setIsPack] = useState(false);
+  const [unit, setUnit] = useState("g");
 
   async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // preview instant
     const previewUrl = URL.createObjectURL(file);
     setPreview(previewUrl);
 
@@ -77,35 +70,21 @@ export default function ProductForm() {
         throw new Error(data?.error || "Upload échoué");
       }
 
-      // 🔥 URL CLOUDINARY
       setImageUrl(data.url);
-
       setMessage("✅ Image uploadée");
-      setIsError(false);
-
     } catch (error) {
-      console.error("❌ UPLOAD ERROR:", error);
-
+      console.error(error);
       setIsError(true);
       setMessage("Erreur upload image");
-
     } finally {
       setLoading(false);
     }
   }
 
-  /* =========================
-     AUTO SLUG
-  ========================= */
-
   function handleNameChange(value: string) {
     setName(value);
     setSlug(generateSlug(value));
   }
-
-  /* =========================
-     SUBMIT
-  ========================= */
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,7 +111,6 @@ export default function ProductForm() {
       });
 
       let data: any = null;
-
       try {
         data = await res.json();
       } catch {}
@@ -143,18 +121,17 @@ export default function ProductForm() {
         return;
       }
 
-      /* ✅ SUCCESS */
       setMessage("✅ Produit créé avec succès");
-      setIsError(false);
-
       form.reset();
+
       setPreview(null);
       setName("");
       setSlug("");
       setImageUrl("");
-
+      setIsPack(false);
+      setUnit("g");
     } catch (error) {
-      console.error("❌ PRODUCT FORM ERROR:", error);
+      console.error(error);
       setIsError(true);
       setMessage("Erreur serveur");
     } finally {
@@ -162,14 +139,8 @@ export default function ProductForm() {
     }
   };
 
-  /* =========================
-     RENDER
-  ========================= */
-
   return (
     <form onSubmit={handleSubmit} style={formGrid}>
-      
-      {/* NOM */}
       <input
         name="name"
         placeholder="Nom produit"
@@ -179,7 +150,6 @@ export default function ProductForm() {
         style={input}
       />
 
-      {/* SLUG */}
       <input
         name="slug"
         placeholder="Slug"
@@ -189,7 +159,6 @@ export default function ProductForm() {
         style={input}
       />
 
-      {/* DESCRIPTION */}
       <input
         name="description"
         placeholder="Description"
@@ -197,24 +166,19 @@ export default function ProductForm() {
         style={{ ...input, gridColumn: "1 / -1" }}
       />
 
-      {/* IMAGE UPLOAD */}
       <div style={uploadBox}>
         <input type="file" accept="image/*" onChange={handleImage} />
-        {preview && (
-          <img src={preview} alt="Preview produit" style={previewImg} />
-        )}
+        {preview && <img src={preview} alt="Preview" style={previewImg} />}
       </div>
 
-      {/* IMAGE URL */}
       <input
         name="imageUrl"
-        placeholder="URL image (auto via upload)"
+        placeholder="URL image"
         value={imageUrl}
         onChange={(e) => setImageUrl(e.target.value)}
         style={input}
       />
 
-      {/* PRIX */}
       <input
         name="priceCents"
         type="number"
@@ -224,7 +188,6 @@ export default function ProductForm() {
         style={input}
       />
 
-      {/* STOCK */}
       <input
         name="stock"
         type="number"
@@ -234,40 +197,68 @@ export default function ProductForm() {
         style={input}
       />
 
-      {/* CATEGORY */}
       <select name="category" style={input} defaultValue="vanille">
         <option value="vanille">Vanille</option>
         <option value="epices">Épices</option>
       </select>
 
-      {/* SUB CATEGORY */}
       <input
         name="subCategory"
-        placeholder="Sous-catégorie (ex: gourmet)"
+        placeholder="Sous-catégorie"
         style={input}
       />
 
-      {/* BADGE */}
-      <select name="badge" style={input} defaultValue="">
+      <select name="badge" style={input}>
         <option value="">Aucun badge</option>
         <option value="Nouveau">🔥 Nouveau</option>
         <option value="Promo">💸 Promo</option>
         <option value="Best Seller">⭐ Best Seller</option>
-        <option value="Top Vente">🚀 Top vente</option>
       </select>
 
-      {/* ACTIVE */}
+      <select
+        name="unit"
+        value={unit}
+        onChange={(e) => setUnit(e.target.value)}
+        style={input}
+      >
+        <option value="g">Grammes (g)</option>
+        <option value="cl">Centilitres (cl)</option>
+        <option value="l">Litres (L)</option>
+      </select>
+
       <label style={checkboxRow}>
         <input type="checkbox" name="isActive" defaultChecked />
         Produit actif
       </label>
 
-      {/* SUBMIT */}
+      <label style={checkboxRow}>
+        <input
+          type="checkbox"
+          name="isPack"
+          checked={isPack}
+          onChange={(e) => setIsPack(e.target.checked)}
+        />
+        Produit pack 🎁
+      </label>
+
+      {isPack && (
+        <textarea
+          name="packItems"
+          placeholder={
+            unit === "g"
+              ? "Ex : 10g vanille + 50g cacao + 100g cannelle"
+              : unit === "cl"
+              ? "Ex : 10cl huile + 25cl extrait + 50cl infusion"
+              : "Ex : 1L huile + 1L extrait"
+          }
+          style={{ ...textarea, gridColumn: "1 / -1" }}
+        />
+      )}
+
       <button type="submit" style={button} disabled={loading}>
         {loading ? "Traitement..." : "Créer le produit"}
       </button>
 
-      {/* MESSAGE */}
       {message && (
         <p
           style={{
@@ -284,34 +275,42 @@ export default function ProductForm() {
 
 /* ================= STYLE ================= */
 
-const formGrid = {
+const formGrid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, 1fr)",
   gap: "12px",
 };
 
-const input = {
+const input: React.CSSProperties = {
   padding: "10px",
   borderRadius: "8px",
   border: "1px solid #ddd",
 };
 
-const uploadBox = {
+const textarea: React.CSSProperties = {
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid #ddd",
+  minHeight: 90,
+  resize: "vertical",
+};
+
+const uploadBox: React.CSSProperties = {
   gridColumn: "1 / -1",
   border: "2px dashed #ccc",
   padding: "15px",
   borderRadius: "10px",
-  textAlign: "center" as const,
+  textAlign: "center",
 };
 
-const previewImg = {
+const previewImg: React.CSSProperties = {
   width: "100%",
   maxWidth: "200px",
   marginTop: "10px",
   borderRadius: "10px",
 };
 
-const button = {
+const button: React.CSSProperties = {
   gridColumn: "1 / -1",
   background: "#a16207",
   color: "white",
@@ -322,14 +321,14 @@ const button = {
   cursor: "pointer",
 };
 
-const checkboxRow = {
+const checkboxRow: React.CSSProperties = {
   display: "flex",
   gap: "8px",
   alignItems: "center",
 };
 
-const messageStyle = {
+const messageStyle: React.CSSProperties = {
   gridColumn: "1 / -1",
-  textAlign: "center" as const,
+  textAlign: "center",
   fontWeight: "bold",
 };
