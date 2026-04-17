@@ -20,18 +20,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      {/* 🔥 FIX CRASH HYDRATION + REMOVECHILD */}
       <body suppressHydrationWarning style={bodyStyle}>
         <Providers>
+
           <Header />
 
-          {/* 🔥 FIX: éviter conflit render/navigation */}
+          {/* MINI CART */}
           <div id="cart-root">
             <MiniCart />
           </div>
 
+          {/* CONTENU */}
           <main style={main}>{children}</main>
 
+          {/* FOOTER */}
           <footer style={footer}>
             <div style={footerContainer}>
               <div>
@@ -62,11 +64,14 @@ export default function RootLayout({
               © {new Date().getFullYear()} Vanille’Or — Tous droits réservés
             </div>
           </footer>
+
         </Providers>
       </body>
     </html>
   );
 }
+
+/* ================= COMPONENT ================= */
 
 function FooterLink({
   href,

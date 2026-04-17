@@ -6,8 +6,14 @@ import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 import { getImageUrl } from "@/lib/image";
 
+function safeNumber(value: any) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+  const safe = safeNumber(priceCents);
+  return (safe / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 const FREE_SHIPPING_CENTS = 5000;
@@ -17,7 +23,12 @@ export default function MiniCart() {
   const { isCartOpen, closeCart } = useUIStore();
 
   const subtotal = useMemo(
-    () => cart.reduce((acc, item) => acc + item.priceCents * item.quantity, 0),
+    () =>
+      cart.reduce(
+        (acc, item) =>
+          acc + safeNumber(item.priceCents) * safeNumber(item.quantity),
+        0
+      ),
     [cart]
   );
 
@@ -26,30 +37,31 @@ export default function MiniCart() {
     0
   );
 
-  const progress = Math.min(
-    (subtotal / FREE_SHIPPING_CENTS) * 100,
-    100
-  );
+  const progress = Math.min((subtotal / FREE_SHIPPING_CENTS) * 100, 100);
 
   return (
     <>
       <div
+        data-overlay
         aria-hidden={!isCartOpen}
         onClick={closeCart}
         style={{
           ...overlay,
+          display: isCartOpen ? "block" : "none",
           opacity: isCartOpen ? 1 : 0,
           pointerEvents: isCartOpen ? "auto" : "none",
         }}
       />
 
       <aside
+        data-panel
         aria-hidden={!isCartOpen}
         data-testid="mini-cart"
         style={{
           ...panel,
+          display: isCartOpen ? "flex" : "none",
           transform: isCartOpen ? "translateX(0)" : "translateX(100%)",
-          visibility: isCartOpen ? "visible" : "hidden",
+          pointerEvents: isCartOpen ? "auto" : "none",
         }}
       >
         <div style={header}>
@@ -98,10 +110,7 @@ export default function MiniCart() {
                     style={img}
                   />
 
-                  <div
-                    data-testid={`cart-item-${index}`}
-                    style={itemContent}
-                  >
+                  <div data-testid={`cart-item-${index}`} style={itemContent}>
                     <p style={name}>{item.name}</p>
 
                     <p style={unitPrice}>{formatPrice(item.priceCents)}</p>
@@ -113,7 +122,7 @@ export default function MiniCart() {
                           data-testid="decrease-qty"
                           style={qtyBtn}
                           onClick={() =>
-                            updateQuantity(item.id, item.quantity - 1)
+                            updateQuantity(item.id, safeNumber(item.quantity) - 1)
                           }
                           aria-label="Diminuer la quantité"
                         >
@@ -129,7 +138,7 @@ export default function MiniCart() {
                           data-testid="increase-qty"
                           style={qtyBtn}
                           onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
+                            updateQuantity(item.id, safeNumber(item.quantity) + 1)
                           }
                           aria-label="Augmenter la quantité"
                         >
@@ -138,7 +147,9 @@ export default function MiniCart() {
                       </div>
 
                       <p style={price}>
-                        {formatPrice(item.priceCents * item.quantity)}
+                        {formatPrice(
+                          safeNumber(item.priceCents) * safeNumber(item.quantity)
+                        )}
                       </p>
                     </div>
 
@@ -209,7 +220,7 @@ const panel: React.CSSProperties = {
   borderTopLeftRadius: 20,
   borderBottomLeftRadius: 20,
   boxShadow: "-20px 0 50px rgba(0,0,0,0.2)",
-  transition: "transform 0.25s ease, visibility 0.25s ease",
+  transition: "transform 0.25s ease",
   zIndex: 9999,
 };
 

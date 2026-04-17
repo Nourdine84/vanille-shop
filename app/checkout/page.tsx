@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useCart, type CartItem } from "@/lib/cart-context";
+import { useCart } from "@/lib/cart-context";
 import CrossSell from "@/components/cross-sell";
 
-function formatPrice(price: number) {
-  return price.toFixed(2).replace(".", ",") + " €";
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 export default function CheckoutPage() {
@@ -20,15 +20,14 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => {
     return cart.reduce(
-      (acc: number, item: CartItem) => acc + item.price * item.quantity,
+      (acc, item) => acc + item.priceCents * item.quantity,
       0
     );
   }, [cart]);
 
-  const freeShippingThreshold = 50;
-  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 4.9;
+  const freeShippingThreshold = 5000;
+  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
   const total = subtotal + shippingCost;
-
   const remaining = Math.max(0, freeShippingThreshold - subtotal);
 
   const handleCheckout = async () => {
@@ -47,9 +46,7 @@ export default function CheckoutPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Erreur checkout");
-      }
+      if (!res.ok) throw new Error(data.error || "Erreur checkout");
 
       window.location.href = data.url;
     } catch (err) {
@@ -88,10 +85,10 @@ export default function CheckoutPage() {
               {cart.length === 0 ? (
                 <p style={meta}>Votre panier est vide.</p>
               ) : (
-                cart.map((item: CartItem) => (
+                cart.map((item) => (
                   <div key={item.id} style={itemRow}>
                     <img
-                      src={item.image || "/images/default.jpg"}
+                      src={item.imageUrl || "/images/default.jpg"}
                       alt={item.name}
                       style={image}
                     />
@@ -102,7 +99,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <p style={price}>
-                      {formatPrice(item.price * item.quantity)}
+                      {formatPrice(item.priceCents * item.quantity)}
                     </p>
                   </div>
                 ))
@@ -170,8 +167,6 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-/* ================= STYLE ================= */
 
 const page: React.CSSProperties = {
   background: "#f8f5ef",

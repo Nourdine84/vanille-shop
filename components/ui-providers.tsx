@@ -7,6 +7,7 @@ type UIContextType = {
   isCartOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
+  resetUI: () => void;
 };
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -18,8 +19,17 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
 
-  useEffect(() => {
+  const resetUI = () => {
     setIsCartOpen(false);
+
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "auto";
+      document.body.style.pointerEvents = "auto";
+    }
+  };
+
+  useEffect(() => {
+    resetUI();
   }, [pathname]);
 
   useEffect(() => {
@@ -33,7 +43,12 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   }, [isCartOpen]);
 
   const value = useMemo(
-    () => ({ isCartOpen, openCart, closeCart }),
+    () => ({
+      isCartOpen,
+      openCart,
+      closeCart,
+      resetUI,
+    }),
     [isCartOpen]
   );
 
