@@ -1,125 +1,23 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getImageUrl } from "@/lib/image";
 
 export const dynamic = "force-dynamic";
 
-/* ================= STATIC POSTS PREMIUM ================= */
+/* ================= STATIC POSTS ================= */
 
 const staticPosts: Record<string, any> = {
   "choisir-bonne-vanille": {
     title: "Comment reconnaître une bonne vanille",
     coverImage: "/blog/bonne-vanille.jpg",
     content: `
-      <img src="/blog/bonne-vanille.jpg" style="width:100%;border-radius:14px;margin-bottom:20px"/>
-
-      <p>Une bonne vanille se distingue par son aspect, son parfum et sa texture. Voici les critères essentiels à connaître.</p>
-
+      <p>Une bonne vanille se distingue par son aspect, son parfum et sa texture.</p>
       <h2>Les signes de qualité</h2>
       <ul>
         <li>✔ Gousse souple et charnue</li>
         <li>✔ Aspect légèrement brillant</li>
         <li>✔ Parfum intense et naturel</li>
       </ul>
-
-      <img src="/blog/bonne-vanille.jpg" style="width:100%;border-radius:14px;margin:20px 0"/>
-
-      <h2>Origine et importance</h2>
-      <p>
-        La vanille de Madagascar est réputée pour sa richesse aromatique,
-        idéale pour les desserts et préparations haut de gamme.
-      </p>
-
-      <div style="margin-top:30px;text-align:center">
-        <a href="/products" style="
-          display:inline-block;
-          background:#a16207;
-          color:white;
-          padding:14px 22px;
-          border-radius:12px;
-          text-decoration:none;
-          font-weight:bold;
-        ">
-          Voir nos produits
-        </a>
-      </div>
-    `,
-  },
-
-  "utiliser-vanille-patisserie": {
-    title: "Comment utiliser la vanille en pâtisserie",
-    coverImage: "/blog/vanille-patisserie.jpg",
-    content: `
-      <img src="/blog/vanille-patisserie.jpg" style="width:100%;border-radius:14px;margin-bottom:20px"/>
-
-      <p>
-        La vanille est un ingrédient incontournable pour sublimer vos desserts.
-        Elle apporte des arômes naturels puissants et une profondeur unique.
-      </p>
-
-      <h2>Utilisation classique</h2>
-      <p>
-        Infusez une gousse de vanille dans du lait ou de la crème pour parfumer intensément vos préparations.
-      </p>
-
-      <img src="/blog/vanille-patisserie.jpg" style="width:100%;border-radius:14px;margin:20px 0"/>
-
-      <h2>Conseil professionnel</h2>
-      <p>
-        Choisissez une vanille de Madagascar premium pour obtenir un résultat digne des plus grandes pâtisseries.
-      </p>
-
-      <div style="margin-top:30px;text-align:center">
-        <a href="/products" style="
-          display:inline-block;
-          background:#a16207;
-          color:white;
-          padding:14px 22px;
-          border-radius:12px;
-          text-decoration:none;
-          font-weight:bold;
-        ">
-          Voir nos produits
-        </a>
-      </div>
-    `,
-  },
-
-  "pourquoi-vanille-madagascar": {
-    title: "Pourquoi la vanille de Madagascar est la meilleure",
-    coverImage: "/blog/madagascar-vanille.jpg",
-    content: `
-      <img src="/blog/madagascar-vanille.jpg" style="width:100%;border-radius:14px;margin-bottom:20px"/>
-
-      <p>
-        La vanille de Madagascar est reconnue mondialement pour sa qualité exceptionnelle.
-        Elle est utilisée par les plus grands chefs et pâtissiers.
-      </p>
-
-      <h2>Un climat unique</h2>
-      <p>
-        Madagascar offre des conditions idéales pour la culture de la vanille,
-        donnant naissance à des gousses riches en arômes.
-      </p>
-
-      <h2>Un savoir-faire artisanal</h2>
-      <p>
-        La transformation de la vanille repose sur un processus long et précis,
-        garantissant une qualité premium.
-      </p>
-
-      <div style="margin-top:30px;text-align:center">
-        <a href="/products" style="
-          display:inline-block;
-          background:#a16207;
-          color:white;
-          padding:14px 22px;
-          border-radius:12px;
-          text-decoration:none;
-          font-weight:bold;
-        ">
-          Voir nos produits
-        </a>
-      </div>
     `,
   },
 };
@@ -132,28 +30,30 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   try {
-    const prisma = (await import("@/lib/prisma")).prisma as any;
+    const prisma = (await import("@/lib/prisma")).prisma;
 
     const post = await prisma.blogPost.findUnique({
       where: { slug: params.slug },
     });
 
-    if (post) {
-      return {
-        title: post.title,
-        description: post.excerpt || "Article Vanille’Or",
-      };
-    }
+    const staticPost = staticPosts[params.slug];
 
-    if (staticPosts[params.slug]) {
-      return {
-        title: staticPosts[params.slug].title,
-      };
-    }
+    const title = post?.title || staticPost?.title || "Article Vanille’Or";
+    const description =
+      post?.excerpt || "Vanille premium de Madagascar - Vanille’Or";
+    const image = getImageUrl(post?.coverImage || staticPost?.coverImage);
 
-    return { title: "Article" };
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: [image],
+      },
+    };
   } catch {
-    return { title: "Article" };
+    return { title: "Article Vanille’Or" };
   }
 }
 
@@ -167,7 +67,7 @@ export default async function BlogDetail({
   let post: any = null;
 
   try {
-    const prisma = (await import("@/lib/prisma")).prisma as any;
+    const prisma = (await import("@/lib/prisma")).prisma;
 
     post = await prisma.blogPost.findUnique({
       where: { slug: params.slug },
@@ -183,30 +83,28 @@ export default async function BlogDetail({
   }
 
   const title = post?.title || staticPost.title;
-  const image = post?.coverImage || staticPost.coverImage;
+  const image = getImageUrl(post?.coverImage || staticPost.coverImage);
   const content = post?.content || staticPost.content;
 
   return (
     <div style={container}>
-      {/* HERO */}
       <div style={hero}>
         <h1 style={titleStyle}>{title}</h1>
       </div>
 
-      {/* IMAGE */}
-      {image && (
-        <img src={image} alt={title} style={coverImage} />
-      )}
+      {image && <img src={image} alt={title} style={coverImage} />}
 
-      {/* CONTENT */}
       <div
         style={contentStyle}
         dangerouslySetInnerHTML={{ __html: content }}
       />
 
-      {/* CTA */}
-      <div style={ctaBlock}>
-        <h3>Découvrez notre vanille premium</h3>
+      {/* 🔥 CONVERSION BLOCK */}
+      <div style={productBlock}>
+        <h3>✨ Passez à la qualité professionnelle</h3>
+        <p>
+          Découvrez notre vanille premium directement importée de Madagascar.
+        </p>
 
         <a href="/products" style={ctaBtn}>
           Voir nos produits
@@ -236,7 +134,7 @@ const titleStyle = {
 
 const coverImage = {
   width: "100%",
-  maxHeight: "400px",
+  maxHeight: "420px",
   objectFit: "cover" as const,
   borderRadius: "14px",
   marginBottom: "30px",
@@ -247,11 +145,11 @@ const contentStyle = {
   fontSize: "17px",
 };
 
-const ctaBlock = {
-  marginTop: "60px",
+const productBlock = {
+  marginTop: "50px",
   padding: "30px",
-  borderRadius: "12px",
-  background: "#faf7f2",
+  borderRadius: "14px",
+  background: "#fff7ed",
   textAlign: "center" as const,
 };
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,10 +21,9 @@ type ProductPayload = {
   unit?: string;
   isPack?: boolean | string;
   packItems?: string | null;
-  pricing?: any; // 🔥 NEW
 };
 
-/* ================= UTILS ================= */
+/* ================= HELPERS ================= */
 
 function normalizeSlug(input: string) {
   return input
@@ -38,105 +38,161 @@ function normalizeSlug(input: string) {
 function normalizeImageUrl(image?: string) {
   if (!image || image.trim() === "") return "default.jpg";
 
-  const clean = image.trim();
+  const clean = image
+    .trim()
+    .replace(/^\/+/, "")
+    .replace(/^products\//, "")
+    .replace(/^images\//, "");
 
   if (clean.startsWith("http")) return clean;
 
-  return clean
-    .replace(/^.*[\\/]/, "")
-    .replace(/^images\//, "")
-    .replace(/^products\//, "");
+  return clean;
 }
 
+/* 🔥 AJOUT ML + NORMALISATION PRO */
 function normalizeUnit(unit?: string) {
-  const u = (unit || "g").toLowerCase();
-  if (["g", "cl", "l"].includes(u)) return u;
-  return "g";
+  const value = (unit || "g").trim().toLowerCase();
+
+  const allowed = ["g", "kg", "ml", "cl", "l"];
+  return allowed.includes(value) ? value : "g";
 }
 
-/* ================= PARSE ================= */
+function toNumber(value: any, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/* ================= BODY ================= */
 
 async function parseBody(req: Request): Promise<ProductPayload> {
-  const formData = await req.formData();
+  const contentType = req.headers.get("content-type") || "";
 
-  return {
-    id: formData.get("id")?.toString() || null,
-    name: formData.get("name")?.toString() || "",
-    slug: formData.get("slug")?.toString() || "",
-    description: formData.get("description")?.toString() || "",
-    imageUrl: formData.get("imageUrl")?.toString() || "",
-    category: formData.get("category")?.toString() || "vanille",
-    subCategory: formData.get("subCategory")?.toString() || null,
-    badge: formData.get("badge")?.toString() || null,
-    priceCents: formData.get("priceCents")?.toString() || 0,
-    stock: formData.get("stock")?.toString() || 0,
-    isActive: formData.get("isActive") === "on",
-    unit: formData.get("unit")?.toString() || "g",
-    isPack: formData.get("isPack") === "on",
-    packItems: formData.get("packItems")?.toString() || null,
+  if (contentType.includes("form")) {
+    const formData = await req.formData();
 
-    // 🔥 NEW PRICING
-    pricing: formData.get("pricing")
-      ? JSON.parse(formData.get("pricing")!.toString())
-      : null,
-  };
+    return {
+      id: formData.get("id")?.toString() || null,
+      name: formData.get("name")?.toString() || "",
+      slug: formData.get("slug")?.toString() || "",
+      description: formData.get("description")?.toString() || "",
+      imageUrl: formData.get("imageUrl")?.toString() || "",
+      category: formData.get("category")?.toString() || "vanille",
+      subCategory: formData.get("subCategory")?.toString() || null,
+      badge: formData.get("badge")?.toString() || null,
+      priceCents: formData.get("priceCents")?.toString() || "0",
+      stock: formData.get("stock")?.toString() || "0",
+      isActive: formData.get("isActive") === "on",
+      unit: formData.get("unit")?.toString() || "g",
+      isPack: formData.get("isPack") === "on",
+      packItems: formData.get("packItems")?.toString() || null,
+    };
+  }
+
+  if (contentType.includes("application/json")) {
+    return await req.json();
+  }
+
+  throw new Error("Content-Type non supporté");
+}
+
+/* ================= GET ================= */
+
+export async function GET() {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(products);
+  } catch (error: any) {
+    console.error("🔥 ADMIN GET:", error);
+
+    return NextResponse.json(
+      { error: "Erreur récupération produits" },
+      { status: 500 }
+    );
+  }
 }
 
 /* ================= POST ================= */
 
 export async function POST(req: Request) {
   try {
-    const { prisma } = await import("@/lib/prisma");
     const body = await parseBody(req);
 
     const id = body.id || null;
     const name = body.name?.trim() || "";
     const slug = normalizeSlug(body.slug || name);
 
-    const priceCents = Number(body.priceCents || 0);
-    const stock = Number(body.stock || 0);
-
     const data = {
       name,
       slug,
       description: body.description?.trim() || "",
-      priceCents,
       imageUrl: normalizeImageUrl(body.imageUrl),
-      stock,
-      category: body.category || "vanille",
-      subCategory: body.subCategory,
-      badge: body.badge,
-      isActive: body.isActive === true,
-      unit: normalizeUnit(body.unit),
-      isPack: body.isPack === true,
-      packItems: body.packItems,
-
-      // 🔥 PRICING
-      pricing: body.pricing,
+      priceCents: toNumber(body.priceCents),
+      stock: toNumber(body.stock),
+      category: (body.category || "vanille").toLowerCase(),
+      subCategory: body.subCategory || null,
+      badge: body.badge || null,
+      isActive: !!body.isActive,
+      isPack: !!body.isPack,
+      packItems: body.packItems || null,
     };
 
-    if (!name || !slug) {
-      return NextResponse.json({ error: "Nom requis" }, { status: 400 });
+    /* VALIDATION */
+    if (!name) {
+      return NextResponse.json(
+        { error: "Nom requis" },
+        { status: 400 }
+      );
     }
 
-    if (priceCents <= 0) {
-      return NextResponse.json({ error: "Prix invalide" }, { status: 400 });
+    if (data.priceCents <= 0) {
+      return NextResponse.json(
+        { error: "Prix invalide" },
+        { status: 400 }
+      );
     }
 
+    if (data.stock < 0) {
+      return NextResponse.json(
+        { error: "Stock invalide" },
+        { status: 400 }
+      );
+    }
+
+    /* CREATE */
     if (!id) {
-      const created = await prisma.product.create({ data });
-      return NextResponse.json({ success: true, product: created });
+      const exists = await prisma.product.findFirst({
+        where: { slug },
+      });
+
+      if (exists) {
+        return NextResponse.json(
+          { error: "Slug déjà utilisé" },
+          { status: 400 }
+        );
+      }
+
+      const product = await prisma.product.create({ data });
+
+      return NextResponse.json({ success: true, product });
     }
 
-    const updated = await prisma.product.update({
+    /* UPDATE */
+    const product = await prisma.product.update({
       where: { id },
       data,
     });
 
-    return NextResponse.json({ success: true, product: updated });
+    return NextResponse.json({ success: true, product });
 
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  } catch (error: any) {
+    console.error("🔥 ADMIN POST:", error);
+
+    return NextResponse.json(
+      { error: "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }

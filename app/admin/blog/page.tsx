@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+/* ================= TYPES ================= */
+
 type BlogPost = {
   id: string;
   title: string;
@@ -15,6 +17,8 @@ type BlogPost = {
   coverImage?: string | null;
   createdAt: Date;
 };
+
+/* ================= UTILS ================= */
 
 function getImageUrl(image?: string | null) {
   if (!image) return "/blog/default.jpg";
@@ -30,6 +34,8 @@ function formatDate(date: Date) {
     year: "numeric",
   });
 }
+
+/* ================= PAGE ================= */
 
 export default async function BlogAdminPage() {
   const isAdmin = cookies().get("admin")?.value === "true";
@@ -51,11 +57,12 @@ export default async function BlogAdminPage() {
 
   return (
     <div style={container}>
+      {/* HEADER */}
       <div style={topBar}>
         <div>
           <h1 style={title}>📝 Blog Admin</h1>
           <p style={subtitle}>
-            Gérez les articles, les visuels et la visibilité éditoriale de
+            Gérez les articles, les visuels et la stratégie éditoriale de
             Vanille’Or.
           </p>
         </div>
@@ -65,6 +72,7 @@ export default async function BlogAdminPage() {
         </Link>
       </div>
 
+      {/* KPI */}
       <div style={kpiRow}>
         <div style={kpiCard}>
           <span style={kpiLabel}>Articles</span>
@@ -72,14 +80,18 @@ export default async function BlogAdminPage() {
         </div>
       </div>
 
+      {/* EMPTY */}
       {posts.length === 0 ? (
         <div style={emptyCard}>
-          <p style={{ margin: 0 }}>Aucun article pour le moment.</p>
+          <p style={{ margin: 0 }}>
+            Aucun article pour le moment.
+          </p>
         </div>
       ) : (
         <div style={grid}>
           {posts.map((post) => (
             <article key={post.id} style={card}>
+              {/* IMAGE */}
               <div style={imageWrap}>
                 <img
                   src={getImageUrl(post.coverImage)}
@@ -88,13 +100,21 @@ export default async function BlogAdminPage() {
                 />
               </div>
 
+              {/* CONTENT */}
               <div style={content}>
                 <div style={metaRow}>
-                  <span style={dateBadge}>{formatDate(post.createdAt)}</span>
-                  <span style={slugBadge}>/{post.slug}</span>
+                  <span style={dateBadge}>
+                    {formatDate(post.createdAt)}
+                  </span>
+
+                  <span style={slugBadge}>
+                    /{post.slug}
+                  </span>
                 </div>
 
-                <h2 style={postTitle}>{post.title}</h2>
+                <h2 style={postTitle}>
+                  {post.title || "Sans titre"}
+                </h2>
 
                 <p style={excerpt}>
                   {post.excerpt?.trim()
@@ -102,6 +122,7 @@ export default async function BlogAdminPage() {
                     : "Aucun résumé renseigné pour cet article."}
                 </p>
 
+                {/* ACTIONS */}
                 <div style={actions}>
                   <a
                     href={`/blog/${post.slug}`}
@@ -139,7 +160,7 @@ export default async function BlogAdminPage() {
   );
 }
 
-/* ================= STYLE ================= */
+/* ================= STYLES ================= */
 
 const container = {
   padding: 30,
