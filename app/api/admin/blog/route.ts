@@ -4,33 +4,54 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/* ================= UTILS ================= */
+
 function normalizeSlug(input: string) {
   return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
 
+function normalizeImage(image?: string) {
+  if (!image || image.trim() === "") return "default.jpg";
+
+  const clean = image.trim();
+
+  if (clean.startsWith("http")) return clean;
+
+  return clean.replace(/^\/+/, "");
+}
+
+/* ================= POST ================= */
+
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
 
-    const id = form.get("id")?.toString();
+    const id = form.get("id")?.toString() || null;
     const title = form.get("title")?.toString().trim() || "";
     const rawSlug = form.get("slug")?.toString() || "";
     const excerpt = form.get("excerpt")?.toString().trim() || "";
     const content = form.get("content")?.toString().trim() || "";
-    const coverImage = form.get("coverImage")?.toString().trim() || "";
+    const coverImageRaw = form.get("coverImage")?.toString() || "";
 
     const slug = normalizeSlug(rawSlug || title);
+    const coverImage = normalizeImage(coverImageRaw);
 
-    if (!title || !slug || !content) {
+    /* ================= VALIDATION ================= */
+
+    if (!title || !content) {
       return NextResponse.json(
-        { error: "Champs requis" },
+        { error: "Titre et contenu requis" },
         { status: 400 }
       );
     }
+
+    /* ================= CREATE ================= */
 
     if (!id) {
       const existing = await prisma.blogPost.findUnique({
@@ -44,7 +65,7 @@ export async function POST(req: Request) {
         );
       }
 
-      await prisma.blogPost.create({
+      const created = await prisma.blogPost.create({
         data: {
           title,
           slug,
@@ -54,26 +75,32 @@ export async function POST(req: Request) {
         },
       });
 
-      return NextResponse.redirect(new URL("/admin/blog", req.url));
+      return NextResponse.json({
+        success: true,
+        mode: "create",
+        post: created,
+      });
     }
 
-    const currentPost = await prisma.blogPost.findUnique({
+    /* ================= UPDATE ================= */
+
+    const existingPost = await prisma.blogPost.findUnique({
       where: { id },
     });
 
-    if (!currentPost) {
+    if (!existingPost) {
       return NextResponse.json(
         { error: "Article introuvable" },
         { status: 404 }
       );
     }
 
-    if (currentPost.slug !== slug) {
-      const slugAlreadyUsed = await prisma.blogPost.findUnique({
+    if (existingPost.slug !== slug) {
+      const slugUsed = await prisma.blogPost.findUnique({
         where: { slug },
       });
 
-      if (slugAlreadyUsed) {
+      if (slugUsed) {
         return NextResponse.json(
           { error: "Slug déjà utilisé" },
           { status: 400 }
@@ -81,7 +108,7 @@ export async function POST(req: Request) {
       }
     }
 
-    await prisma.blogPost.update({
+    const updated = await prisma.blogPost.update({
       where: { id },
       data: {
         title,
@@ -92,9 +119,14 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/admin/blog", req.url));
+    return NextResponse.json({
+      success: true,
+      mode: "update",
+      post: updated,
+    });
+
   } catch (error) {
-    console.error("BLOG API ERROR:", error);
+    console.error("🔥 BLOG API ERROR:", error);
 
     return NextResponse.json(
       { error: "Erreur serveur" },

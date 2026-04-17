@@ -27,7 +27,8 @@ type Product = {
 /* ================= UTILS ================= */
 
 function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+  const safe = Number(priceCents) || 0;
+  return (safe / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 /* ================= PAGE ================= */
@@ -81,9 +82,13 @@ export default async function AdminProductsPage() {
           return (
             <div key={p.id} style={productCard}>
               <div style={imageWrapper}>
-                <img src={img} style={image} />
+                <img
+                  src={img}
+                  alt={p.name}
+                  style={image}
+                />
 
-                {/* 🔥 BADGES */}
+                {/* BADGES */}
                 {p.isPack && <span style={packBadge}>PACK</span>}
                 {p.badge && <span style={badge}>{p.badge}</span>}
               </div>
