@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 
-export default function ImageUploadField() {
+/* 🔥 AJOUT DU TYPE */
+type Props = {
+  onChange?: (url: string) => void;
+};
+
+export default function ImageUploadField({ onChange }: Props) {
   const [preview, setPreview] = useState<string>("");
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
 
-  const handleUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file: File) => {
     setPreview(URL.createObjectURL(file));
     setUploading(true);
 
@@ -30,13 +31,13 @@ export default function ImageUploadField() {
         throw new Error(data?.error || "Erreur upload");
       }
 
-      const input = document.querySelector<HTMLInputElement>(
-        "input[name='imageUrl']"
-      );
+      setImageUrl(data.url);
 
-      if (input) {
-        input.value = data.url;
+      /* 🔥 CALLBACK VERS PARENT */
+      if (onChange) {
+        onChange(data.url);
       }
+
     } catch (error) {
       console.error("UPLOAD ERROR:", error);
       alert("Erreur upload image");
@@ -45,30 +46,35 @@ export default function ImageUploadField() {
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+  };
+
   return (
     <div style={wrapper}>
       <input
         type="file"
         accept="image/*"
-        onChange={handleUpload}
-        style={fileInput}
+        onChange={handleChange}
       />
 
-      {preview ? (
-        <img src={preview} alt="Prévisualisation" style={previewImg} />
-      ) : null}
+      {preview && <img src={preview} style={previewImg} />}
 
-      {uploading ? <p style={uploadText}>Upload en cours...</p> : null}
+      {uploading && <p>Upload...</p>}
 
       <input
         name="imageUrl"
+        value={imageUrl}
+        onChange={(e) => setImageUrl(e.target.value)}
         placeholder="URL image"
-        style={textInput}
         required
       />
     </div>
   );
 }
+
+/* STYLE */
 
 const wrapper = {
   display: "flex",
@@ -76,25 +82,7 @@ const wrapper = {
   gap: "10px",
 };
 
-const fileInput = {
-  padding: "10px",
-};
-
 const previewImg = {
   width: "140px",
-  height: "140px",
-  objectFit: "cover" as const,
   borderRadius: "10px",
-  border: "1px solid #ddd",
-};
-
-const uploadText = {
-  fontSize: "12px",
-  color: "#666",
-};
-
-const textInput = {
-  padding: "10px",
-  borderRadius: "8px",
-  border: "1px solid #ddd",
 };

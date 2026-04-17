@@ -1,10 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 import { getImageUrl } from "@/lib/image";
+import type { CSSProperties } from "react";
+
+type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  priceCents: number;
+  imageUrl?: string | null;
+  stock?: number | null;
+  isPack?: boolean | null;
+  category?: string | null;
+};
 
 function safeNumber(value: any) {
   const n = Number(value);
@@ -18,9 +30,29 @@ function formatPrice(priceCents: number) {
 
 const FREE_SHIPPING_CENTS = 5000;
 
+function guessIntentFromCart(cart: Array<{ name: string }>) {
+  const names = cart.map((i) => i.name.toLowerCase()).join(" ");
+
+  const hasVanille = names.includes("vanille");
+  const hasEpice =
+    names.includes("cannelle") ||
+    names.includes("poivre") ||
+    names.includes("girofle") ||
+    names.includes("cacao") ||
+    names.includes("épice") ||
+    names.includes("epice");
+
+  if (hasVanille && !hasEpice) return "epices";
+  if (hasEpice && !hasVanille) return "vanille";
+
+  return "mixed";
+}
+
 export default function MiniCart() {
-  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, clearCart, addToCart } = useCart();
   const { isCartOpen, closeCart } = useUIStore();
+
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
 
   const subtotal = useMemo(
     () =>
@@ -38,6 +70,76 @@ export default function MiniCart() {
   );
 
   const progress = Math.min((subtotal / FREE_SHIPPING_CENTS) * 100, 100);
+
+  const cartIds = useMemo(() => new Set(cart.map((item) => item.id)), [cart]);
+
+  useEffect(() => {
+    if (!isCartOpen) return;
+
+    let cancelled = false;
+
+    fetch("/api/products", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+
+        const all: Product[] = Array.isArray(data) ? data.filter(Boolean) : [];
+        const intent = guessIntentFromCart(cart);
+
+        const filtered = all.filter((p) => {
+          if (!p || !p.id || p.isPack) return false;
+          if ((p.stock ?? 0) <= 0) return false;
+          if (cartIds.has(p.id)) return false;
+          return true;
+        });
+
+        const scored = filtered
+          .map((p) => {
+            const haystack = `${p.name} ${p.category || ""}`.toLowerCase();
+
+            let score = 0;
+
+            if (intent === "epices") {
+              if (
+                haystack.includes("cannelle") ||
+                haystack.includes("poivre") ||
+                haystack.includes("girofle") ||
+                haystack.includes("cacao") ||
+                haystack.includes("épice") ||
+                haystack.includes("epice")
+              ) {
+                score += 3;
+              }
+            }
+
+            if (intent === "vanille") {
+              if (haystack.includes("vanille")) {
+                score += 3;
+              }
+            }
+
+            if (intent === "mixed") {
+              score += 1;
+            }
+
+            score += Math.max(0, 100000 - safeNumber(p.priceCents)) / 100000;
+
+            return { product: p, score };
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .map((item) => item.product);
+
+        setRecommendations(scored);
+      })
+      .catch(() => {
+        if (!cancelled) setRecommendations([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isCartOpen, cart, cartIds]);
 
   return (
     <>
@@ -65,7 +167,14 @@ export default function MiniCart() {
         }}
       >
         <div style={header}>
-          <h3 style={title}>Votre panier</h3>
+          <div>
+            <h3 style={title}>Votre panier</h3>
+            <p style={subtitle}>
+              {cart.length === 0
+                ? "Aucun article sélectionné"
+                : `${cart.length} article${cart.length > 1 ? "s" : ""} dans votre panier`}
+            </p>
+          </div>
 
           <button
             type="button"
@@ -82,6 +191,38 @@ export default function MiniCart() {
             <p data-testid="cart-empty" style={emptyText}>
               Votre panier est vide
             </p>
+
+            {recommendations.length > 0 && (
+              <div style={suggestionsBlock}>
+                <h4 style={suggestionsTitle}>Idées à découvrir</h4>
+
+                <div style={suggestionsList}>
+                  {recommendations.map((product) => (
+                    <div key={product.id} style={suggestionCard}>
+                      <img
+                        src={getImageUrl(product.imageUrl)}
+                        alt={product.name}
+                        style={suggestionImg}
+                      />
+
+                      <div style={suggestionContent}>
+                        <p style={suggestionName}>{product.name}</p>
+                        <p style={suggestionPrice}>
+                          {formatPrice(product.priceCents)}
+                        </p>
+                        <Link
+                          href={`/products/${product.slug}`}
+                          onClick={closeCart}
+                          style={suggestionLink}
+                        >
+                          Voir
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -164,6 +305,68 @@ export default function MiniCart() {
                   </div>
                 </div>
               ))}
+
+              {recommendations.length > 0 && (
+                <div style={crossSellBlock}>
+                  <div style={crossSellHeader}>
+                    <h4 style={crossSellTitle}>Complétez votre sélection</h4>
+                    <p style={crossSellText}>
+                      Des suggestions pensées pour augmenter la valeur de votre panier.
+                    </p>
+                  </div>
+
+                  <div style={crossSellGrid}>
+                    {recommendations.map((product) => (
+                      <div key={product.id} style={crossSellCard}>
+                        <Link
+                          href={`/products/${product.slug}`}
+                          onClick={closeCart}
+                          style={crossSellMedia}
+                        >
+                          <img
+                            src={getImageUrl(product.imageUrl)}
+                            alt={product.name}
+                            style={crossSellImg}
+                          />
+                        </Link>
+
+                        <div style={crossSellContent}>
+                          <p style={crossSellName}>{product.name}</p>
+                          <p style={crossSellPrice}>
+                            {formatPrice(product.priceCents)}
+                          </p>
+
+                          <div style={crossSellActions}>
+                            <Link
+                              href={`/products/${product.slug}`}
+                              onClick={closeCart}
+                              style={crossSellViewBtn}
+                            >
+                              Voir
+                            </Link>
+
+                            <button
+                              type="button"
+                              style={crossSellAddBtn}
+                              onClick={() =>
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  priceCents: product.priceCents,
+                                  imageUrl: product.imageUrl ?? undefined,
+                                  quantity: 1,
+                                })
+                              }
+                            >
+                              Ajouter
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={footer}>
@@ -172,13 +375,17 @@ export default function MiniCart() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
 
+              <p style={trustText}>
+                Paiement sécurisé • Expédition rapide • Qualité premium
+              </p>
+
               <Link
                 href="/checkout"
                 onClick={closeCart}
                 style={checkoutBtn}
                 data-testid="checkout-button"
               >
-                Commander
+                Commander maintenant
               </Link>
 
               <button
@@ -197,7 +404,7 @@ export default function MiniCart() {
   );
 }
 
-const overlay: React.CSSProperties = {
+const overlay: CSSProperties = {
   position: "fixed",
   inset: 0,
   background: "rgba(0,0,0,0.5)",
@@ -206,16 +413,15 @@ const overlay: React.CSSProperties = {
   transition: "opacity 0.2s ease",
 };
 
-const panel: React.CSSProperties = {
+const panel: CSSProperties = {
   position: "fixed",
   top: 0,
   right: 0,
   width: "100%",
-  maxWidth: "420px",
+  maxWidth: "430px",
   height: "100vh",
   background: "linear-gradient(180deg,#fff,#fbf8f3)",
   padding: "20px",
-  display: "flex",
   flexDirection: "column",
   borderTopLeftRadius: 20,
   borderBottomLeftRadius: 20,
@@ -224,20 +430,26 @@ const panel: React.CSSProperties = {
   zIndex: 9999,
 };
 
-const header: React.CSSProperties = {
+const header: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "flex-start",
   marginBottom: "10px",
 };
 
-const title: React.CSSProperties = {
+const title: CSSProperties = {
   fontSize: "22px",
   fontWeight: 800,
   margin: 0,
 };
 
-const closeBtn: React.CSSProperties = {
+const subtitle: CSSProperties = {
+  margin: "4px 0 0 0",
+  fontSize: "12px",
+  color: "#777",
+};
+
+const closeBtn: CSSProperties = {
   border: "none",
   background: "#f3f4f6",
   borderRadius: "50%",
@@ -247,17 +459,17 @@ const closeBtn: React.CSSProperties = {
   fontSize: "16px",
 };
 
-const emptyBox: React.CSSProperties = {
+const emptyBox: CSSProperties = {
   textAlign: "center",
-  padding: "40px 0",
+  padding: "24px 0",
 };
 
-const emptyText: React.CSSProperties = {
+const emptyText: CSSProperties = {
   color: "#666",
   margin: 0,
 };
 
-const shippingBox: React.CSSProperties = {
+const shippingBox: CSSProperties = {
   marginBottom: "12px",
   padding: "12px",
   background: "#fff7ed",
@@ -265,37 +477,37 @@ const shippingBox: React.CSSProperties = {
   border: "1px solid #f3dfc1",
 };
 
-const shippingText: React.CSSProperties = {
+const shippingText: CSSProperties = {
   fontSize: "13px",
   marginBottom: "6px",
 };
 
-const free: React.CSSProperties = {
+const free: CSSProperties = {
   fontWeight: 700,
   color: "#065f46",
   margin: 0,
 };
 
-const bar: React.CSSProperties = {
+const bar: CSSProperties = {
   height: "6px",
   background: "#eee",
   borderRadius: "999px",
   overflow: "hidden",
 };
 
-const fill: React.CSSProperties = {
+const fill: CSSProperties = {
   height: "100%",
   background: "#a16207",
   transition: "width 0.25s ease",
 };
 
-const items: React.CSSProperties = {
+const items: CSSProperties = {
   flex: 1,
   overflowY: "auto",
   paddingRight: "4px",
 };
 
-const itemRow: React.CSSProperties = {
+const itemRow: CSSProperties = {
   display: "flex",
   gap: "10px",
   marginBottom: "12px",
@@ -304,7 +516,7 @@ const itemRow: React.CSSProperties = {
   background: "white",
 };
 
-const img: React.CSSProperties = {
+const img: CSSProperties = {
   width: "70px",
   height: "70px",
   borderRadius: "10px",
@@ -312,36 +524,36 @@ const img: React.CSSProperties = {
   flexShrink: 0,
 };
 
-const itemContent: React.CSSProperties = {
+const itemContent: CSSProperties = {
   flex: 1,
   minWidth: 0,
 };
 
-const name: React.CSSProperties = {
+const name: CSSProperties = {
   fontWeight: 700,
   margin: "0 0 4px",
 };
 
-const unitPrice: React.CSSProperties = {
+const unitPrice: CSSProperties = {
   fontSize: "12px",
   color: "#777",
   margin: "0 0 8px",
 };
 
-const qtyPriceRow: React.CSSProperties = {
+const qtyPriceRow: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "10px",
 };
 
-const qtyRow: React.CSSProperties = {
+const qtyRow: CSSProperties = {
   display: "flex",
   gap: "6px",
   alignItems: "center",
 };
 
-const qtyBtn: React.CSSProperties = {
+const qtyBtn: CSSProperties = {
   border: "none",
   background: "#f3f4f6",
   borderRadius: "50%",
@@ -350,18 +562,18 @@ const qtyBtn: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const qtyValue: React.CSSProperties = {
+const qtyValue: CSSProperties = {
   fontWeight: 700,
   minWidth: "18px",
   textAlign: "center",
 };
 
-const price: React.CSSProperties = {
+const price: CSSProperties = {
   fontWeight: 800,
   margin: 0,
 };
 
-const removeBtn: React.CSSProperties = {
+const removeBtn: CSSProperties = {
   marginTop: "8px",
   fontSize: "12px",
   color: "#dc2626",
@@ -371,20 +583,176 @@ const removeBtn: React.CSSProperties = {
   padding: 0,
 };
 
-const footer: React.CSSProperties = {
+const crossSellBlock: CSSProperties = {
+  marginTop: "16px",
+  paddingTop: "12px",
+  borderTop: "1px solid #eee",
+};
+
+const crossSellHeader: CSSProperties = {
+  marginBottom: "10px",
+};
+
+const crossSellTitle: CSSProperties = {
+  margin: 0,
+  fontSize: "16px",
+  fontWeight: 800,
+};
+
+const crossSellText: CSSProperties = {
+  margin: "4px 0 0 0",
+  fontSize: "12px",
+  color: "#777",
+};
+
+const crossSellGrid: CSSProperties = {
+  display: "grid",
+  gap: "10px",
+};
+
+const crossSellCard: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  background: "white",
+  borderRadius: "14px",
+  padding: "10px",
+};
+
+const crossSellMedia: CSSProperties = {
+  flexShrink: 0,
+};
+
+const crossSellImg: CSSProperties = {
+  width: "70px",
+  height: "70px",
+  borderRadius: "10px",
+  objectFit: "cover",
+  display: "block",
+};
+
+const crossSellContent: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+};
+
+const crossSellName: CSSProperties = {
+  margin: "0 0 4px 0",
+  fontWeight: 700,
+  fontSize: "14px",
+};
+
+const crossSellPrice: CSSProperties = {
+  margin: "0 0 8px 0",
+  color: "#a16207",
+  fontWeight: 700,
+  fontSize: "13px",
+};
+
+const crossSellActions: CSSProperties = {
+  display: "flex",
+  gap: "8px",
+};
+
+const crossSellViewBtn: CSSProperties = {
+  flex: 1,
+  background: "#111",
+  color: "white",
+  textDecoration: "none",
+  textAlign: "center",
+  padding: "8px 10px",
+  borderRadius: "8px",
+  fontSize: "12px",
+  fontWeight: 600,
+};
+
+const crossSellAddBtn: CSSProperties = {
+  flex: 1,
+  background: "#a16207",
+  color: "white",
+  border: "none",
+  padding: "8px 10px",
+  borderRadius: "8px",
+  fontSize: "12px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const suggestionsBlock: CSSProperties = {
+  marginTop: "18px",
+  textAlign: "left",
+};
+
+const suggestionsTitle: CSSProperties = {
+  fontSize: "16px",
+  fontWeight: 800,
+  marginBottom: "10px",
+};
+
+const suggestionsList: CSSProperties = {
+  display: "grid",
+  gap: "10px",
+};
+
+const suggestionCard: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  background: "white",
+  borderRadius: "12px",
+  padding: "10px",
+};
+
+const suggestionImg: CSSProperties = {
+  width: "60px",
+  height: "60px",
+  borderRadius: "10px",
+  objectFit: "cover",
+};
+
+const suggestionContent: CSSProperties = {
+  flex: 1,
+};
+
+const suggestionName: CSSProperties = {
+  margin: "0 0 4px 0",
+  fontSize: "14px",
+  fontWeight: 700,
+};
+
+const suggestionPrice: CSSProperties = {
+  margin: "0 0 8px 0",
+  color: "#a16207",
+  fontWeight: 700,
+  fontSize: "13px",
+};
+
+const suggestionLink: CSSProperties = {
+  color: "#111",
+  fontSize: "13px",
+  fontWeight: 600,
+  textDecoration: "none",
+};
+
+const footer: CSSProperties = {
   borderTop: "1px solid #eee",
   paddingTop: "12px",
   marginTop: "10px",
 };
 
-const total: React.CSSProperties = {
+const total: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   fontWeight: 800,
+  marginBottom: "8px",
+};
+
+const trustText: CSSProperties = {
+  fontSize: "12px",
+  color: "#777",
+  textAlign: "center",
   marginBottom: "10px",
 };
 
-const checkoutBtn: React.CSSProperties = {
+const checkoutBtn: CSSProperties = {
   display: "block",
   textAlign: "center",
   background: "#a16207",
@@ -395,7 +763,7 @@ const checkoutBtn: React.CSSProperties = {
   fontWeight: 800,
 };
 
-const clearBtn: React.CSSProperties = {
+const clearBtn: CSSProperties = {
   marginTop: "8px",
   width: "100%",
   padding: "10px",
