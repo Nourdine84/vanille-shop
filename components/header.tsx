@@ -29,7 +29,7 @@ export default function Header() {
             alt="Vanille'Or"
             width={220}
             height={70}
-            style={{ width: "220px", height: "auto", display: "block" }}
+            style={{ width: "220px", height: "auto" }}
             priority
           />
         </Link>
@@ -48,50 +48,40 @@ export default function Header() {
             Acheter
           </Link>
 
-          <button
-            type="button"
-            style={cartBtn}
-            onClick={openCart}
-            aria-label="Ouvrir le panier"
-          >
+          <button style={cartBtn} onClick={openCart}>
             🛒
             {totalItems > 0 && <span style={badge}>{totalItems}</span>}
           </button>
 
-          <button
-            type="button"
-            style={burger}
-            onClick={() => setMenuOpen(true)}
-            aria-label="Ouvrir le menu"
-          >
+          <button style={burger} onClick={() => setMenuOpen(true)}>
             ☰
           </button>
         </div>
       </header>
 
+      {/* 🔥 OVERLAY FIX */}
       <div
+        data-overlay
         aria-hidden={!menuOpen}
+        onClick={() => setMenuOpen(false)}
         style={{
           ...overlay,
-          opacity: menuOpen ? 1 : 0,
+          display: menuOpen ? "block" : "none",
           pointerEvents: menuOpen ? "auto" : "none",
         }}
-        onClick={() => setMenuOpen(false)}
       />
 
+      {/* 🔥 MENU FIX */}
       <div
+        data-panel
         aria-hidden={!menuOpen}
         style={{
           ...mobileMenu,
           transform: menuOpen ? "translateX(0)" : "translateX(100%)",
+          pointerEvents: menuOpen ? "auto" : "none",
         }}
       >
-        <button
-          type="button"
-          style={closeBtn}
-          onClick={() => setMenuOpen(false)}
-          aria-label="Fermer le menu"
-        >
+        <button style={closeBtn} onClick={() => setMenuOpen(false)}>
           ✕
         </button>
 
@@ -128,6 +118,8 @@ function NavLink({
   );
 }
 
+/* ================= STYLES ================= */
+
 const header: React.CSSProperties = {
   position: "sticky",
   top: 0,
@@ -137,100 +129,72 @@ const header: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "20px",
   padding: "16px 24px",
-  borderBottom: "1px solid rgba(0,0,0,0.05)",
 };
 
-const logo: React.CSSProperties = {
-  textDecoration: "none",
-  display: "flex",
-  alignItems: "center",
-  flexShrink: 0,
-};
+const logo = { display: "flex", alignItems: "center" };
 
 const navDesktop: React.CSSProperties = {
   display: "flex",
   gap: "20px",
-  alignItems: "center",
-  justifyContent: "center",
   flex: 1,
+  justifyContent: "center",
 };
 
-const link: React.CSSProperties = {
+const link = {
   textDecoration: "none",
   color: "#111",
-  fontSize: "15px",
-  fontWeight: 500,
-  whiteSpace: "nowrap",
 };
 
-const mobileLink: React.CSSProperties = {
-  display: "block",
-  padding: "18px 20px",
-  borderBottom: "1px solid #f1f1f1",
+const mobileLink = {
+  padding: "18px",
+  borderBottom: "1px solid #eee",
 };
 
 const actions: React.CSSProperties = {
   display: "flex",
-  alignItems: "center",
   gap: "10px",
-  flexShrink: 0,
 };
 
-const cta: React.CSSProperties = {
+const cta = {
   background: "#a16207",
   color: "white",
   padding: "10px 16px",
   borderRadius: "10px",
-  textDecoration: "none",
-  fontWeight: 600,
-  lineHeight: 1.2,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "42px",
 };
 
-const cartBtn: React.CSSProperties = {
-  position: "relative",
-  border: "none",
+const cartBtn = {
+  position: "relative" as const,
   background: "transparent",
+  border: "none",
   fontSize: "20px",
   cursor: "pointer",
-  padding: "8px 10px",
-  borderRadius: "10px",
 };
 
-const badge: React.CSSProperties = {
-  position: "absolute",
+const badge = {
+  position: "absolute" as const,
   top: "-4px",
-  right: "-2px",
-  background: "#dc2626",
+  right: "-4px",
+  background: "red",
   color: "white",
   borderRadius: "999px",
   fontSize: "10px",
-  lineHeight: 1,
   padding: "4px 6px",
-  minWidth: "18px",
-  textAlign: "center",
 };
 
-const burger: React.CSSProperties = {
+const burger = {
   fontSize: "22px",
   background: "transparent",
   border: "none",
   cursor: "pointer",
-  padding: "8px 10px",
-  borderRadius: "10px",
 };
 
+/* 🔥 IMPORTANT */
 const overlay: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   background: "rgba(0,0,0,0.4)",
   zIndex: 90,
-  transition: "opacity 0.2s ease",
 };
 
 const mobileMenu: React.CSSProperties = {
@@ -243,16 +207,15 @@ const mobileMenu: React.CSSProperties = {
   background: "white",
   zIndex: 100,
   transition: "transform 0.3s ease",
-  boxShadow: "-10px 0 30px rgba(0,0,0,0.12)",
   display: "flex",
   flexDirection: "column",
 };
 
-const closeBtn: React.CSSProperties = {
-  padding: "15px",
-  background: "none",
-  border: "none",
-  fontSize: "22px",
-  cursor: "pointer",
+const closeBtn = {
   alignSelf: "flex-end",
+  fontSize: "22px",
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+  padding: "10px",
 };

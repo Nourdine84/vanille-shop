@@ -28,7 +28,22 @@ export default async function ProductPage({
     return <div style={{ padding: 40 }}>Produit introuvable</div>;
   }
 
-  const safeProduct = JSON.parse(JSON.stringify(product));
+  /* 🔥 RELATED PRODUCTS */
+  const relatedProducts = products
+    .filter(
+      (p) =>
+        p.id !== product.id &&
+        p.category === product.category &&
+        !p.isPack
+    )
+    .slice(0, 3);
+
+  const safeProduct = JSON.parse(
+    JSON.stringify({
+      ...product,
+      relatedProducts,
+    })
+  );
 
   return <ClientProduct product={safeProduct} />;
 }
