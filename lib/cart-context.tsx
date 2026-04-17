@@ -3,18 +3,19 @@
 import {
   createContext,
   useContext,
-  useEffect,
-  useMemo,
   useState,
-  type ReactNode,
+  ReactNode,
+  useEffect,
 } from "react";
+
+/* ================= TYPES ================= */
 
 export type CartItem = {
   id: string;
   name: string;
   priceCents: number;
-  quantity: number;
   imageUrl?: string;
+  quantity: number;
 };
 
 type CartContextType = {
@@ -25,117 +26,104 @@ type CartContextType = {
   clearCart: () => void;
 };
 
+/* ================= CONTEXT ================= */
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-function normalizeCartItem(item: Partial<CartItem>): CartItem | null {
-  if (!item.id || !item.name) return null;
-
-  const priceCents = Number(item.priceCents);
-  const quantity = Number(item.quantity);
-
-  if (!Number.isFinite(priceCents) || priceCents <= 0) return null;
-
-  return {
-    id: item.id,
-    name: item.name,
-    priceCents,
-    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
-    imageUrl: item.imageUrl || "",
-  };
-}
+/* ================= PROVIDER ================= */
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  /* ================= HYDRATION SAFE ================= */
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("cart");
-      if (!raw) {
-        setHydrated(true);
-        return;
-      }
+    const shouldReset = sessionStorage.getItem("order_success");
 
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        setHydrated(true);
-        return;
-      }
-
-      const safeCart = parsed
-        .map((item) => normalizeCartItem(item))
-        .filter(Boolean) as CartItem[];
-
-      setCart(safeCart);
-    } catch (error) {
-      console.error("Cart hydration error:", error);
+    if (shouldReset === "true") {
+      localStorage.removeItem("cart");
+      sessionStorage.removeItem("order_success");
       setCart([]);
-    } finally {
-      setHydrated(true);
+      setIsHydrated(true);
+      return;
     }
+
+    const stored = localStorage.getItem("cart");
+
+    if (stored) {
+      try {
+        setCart(JSON.parse(stored));
+      } catch {
+        setCart([]);
+      }
+    }
+
+    setIsHydrated(true);
   }, []);
 
+  /* ================= SYNC ================= */
+
   useEffect(() => {
-    if (!hydrated) return;
+    if (!isHydrated) return;
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart, isHydrated]);
 
-    try {
-      localStorage.setItem("cart", JSON.stringify(cart));
-    } catch (error) {
-      console.error("Cart persist error:", error);
-    }
-  }, [cart, hydrated]);
+  /* ================= ACTIONS ================= */
 
-  const value = useMemo<CartContextType>(
-    () => ({
-      cart,
+  function addToCart(item: CartItem) {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
 
-      addToCart: (item) => {
-        const normalized = normalizeCartItem(item);
-        if (!normalized) return;
-
-        setCart((prev) => {
-          const existing = prev.find((p) => p.id === normalized.id);
-
-          if (existing) {
-            return prev.map((p) =>
-              p.id === normalized.id
-                ? { ...p, quantity: p.quantity + normalized.quantity }
-                : p
-            );
-          }
-
-          return [...prev, normalized];
-        });
-      },
-
-      removeFromCart: (id) => {
-        setCart((prev) => prev.filter((item) => item.id !== id));
-      },
-
-      updateQuantity: (id, quantity) => {
-        if (quantity <= 0) {
-          setCart((prev) => prev.filter((item) => item.id !== id));
-          return;
-        }
-
-        setCart((prev) =>
-          prev.map((item) =>
-            item.id === id ? { ...item, quantity } : item
-          )
+      if (existing) {
+        return prev.map((i) =>
+          i.id === item.id
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
         );
-      },
+      }
 
-      clearCart: () => {
-        setCart([]);
-      },
-    }),
-    [cart]
+      return [...prev, item];
+    });
+  }
+
+  function removeFromCart(id: string) {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function updateQuantity(id: string, quantity: number) {
+    if (quantity <= 0) return removeFromCart(id);
+
+    setCart((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity } : item
+      )
+    );
+  }
+
+  function clearCart() {
+    localStorage.removeItem("cart");
+    setCart([]);
+  }
+
+  return (
+    <CartContext.Provider
+      value={{
+        cart,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
   );
-
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
-export function useCart(): CartContextType {
+/* ================= HOOK ================= */
+
+export function useCart() {
   const context = useContext(CartContext);
 
   if (!context) {

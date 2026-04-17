@@ -1,24 +1,19 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
-
-/* ================= UTILS ================= */
+import type { CSSProperties } from "react";
 
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 function getPackBadge(name: string) {
-  const normalized = name.toLowerCase();
-
-  if (normalized.includes("pro")) return "Best Seller";
-  if (normalized.includes("premium")) return "Promo";
-  if (normalized.includes("decouverte")) return "Découverte";
-
+  const n = name.toLowerCase();
+  if (n.includes("pro")) return "Best Seller";
+  if (n.includes("premium")) return "Promo";
+  if (n.includes("decouverte")) return "Découverte";
   return "Pack";
 }
-
-/* ================= PAGE ================= */
 
 export default async function VanillePage() {
   const allProducts = await prisma.product.findMany({
@@ -37,84 +32,72 @@ export default async function VanillePage() {
 
   return (
     <div style={page}>
+      {/* HERO PREMIUM */}
       <section style={hero}>
         <div style={overlay} />
         <div style={heroContent}>
           <p style={heroTag}>VanilleOr</p>
-          <h1 style={heroTitle}>L’univers Vanille</h1>
+
+          <h1 style={heroTitle}>
+            Vanille d’Exception de Madagascar
+          </h1>
+
           <p style={heroSubtitle}>
-            L’essence précieuse de Madagascar, sélectionnée pour une qualité
-            exceptionnelle.
+            Une sélection premium aux arômes intenses,
+            destinée aux passionnés et aux professionnels exigeants.
           </p>
         </div>
       </section>
 
       <div style={container}>
-        <div style={grid}>
-          {products.map((p) => (
-            <Link key={p.id} href={`/products/${p.slug}`} style={card}>
-              <img
-                src={getImageUrl(p.imageUrl)}
-                style={img}
-                alt={p.name}
-              />
-
-              <div style={content}>
-                <h3 style={productName}>{p.name}</h3>
-                <p style={price}>{formatPrice(p.priceCents)}</p>
-                <span style={cta}>Voir →</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-
+        {/* PACKS */}
         {packs.length > 0 && (
-          <section style={packSection}>
-            <div style={packSectionHeader}>
-              <h2 style={packTitle}>Nos Packs Premium</h2>
-              <p style={packSubtitle}>
-                Des compositions pensées pour offrir une expérience complète,
-                élégante et prête à découvrir.
-              </p>
-            </div>
+          <>
+            <h2 style={sectionTitle}>Nos Packs Premium</h2>
 
             <div style={packGrid}>
               {packs.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/products/${p.slug}`}
-                  style={packCard}
-                >
-                  <div style={packImageWrapper}>
-                    <img
-                      src={getImageUrl(p.imageUrl)}
-                      style={packImg}
-                      alt={p.name}
-                    />
-                    <span style={packBadge}>{getPackBadge(p.name)}</span>
+                <Link key={p.id} href={`/products/${p.slug}`} style={card}>
+                  <div style={imgWrap}>
+                    <img src={getImageUrl(p.imageUrl)} style={img} />
+                    <span style={badge}>{getPackBadge(p.name)}</span>
                   </div>
 
-                  <div style={packContent}>
-                    <h3 style={packName}>{p.name}</h3>
+                  <div style={content}>
+                    <h3>{p.name}</h3>
+                    <p style={price}>{formatPrice(p.priceCents)}</p>
 
-                    <p style={packDesc}>
-                      Sélection premium VanilleOr pensée pour offrir ou découvrir
-                      l’univers de la marque.
-                    </p>
-
-                    <div style={packBottom}>
-                      <span style={packPrice}>
-                        {formatPrice(p.priceCents)}
-                      </span>
-
-                      <span style={packCta}>Voir →</span>
+                    <div style={actions}>
+                      <span style={link}>Voir</span>
+                      <span style={buyBtn}>Acheter</span>
                     </div>
                   </div>
                 </Link>
               ))}
             </div>
-          </section>
+          </>
         )}
+
+        {/* PRODUCTS */}
+        <h2 style={sectionTitle}>Nos Produits</h2>
+
+        <div style={grid}>
+          {products.map((p) => (
+            <Link key={p.id} href={`/products/${p.slug}`} style={card}>
+              <img src={getImageUrl(p.imageUrl)} style={img} />
+
+              <div style={content}>
+                <h3>{p.name}</h3>
+                <p style={price}>{formatPrice(p.priceCents)}</p>
+
+                <div style={actions}>
+                  <span style={link}>Voir</span>
+                  <span style={buyBtn}>Acheter</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -122,186 +105,125 @@ export default async function VanillePage() {
 
 /* ================= STYLE ================= */
 
-const page: React.CSSProperties = {
+const page: CSSProperties = {
   background: "#f8f5ef",
 };
 
-const hero: React.CSSProperties = {
-  position: "relative",
-  height: "300px",
+const hero: CSSProperties = {
+  height: 280,
   background: "url('/images/hero-vanille.jpg') center/cover",
+  position: "relative",
 };
 
-const overlay: React.CSSProperties = {
+const overlay: CSSProperties = {
   position: "absolute",
   inset: 0,
   background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
 };
 
-const heroContent: React.CSSProperties = {
+const heroContent: CSSProperties = {
   position: "relative",
   textAlign: "center",
   color: "white",
   paddingTop: 80,
 };
 
-const heroTag: React.CSSProperties = {
+const heroTag: CSSProperties = {
   color: "#d4af37",
   fontWeight: 700,
-  letterSpacing: "0.28em",
+  letterSpacing: "0.3em",
   textTransform: "uppercase",
 };
 
-const heroTitle: React.CSSProperties = {
-  fontSize: 32,
+const heroTitle: CSSProperties = {
+  fontSize: 34,
   marginTop: 10,
-  marginBottom: 10,
 };
 
-const heroSubtitle: React.CSSProperties = {
+const heroSubtitle: CSSProperties = {
   color: "#ddd",
-  maxWidth: 760,
-  margin: "0 auto",
+  maxWidth: 700,
+  margin: "10px auto",
   lineHeight: 1.6,
 };
 
-const container: React.CSSProperties = {
+const container: CSSProperties = {
   maxWidth: 1100,
-  margin: "0 auto",
-  padding: "40px 20px 70px",
+  margin: "auto",
+  padding: 40,
 };
 
-const grid: React.CSSProperties = {
+const sectionTitle: CSSProperties = {
+  fontSize: 22,
+  marginBottom: 15,
+};
+
+const grid: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-  gap: 24,
+  gap: 20,
 };
 
-const card: React.CSSProperties = {
+const packGrid: CSSProperties = {
+  ...grid,
+  marginBottom: 40,
+};
+
+const card: CSSProperties = {
   background: "white",
-  borderRadius: 18,
+  borderRadius: 16,
   overflow: "hidden",
   textDecoration: "none",
   color: "#111",
   boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
+  transition: "transform 0.2s",
 };
 
-const img: React.CSSProperties = {
-  width: "100%",
-  height: 220,
-  objectFit: "cover",
-};
-
-const content: React.CSSProperties = {
-  padding: 15,
-};
-
-const productName: React.CSSProperties = {
-  margin: 0,
-  marginBottom: 8,
-};
-
-const price: React.CSSProperties = {
-  color: "#a16207",
-  fontWeight: 700,
-  marginBottom: 8,
-};
-
-const cta: React.CSSProperties = {
-  fontWeight: 600,
-};
-
-/* ===== PACKS PREMIUM ===== */
-
-const packSection: React.CSSProperties = {
-  marginTop: 70,
-};
-
-const packSectionHeader: React.CSSProperties = {
-  marginBottom: 24,
-};
-
-const packTitle: React.CSSProperties = {
-  fontSize: 24,
-  marginBottom: 8,
-};
-
-const packSubtitle: React.CSSProperties = {
-  color: "#666",
-  maxWidth: 720,
-  lineHeight: 1.6,
-};
-
-const packGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-  gap: 24,
-};
-
-const packCard: React.CSSProperties = {
-  background: "white",
-  borderRadius: 22,
-  overflow: "hidden",
-  textDecoration: "none",
-  color: "#111",
-  boxShadow: "0 14px 34px rgba(0,0,0,0.06)",
-  border: "1px solid rgba(161,98,7,0.08)",
-};
-
-const packImageWrapper: React.CSSProperties = {
+const imgWrap: CSSProperties = {
   position: "relative",
 };
 
-const packImg: React.CSSProperties = {
+const img: CSSProperties = {
   width: "100%",
-  height: 210,
+  height: 200,
   objectFit: "cover",
-  display: "block",
 };
 
-const packBadge: React.CSSProperties = {
+const badge: CSSProperties = {
   position: "absolute",
-  top: 14,
-  left: 14,
+  top: 10,
+  left: 10,
   background: "#a16207",
   color: "white",
-  padding: "6px 12px",
+  padding: "5px 12px",
   borderRadius: 999,
   fontSize: 12,
+};
+
+const content: CSSProperties = {
+  padding: 15,
+};
+
+const price: CSSProperties = {
+  color: "#a16207",
   fontWeight: 700,
-  boxShadow: "0 8px 18px rgba(161,98,7,0.28)",
 };
 
-const packContent: React.CSSProperties = {
-  padding: 18,
-};
-
-const packName: React.CSSProperties = {
-  margin: 0,
-  marginBottom: 8,
-  fontSize: 22,
-};
-
-const packDesc: React.CSSProperties = {
-  margin: 0,
-  color: "#666",
-  fontSize: 14,
-  lineHeight: 1.6,
-};
-
-const packBottom: React.CSSProperties = {
+const actions: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginTop: 16,
+  marginTop: 10,
 };
 
-const packPrice: React.CSSProperties = {
-  color: "#a16207",
-  fontWeight: 800,
-  fontSize: 22,
+const link: CSSProperties = {
+  fontWeight: 600,
 };
 
-const packCta: React.CSSProperties = {
-  fontWeight: 700,
+const buyBtn: CSSProperties = {
+  background: "#a16207",
+  color: "white",
+  padding: "6px 14px",
+  borderRadius: 8,
+  fontWeight: 600,
 };

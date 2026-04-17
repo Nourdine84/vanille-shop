@@ -1,66 +1,59 @@
 import { Resend } from "resend";
 
-/* =========================
-   TYPES
-========================= */
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+/* ================= TYPES ================= */
+
+type MailPayload = {
+  to: string | string[];
+  subject: string;
+  html: string;
+  replyTo?: string;
+};
 
 type OrderItem = {
   id?: string;
-  name: string;
-  quantity: number;
-  priceCents: number;
+  name?: string;
+  quantity?: number;
+  priceCents?: number;
+  imageUrl?: string;
 };
 
-type SendOrderConfirmationParams = {
-  to: string;
-  orderId: string;
-  items: OrderItem[];
-  totalCents: number;
-  trackingNumber?: string;
-  carrier?: string | null;
-};
-
-type SendShippingEmailParams = {
-  to: string;
-  orderId: string;
-  trackingNumber: string;
-  carrier?: string | null;
-};
-
-type SendB2BParams = {
+type B2BPayload = {
   name: string;
   email: string;
-  company?: string;
+  company?: string | null;
   quantity: string;
-  message?: string;
+  message?: string | null;
 };
 
-/* =========================
-   INIT
-========================= */
+type QuotePayload = {
+  to: string;
+  name: string;
+  company?: string | null;
+  quantity: string;
+  amountEuros?: number | null;
+  customMessage?: string | null;
+};
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/* ================= CONFIG ================= */
 
-const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL ||
-  "Vanille’Or <onboarding@resend.dev>";
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
+  "http://localhost:3000";
 
-const B2B_RECEIVER =
-  process.env.B2B_RECEIVER_EMAIL || "contact@vanilleor.com";
+const LOGO_URL = `${SITE_URL}/images/logo-vanilleor.png`;
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+/* ================= UTILS ================= */
 
-/* =========================
-   UTILS
-========================= */
-
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+function money(cents: number) {
+  return `${(Number(cents || 0) / 100)
+    .toFixed(2)
+    .replace(".", ",")} €`;
 }
 
-function escapeHtml(value: string) {
-  return value
+function escapeHtml(input: string) {
+  return input
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -68,264 +61,246 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
-function safe(value: unknown) {
-  return value !== undefined && value !== null && String(value).trim() !== ""
-    ? escapeHtml(String(value))
-    : "-";
-}
+/* ================= LAYOUT PREMIUM ================= */
 
-/* =========================
-   TRACKING LINK
-========================= */
-
-function getTrackingLink(carrier?: string | null, tracking?: string) {
-  if (!carrier || !tracking) return null;
-
-  switch (carrier.toLowerCase()) {
-    case "colissimo":
-      return `https://www.laposte.fr/outils/suivre-vos-envois?code=${tracking}`;
-    case "chronopost":
-      return `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${tracking}`;
-    case "dhl":
-      return `https://www.dhl.com/fr-fr/home/tracking.html?tracking-id=${tracking}`;
-    default:
-      return null;
-  }
-}
-
-/* =========================
-   LAYOUT PREMIUM
-========================= */
-
-function layout(content: string) {
+function renderLayout({
+  title,
+  subtitle,
+  body,
+  footer,
+  ctaLabel,
+  ctaHref,
+}: any) {
   return `
-    <div style="font-family:Arial;background:#faf7f2;padding:40px;">
-      <div style="max-width:600px;margin:0 auto;background:white;padding:30px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.05);">
-        
-        <div style="text-align:center;margin-bottom:20px;">
-          <img src="${BASE_URL}/logo.png" style="height:60px;" />
-        </div>
+  <body style="margin:0;background:#f6f2eb;font-family:Arial;">
+    <div style="max-width:680px;margin:auto;background:white;border-radius:18px;overflow:hidden;">
+      
+      <div style="background:linear-gradient(135deg,#111,#2a2117);padding:30px;text-align:center;">
+        <img src="${LOGO_URL}" style="max-width:200px;margin-bottom:10px"/>
+        <h1 style="color:white;">${title}</h1>
+        ${subtitle ? `<p style="color:#ddd">${subtitle}</p>` : ""}
+      </div>
 
-        ${content}
+      <div style="padding:25px;">
+        ${body}
 
-        <div style="margin-top:30px;text-align:center;font-size:12px;color:#999;">
-          Vanille’Or — Premium Madagascar
+        ${
+          ctaLabel
+            ? `<div style="text-align:center;margin-top:25px">
+                <a href="${ctaHref}" style="
+                  background:#a16207;
+                  color:white;
+                  padding:14px 20px;
+                  border-radius:10px;
+                  text-decoration:none;
+                  font-weight:bold;
+                ">${ctaLabel}</a>
+              </div>`
+            : ""
+        }
+
+        <div style="margin-top:25px;font-size:12px;color:#777;text-align:center;">
+          ${footer || "VanilleOr — Vanille premium"}
         </div>
       </div>
     </div>
+  </body>
   `;
 }
 
-/* =========================
-   ORDER EMAIL
-========================= */
+/* ================= SEND ================= */
 
-export async function sendOrderConfirmationEmail({
-  to,
-  orderId,
-  items,
-  totalCents,
-  trackingNumber,
-  carrier,
-}: SendOrderConfirmationParams) {
-  try {
-    const trackingLink = getTrackingLink(carrier, trackingNumber);
-
-    const itemsHtml = items
-      .map(
-        (item) => `
-        <tr>
-          <td>${safe(item.name)}</td>
-          <td>x${item.quantity}</td>
-          <td style="text-align:right;">
-            ${formatPrice(item.priceCents * item.quantity)}
-          </td>
-        </tr>`
-      )
-      .join("");
-
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to,
-      subject: `Commande confirmée #${orderId.slice(0, 8)}`,
-      html: layout(`
-        <h2>Merci pour votre commande</h2>
-
-        <table style="width:100%;">
-          ${itemsHtml}
-        </table>
-
-        <h3>Total : ${formatPrice(totalCents)}</h3>
-
-        ${
-          trackingNumber
-            ? `<p>Tracking : ${trackingNumber}</p>`
-            : ""
-        }
-
-        ${
-          trackingLink
-            ? `<a href="${trackingLink}">Suivre mon colis</a>`
-            : ""
-        }
-      `),
-    });
-  } catch (err) {
-    console.error("EMAIL ORDER ERROR", err);
-  }
+async function sendMail(payload: MailPayload) {
+  return resend.emails.send({
+    from: process.env.EMAIL_FROM as string,
+    ...payload,
+  });
 }
 
-/* =========================
-   SHIPPING EMAIL
-========================= */
+/* ================= ITEMS ================= */
+
+function renderItems(items: OrderItem[]) {
+  return items
+    .map(
+      (i) => `
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+        <span>${escapeHtml(i.name || "Produit")} x${i.quantity}</span>
+        <strong>${money(
+          (i.priceCents || 0) * (i.quantity || 1)
+        )}</strong>
+      </div>
+    `
+    )
+    .join("");
+}
+
+/* ================= CLIENT ORDER ================= */
+
+export async function sendCustomerOrderEmail({
+  to,
+  orderId,
+  totalCents,
+  items,
+}: any) {
+  const html = renderLayout({
+    title: "Commande confirmée",
+    subtitle: "Merci pour votre confiance",
+    body: `
+      <p>Votre commande #${orderId}</p>
+      ${renderItems(items)}
+      <h2>Total : ${money(totalCents)}</h2>
+    `,
+    ctaLabel: "Voir les produits",
+    ctaHref: `${SITE_URL}/products`,
+  });
+
+  return sendMail({
+    to,
+    subject: `Commande #${orderId}`,
+    html,
+  });
+}
+
+/* ================= ADMIN ORDER ================= */
+
+export async function sendAdminOrderEmail({
+  orderId,
+  customerEmail,
+  totalCents,
+  items,
+}: any) {
+  const html = renderLayout({
+    title: "Nouvelle commande",
+    body: `
+      <p>ID : ${orderId}</p>
+      <p>Email : ${customerEmail}</p>
+      ${renderItems(items)}
+      <h2>Total : ${money(totalCents)}</h2>
+    `,
+  });
+
+  return sendMail({
+    to: process.env.EMAIL_ADMIN_TO as string,
+    subject: `Commande ${orderId}`,
+    html,
+  });
+}
+
+/* ================= SHIPPING ================= */
 
 export async function sendShippingEmail({
   to,
   orderId,
   trackingNumber,
   carrier,
-}: SendShippingEmailParams) {
-  try {
-    const link = getTrackingLink(carrier, trackingNumber);
+}: any) {
+  const html = renderLayout({
+    title: "Commande expédiée",
+    body: `
+      <p>Commande #${orderId}</p>
+      <p>Transporteur : ${carrier}</p>
+      <p>Suivi : ${trackingNumber}</p>
+    `,
+  });
 
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to,
-      subject: `Expédition commande #${orderId.slice(0, 8)}`,
-      html: layout(`
-        <h2>Votre commande est expédiée</h2>
-
-        <p>Tracking : ${trackingNumber}</p>
-
-        ${
-          link
-            ? `<a href="${link}">Suivre</a>`
-            : ""
-        }
-      `),
-    });
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-/* =========================
-   B2B EMAIL
-========================= */
-
-export async function sendB2BEmail({
-  name,
-  email,
-  company,
-  quantity,
-  message,
-}: SendB2BParams) {
-  try {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [B2B_RECEIVER],
-      subject: "Nouveau lead B2B",
-      html: layout(`
-        <p>${safe(name)}</p>
-        <p>${safe(email)}</p>
-        <p>${safe(company)}</p>
-        <p>${safe(quantity)}</p>
-        <p>${safe(message)}</p>
-      `),
-    });
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-/* =========================
-   DEVIS B2B (FIX FINAL)
-========================= */
-
-export async function sendB2BDevisEmail({
-  name,
-  email,
-  company,
-  quantity,
-}: {
-  name: string;
-  email: string;
-  company?: string;
-  quantity: string;
-}) {
-  try {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      subject: "Votre devis Vanille’Or",
-      html: layout(`
-        <h2>Bonjour ${safe(name)}</h2>
-
-        ${
-          company
-            ? `<p>Entreprise : ${safe(company)}</p>`
-            : ""
-        }
-
-        <p>Quantité : ${safe(quantity)}</p>
-      `),
-    });
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-/* =========================
-   RELANCES B2B
-========================= */
-
-export async function sendB2BRelanceEmail({
-  name,
-  email,
-  quantity,
-}: {
-  name: string;
-  email: string;
-  quantity: string;
-}) {
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Relance Vanille’Or",
-    html: layout(`<p>${safe(name)} - ${safe(quantity)}</p>`),
+  return sendMail({
+    to,
+    subject: "Commande expédiée",
+    html,
   });
 }
 
-export async function sendB2BRelanceV2Email({
-  name,
-  email,
-  quantity,
-}: {
-  name: string;
-  email: string;
-  quantity: string;
-}) {
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Relance 2",
-    html: layout(`<p>${safe(name)} - ${safe(quantity)}</p>`),
+/* ================= REVIEW ================= */
+
+export async function sendReviewRequestEmail({ to, orderId }: any) {
+  const html = renderLayout({
+    title: "Donnez votre avis ⭐",
+    body: `
+      <p>Commande #${orderId}</p>
+      <p>Votre avis est important pour nous</p>
+    `,
+    ctaLabel: "Laisser un avis",
+    ctaHref: `${SITE_URL}/reviews`,
+  });
+
+  return sendMail({
+    to,
+    subject: "Votre avis compte",
+    html,
   });
 }
 
-export async function sendB2BRelanceV3Email({
-  name,
-  email,
-  quantity,
-}: {
-  name: string;
-  email: string;
-  quantity: string;
-}) {
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Relance finale",
-    html: layout(`<p>${safe(name)} - ${safe(quantity)}</p>`),
+/* ================= ABANDON CART ================= */
+
+export async function sendAbandonedCartEmail({ to, items }: any) {
+  const html = renderLayout({
+    title: "Votre panier vous attend",
+    body: `
+      ${renderItems(items)}
+      <p>Stock limité ⚠️</p>
+    `,
+    ctaLabel: "Finaliser",
+    ctaHref: `${SITE_URL}/checkout`,
+  });
+
+  return sendMail({
+    to,
+    subject: "Panier en attente",
+    html,
+  });
+}
+
+/* ================= B2B ================= */
+
+export async function sendB2BAdminEmail(payload: B2BPayload) {
+  const html = renderLayout({
+    title: "Demande pro",
+    body: `
+      <p>${payload.name}</p>
+      <p>${payload.email}</p>
+      <p>${payload.quantity}</p>
+    `,
+  });
+
+  return sendMail({
+    to: process.env.EMAIL_ADMIN_TO as string,
+    subject: "Nouvelle demande pro",
+    html,
+  });
+}
+
+export async function sendB2BCustomerAckEmail(payload: B2BPayload) {
+  const html = renderLayout({
+    title: "Demande reçue",
+    body: `<p>Merci ${payload.name}</p>`,
+  });
+
+  return sendMail({
+    to: payload.email,
+    subject: "Demande reçue",
+    html,
+  });
+}
+
+/* ================= QUOTE ================= */
+
+export async function sendQuoteEmail(payload: QuotePayload) {
+  const html = renderLayout({
+    title: "Votre devis",
+    body: `
+      <p>${payload.name}</p>
+      <p>${payload.quantity}</p>
+      ${
+        payload.amountEuros
+          ? `<h2>${payload.amountEuros} €</h2>`
+          : ""
+      }
+    `,
+  });
+
+  return sendMail({
+    to: payload.to,
+    subject: "Votre devis",
+    html,
   });
 }
