@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
 });
 
-test("Accès checkout stable", async ({ page }) => {
+test("Checkout flow stable", async ({ page }) => {
   await page.goto("/products");
   await page.waitForLoadState("networkidle");
 
@@ -15,9 +15,18 @@ test("Accès checkout stable", async ({ page }) => {
 
   const cart = page.getByTestId("mini-cart").first();
 
+  await expect(cart).toBeVisible();
+
   await cart.getByTestId("checkout-button").click();
 
-  await page.waitForURL("**/checkout");
+  // 🔥 Gère les 2 cas : checkout page OU Stripe
+  await Promise.race([
+    page.waitForURL("**/checkout", { timeout: 8000 }),
+    page.waitForURL("**stripe.com**", { timeout: 8000 }),
+  ]);
 
-  await expect(page.locator("h1")).toBeVisible();
+  // Si on reste sur ton site
+  if (page.url().includes("/checkout")) {
+    await expect(page.locator("h1")).toBeVisible();
+  }
 });

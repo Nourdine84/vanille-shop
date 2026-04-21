@@ -8,12 +8,14 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
   "http://localhost:3000";
 
-  const LOGO = "https://vanilleor.fr/images/logo-vanilleor.png";
+const LOGO = "https://vanilleor.fr/images/logo-vanilleor.png";
 
 /* ================= UTILS ================= */
 
 function money(cents: number) {
-  return `${(cents / 100).toFixed(2).replace(".", ",")} €`;
+  return `${(Number(cents || 0) / 100)
+    .toFixed(2)
+    .replace(".", ",")} €`;
 }
 
 /* ================= TEMPLATE PREMIUM ================= */
@@ -33,7 +35,6 @@ function layout({
   <body style="margin:0;background:#f5f1ea;font-family:Arial, sans-serif;">
     <div style="max-width:640px;margin:auto;background:white;border-radius:18px;overflow:hidden;">
       
-      <!-- HEADER -->
       <div style="background:linear-gradient(135deg,#0f0f0f,#2a2117);padding:30px;text-align:center;">
         <img src="${LOGO}" style="width:180px;margin-bottom:10px"/>
         <h1 style="color:white;margin:0">${title}</h1>
@@ -44,7 +45,6 @@ function layout({
         }
       </div>
 
-      <!-- BODY -->
       <div style="padding:25px;">
         ${content}
 
@@ -61,12 +61,12 @@ function layout({
 /* ================= ITEMS ================= */
 
 function renderItems(items: any[]) {
-  return items
+  return (items || [])
     .map(
       (i) => `
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;">
-      <span>${i.name} x${i.quantity}</span>
-      <strong>${money(i.priceCents * i.quantity)}</strong>
+      <span>${i?.name || "Produit"} x${i?.quantity || 1}</span>
+      <strong>${money((i?.priceCents || 0) * (i?.quantity || 1))}</strong>
     </div>
   `
     )
@@ -76,17 +76,22 @@ function renderItems(items: any[]) {
 /* ================= SEND ================= */
 
 async function sendMail(payload: any) {
-  const res = await resend.emails.send({
-    from: process.env.EMAIL_FROM as string,
-    ...payload,
-  });
+  try {
+    const res = await resend.emails.send({
+      from: process.env.EMAIL_FROM as string,
+      ...payload,
+    });
 
-  console.log("📧 EMAIL RESULT:", res);
+    console.log("📧 EMAIL RESULT:", res);
 
-  return res;
+    return res;
+  } catch (err) {
+    console.error("❌ EMAIL ERROR:", err);
+    return null;
+  }
 }
 
-/* ================= CLIENT ORDER ================= */
+/* ================= ORDER CLIENT ================= */
 
 export async function sendCustomerOrderEmail({
   to,
@@ -130,7 +135,7 @@ export async function sendCustomerOrderEmail({
   });
 }
 
-/* ================= ADMIN ORDER ================= */
+/* ================= ORDER ADMIN ================= */
 
 export async function sendAdminOrderEmail({
   orderId,
@@ -142,7 +147,7 @@ export async function sendAdminOrderEmail({
     title: "Nouvelle commande",
     content: `
       <p><strong>Commande :</strong> ${orderId}</p>
-      <p><strong>Email :</strong> ${customerEmail}</p>
+      <p><strong>Email :</strong> ${customerEmail || "-"}</p>
 
       <div style="margin-top:20px">
         ${renderItems(items)}
@@ -157,6 +162,30 @@ export async function sendAdminOrderEmail({
   return sendMail({
     to: process.env.EMAIL_ADMIN_TO,
     subject: `Nouvelle commande ${orderId}`,
+    html,
+  });
+}
+
+/* ================= SHIPPING ================= */
+
+export async function sendShippingEmail(payload: {
+  to: string;
+  orderId: string;
+  trackingNumber?: string;
+  carrier?: string;
+}) {
+  const html = layout({
+    title: "Commande expédiée",
+    content: `
+      <p>Commande #${payload.orderId}</p>
+      <p>Transporteur : ${payload.carrier || "N/A"}</p>
+      <p>Suivi : ${payload.trackingNumber || "N/A"}</p>
+    `,
+  });
+
+  return sendMail({
+    to: payload.to,
+    subject: "Commande expédiée",
     html,
   });
 }
@@ -196,5 +225,57 @@ export async function sendB2BCustomerAckEmail(payload: any) {
     to: payload.email,
     subject: "Demande bien reçue",
     html,
+  });
+}
+
+/* ================= QUOTE ================= */
+
+export async function sendQuoteEmail(payload: {
+  to: string;
+  name: string;
+  quantity: string;
+  amountEuros?: number | null;
+}) {
+  const html = layout({
+    title: "Votre devis VanilleOr",
+    content: `
+      <p>${payload.name}</p>
+      <p>${payload.quantity}</p>
+      ${
+        payload.amountEuros
+          ? `<h2>${payload.amountEuros} €</h2>`
+          : ""
+      }
+    `,
+  });
+
+  return sendMail({
+    to: payload.to,
+    subject: "Votre devis",
+    html,
+  });
+}
+
+/* ================= RELANCE ================= */
+
+export async function sendB2BRelanceEmail(payload: {
+  to: string;
+  name: string;
+}) {
+  return sendMail({
+    to: payload.to,
+    subject: "Relance VanilleOr",
+    html: `<p>Bonjour ${payload.name}, nous revenons vers vous.</p>`,
+  });
+}
+
+export async function sendB2BRelanceV2Email(payload: {
+  to: string;
+  name: string;
+}) {
+  return sendMail({
+    to: payload.to,
+    subject: "Dernière relance",
+    html: `<p>Dernière relance ${payload.name}</p>`,
   });
 }
