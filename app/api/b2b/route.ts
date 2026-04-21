@@ -10,12 +10,8 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     let data: any;
-
     const contentType = req.headers.get("content-type") || "";
 
-    /* =========================
-       FIX UNIVERSAL INPUT
-    ========================= */
     if (contentType.includes("application/json")) {
       data = await req.json();
     } else {
@@ -32,9 +28,6 @@ export async function POST(req: Request) {
 
     const { name, email, company, quantity, message } = data;
 
-    /* =========================
-       VALIDATION
-    ========================= */
     if (!name || !email || !quantity) {
       return NextResponse.json(
         { error: "Champs requis" },
@@ -42,9 +35,8 @@ export async function POST(req: Request) {
       );
     }
 
-    /* =========================
-       DB SAVE
-    ========================= */
+    console.log("📩 NEW B2B:", data);
+
     await prisma.b2BRequest.create({
       data: {
         name,
@@ -55,18 +47,37 @@ export async function POST(req: Request) {
       },
     });
 
-    /* =========================
-       EMAILS V4
-    ========================= */
-    await sendB2BAdminEmail({ name, email, company, quantity, message });
+    /* ===== EMAIL ADMIN ===== */
 
-    await sendB2BCustomerAckEmail({
-      name,
-      email,
-      company,
-      quantity,
-      message,
-    });
+    try {
+      const resAdmin = await sendB2BAdminEmail({
+        name,
+        email,
+        company,
+        quantity,
+        message,
+      });
+
+      console.log("📧 ADMIN B2B:", resAdmin);
+    } catch (err) {
+      console.error("❌ ADMIN B2B EMAIL ERROR:", err);
+    }
+
+    /* ===== EMAIL CLIENT ===== */
+
+    try {
+      const resClient = await sendB2BCustomerAckEmail({
+        name,
+        email,
+        company,
+        quantity,
+        message,
+      });
+
+      console.log("📧 CLIENT B2B:", resClient);
+    } catch (err) {
+      console.error("❌ CLIENT B2B EMAIL ERROR:", err);
+    }
 
     return NextResponse.json({ success: true });
 

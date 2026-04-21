@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { getImageUrl } from "@/lib/image";
@@ -11,6 +11,10 @@ function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
+/* ================= ORDER FORMATS ================= */
+
+const ORDER = ["10g", "50g", "100g", "250g", "500g", "1kg", "10ml", "50ml", "100ml", "1l"];
+
 /* ================= COMPONENT ================= */
 
 export default function ClientProduct({ product }: { product: any }) {
@@ -20,22 +24,27 @@ export default function ClientProduct({ product }: { product: any }) {
 
   const image = getImageUrl(product.imageUrl);
 
-  /* ================= GRAMMAGE PREMIUM ================= */
+  /* ================= PRICING CLEAN ================= */
 
-  const weights = [
-    { label: "10g", multiplier: 1 },
-    { label: "50g", multiplier: 5 },
-    { label: "100g", multiplier: 10 },
-    { label: "250g", multiplier: 25 },
-    { label: "500g", multiplier: 50 },
-    { label: "1kg", multiplier: 100 },
-  ];
+  const formats = useMemo(() => {
+    const raw = product.pricing || {
+      "100g": product.priceCents,
+    };
 
-  const basePrice = product.priceCents || 0;
+    return Object.entries(raw)
+      .map(([label, value]) => ({
+        label,
+        value: Number(value),
+      }))
+      .filter((f) => !isNaN(f.value) && f.value > 0)
+      .sort((a, b) => {
+        const ia = ORDER.indexOf(a.label);
+        const ib = ORDER.indexOf(b.label);
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      });
+  }, [product]);
 
-  const [selected, setSelected] = useState(weights[2]); // 100g par défaut
-
-  const dynamicPrice = basePrice * selected.multiplier;
+  const [selected, setSelected] = useState(formats[0]);
 
   /* ================= REVIEWS ================= */
 
@@ -64,9 +73,7 @@ export default function ClientProduct({ product }: { product: any }) {
 
     setForm({ name: "", rating: 5, comment: "" });
 
-    const refreshed = await fetch(
-      `/api/reviews?productId=${product.id}`
-    );
+    const refreshed = await fetch(`/api/reviews?productId=${product.id}`);
     setReviews(await refreshed.json());
   };
 
@@ -83,7 +90,7 @@ export default function ClientProduct({ product }: { product: any }) {
           <h1 style={title}>{product.name}</h1>
 
           <p style={price}>
-            {formatPrice(dynamicPrice)}
+            {formatPrice(selected.value)}
           </p>
 
           <p style={desc}>
@@ -92,40 +99,42 @@ export default function ClientProduct({ product }: { product: any }) {
           </p>
 
           {/* SELECTEUR PREMIUM */}
-          <div style={optionsWrapper}>
-            <p style={optionTitle}>Choisissez votre format</p>
+          <div style={selectorWrapper}>
+            <p style={selectorTitle}>Choisissez votre format</p>
 
             <div style={optionsGrid}>
-              {weights.map((w) => (
+              {formats.map((f) => (
                 <button
-                  key={w.label}
-                  onClick={() => setSelected(w)}
+                  key={f.label}
+                  onClick={() => setSelected(f)}
                   style={{
                     ...optionBtn,
                     border:
-                      selected.label === w.label
+                      selected.label === f.label
                         ? "2px solid #a16207"
                         : "1px solid #ddd",
                     background:
-                      selected.label === w.label
+                      selected.label === f.label
                         ? "#fff7ed"
                         : "white",
+                    fontWeight:
+                      selected.label === f.label ? 700 : 500,
                   }}
                 >
-                  {w.label}
+                  {f.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* CTA PREMIUM */}
+          {/* CTA */}
           <button
             style={cta}
             onClick={() =>
               addToCart({
                 id: `${product.id}-${selected.label}`,
                 name: `${product.name} (${selected.label})`,
-                priceCents: dynamicPrice,
+                priceCents: selected.value,
                 imageUrl: image || undefined,
                 quantity: 1,
               })
@@ -142,75 +151,6 @@ export default function ClientProduct({ product }: { product: any }) {
           </div>
         </div>
       </div>
-
-      {/* ================= AVIS ================= */}
-
-      <div style={reviewsSection}>
-        <h2>⭐ Avis clients</h2>
-
-        {reviews.length === 0 && (
-          <p style={{ color: "#777" }}>
-            Aucun avis pour le moment.
-          </p>
-        )}
-
-        <div style={reviewsGrid}>
-          {reviews.map((r) => (
-            <div key={r.id} style={reviewCard}>
-              <strong>{r.name}</strong>
-              <p>{"★".repeat(r.rating)}</p>
-              <p>{r.comment}</p>
-            </div>
-          ))}
-        </div>
-
-        <div style={reviewForm}>
-          <h3>Laisser un avis</h3>
-
-          <input
-            placeholder="Nom"
-            value={form.name}
-            onChange={(e) =>
-              setForm({ ...form, name: e.target.value })
-            }
-          />
-
-          <textarea
-            placeholder="Votre avis"
-            value={form.comment}
-            onChange={(e) =>
-              setForm({ ...form, comment: e.target.value })
-            }
-          />
-
-          <button onClick={submitReview} style={cta}>
-            Publier
-          </button>
-        </div>
-      </div>
-
-      {/* ================= CROSS SELL ================= */}
-
-      {product.relatedProducts?.length > 0 && (
-        <div style={crossSell}>
-          <h2>🔥 Vous pourriez aussi aimer</h2>
-
-          <div style={crossGrid}>
-            {product.relatedProducts.map((p: any) => (
-              <Link key={p.id} href={`/products/${p.slug}`} style={crossCard}>
-                <img
-                  src={getImageUrl(p.imageUrl)}
-                  style={crossImg}
-                />
-                <div style={crossContent}>
-                  <h4>{p.name}</h4>
-                  <p>{formatPrice(p.priceCents)}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -239,7 +179,7 @@ const title = {
 };
 
 const price = {
-  fontSize: 28,
+  fontSize: 30,
   fontWeight: 900,
   color: "#a16207",
 };
@@ -252,11 +192,11 @@ const desc = {
 
 /* SELECTEUR */
 
-const optionsWrapper = {
+const selectorWrapper = {
   marginTop: 25,
 };
 
-const optionTitle = {
+const selectorTitle = {
   marginBottom: 10,
   fontWeight: 600,
 };
@@ -268,10 +208,10 @@ const optionsGrid = {
 };
 
 const optionBtn = {
-  padding: "12px",
-  borderRadius: 10,
+  padding: "14px",
+  borderRadius: 12,
   cursor: "pointer",
-  fontWeight: 600,
+  transition: "all 0.2s ease",
 };
 
 /* CTA */
@@ -295,58 +235,4 @@ const trust = {
   marginTop: 15,
   fontSize: 14,
   color: "#555",
-};
-
-/* REVIEWS */
-
-const reviewsSection = {
-  marginTop: 60,
-};
-
-const reviewsGrid = {
-  display: "grid",
-  gap: 20,
-};
-
-const reviewCard = {
-  background: "white",
-  padding: 15,
-  borderRadius: 10,
-};
-
-const reviewForm = {
-  marginTop: 30,
-  display: "flex",
-  flexDirection: "column" as const,
-  gap: 10,
-};
-
-/* CROSS SELL */
-
-const crossSell = {
-  marginTop: 60,
-};
-
-const crossGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-  gap: 20,
-};
-
-const crossCard = {
-  background: "white",
-  borderRadius: 12,
-  overflow: "hidden",
-  textDecoration: "none",
-  color: "#111",
-};
-
-const crossImg = {
-  width: "100%",
-  height: 160,
-  objectFit: "cover" as const,
-};
-
-const crossContent = {
-  padding: 10,
 };

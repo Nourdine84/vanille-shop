@@ -36,8 +36,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  /* ================= HYDRATION SAFE ================= */
-
   useEffect(() => {
     const shouldReset = sessionStorage.getItem("order_success");
 
@@ -62,8 +60,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsHydrated(true);
   }, []);
 
-  /* ================= SYNC ================= */
-
   useEffect(() => {
     if (!isHydrated) return;
     localStorage.setItem("cart", JSON.stringify(cart));
@@ -85,6 +81,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       return [...prev, item];
     });
+
+    /* 🔥 TOAST EVENT GLOBAL */
+    window.dispatchEvent(
+      new CustomEvent("cart:add", {
+        detail: {
+          name: item.name,
+        },
+      })
+    );
   }
 
   function removeFromCart(id: string) {

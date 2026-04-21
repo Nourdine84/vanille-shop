@@ -12,17 +12,37 @@ export default function Header() {
   const { openCart } = useUIStore();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
   const pathname = usePathname();
 
+  /* ================= CLOSE MENU ON NAV ================= */
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
+  /* ================= TOAST LISTENER ================= */
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (!e?.detail?.name) return;
+
+      setToast(`${e.detail.name} ajouté au panier`);
+      setTimeout(() => setToast(null), 2500);
+    };
+
+    window.addEventListener("cart:add", handler);
+
+    return () => window.removeEventListener("cart:add", handler);
+  }, []);
+
+  /* ================= CART COUNT ================= */
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <>
+      {/* ================= HEADER ================= */}
       <header style={header}>
+        {/* LOGO */}
         <Link href="/" style={logo}>
           <Image
             src="/images/logo-vanilleor.png"
@@ -34,6 +54,7 @@ export default function Header() {
           />
         </Link>
 
+        {/* NAV DESKTOP */}
         <nav style={navDesktop}>
           <NavLink href="/products" label="Produits" />
           <NavLink href="/collections/vanille" label="Vanille" />
@@ -43,6 +64,7 @@ export default function Header() {
           <NavLink href="/blog" label="Blog" />
         </nav>
 
+        {/* ACTIONS */}
         <div style={actions}>
           <Link href="/products" style={cta}>
             Acheter
@@ -59,10 +81,8 @@ export default function Header() {
         </div>
       </header>
 
-      {/* 🔥 OVERLAY FIX */}
+      {/* ================= OVERLAY ================= */}
       <div
-        data-overlay
-        aria-hidden={!menuOpen}
         onClick={() => setMenuOpen(false)}
         style={{
           ...overlay,
@@ -71,10 +91,8 @@ export default function Header() {
         }}
       />
 
-      {/* 🔥 MENU FIX */}
+      {/* ================= MENU MOBILE ================= */}
       <div
-        data-panel
-        aria-hidden={!menuOpen}
         style={{
           ...mobileMenu,
           transform: menuOpen ? "translateX(0)" : "translateX(100%)",
@@ -92,9 +110,18 @@ export default function Header() {
         <NavLink href="/about" label="À propos" mobile />
         <NavLink href="/blog" label="Blog" mobile />
       </div>
+
+      {/* ================= TOAST ================= */}
+      {toast && (
+        <div style={toastStyle}>
+          ✅ {toast}
+        </div>
+      )}
     </>
   );
 }
+
+/* ================= NAV LINK ================= */
 
 function NavLink({
   href,
@@ -189,7 +216,6 @@ const burger = {
   cursor: "pointer",
 };
 
-/* 🔥 IMPORTANT */
 const overlay: React.CSSProperties = {
   position: "fixed",
   inset: 0,
@@ -218,4 +244,17 @@ const closeBtn = {
   background: "transparent",
   cursor: "pointer",
   padding: "10px",
+};
+
+const toastStyle: React.CSSProperties = {
+  position: "fixed",
+  bottom: "20px",
+  right: "20px",
+  background: "#111",
+  color: "white",
+  padding: "14px 18px",
+  borderRadius: "12px",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+  zIndex: 99999,
+  fontWeight: 600,
 };
