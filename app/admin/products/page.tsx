@@ -49,18 +49,15 @@ export default async function AdminProductsPage() {
     console.error("❌ ADMIN PRODUCTS ERROR:", e);
   }
 
-  /* ================= KPI ================= */
-
   const total = products.length;
   const active = products.filter((p) => p.isActive).length;
   const out = products.filter((p) => p.stock <= 0).length;
   const packs = products.filter((p) => p.isPack).length;
 
   return (
-    <div style={container}>
-      <h1 style={title}>🛠 Produits</h1>
+    <div style={container} data-testid="admin-products-page">
+      <h1 style={title}>🛠 Admin Produits</h1>
 
-      {/* KPI */}
       <div style={kpiGrid}>
         <Kpi label="Produits" value={total} />
         <Kpi label="Actifs" value={active} />
@@ -68,27 +65,20 @@ export default async function AdminProductsPage() {
         <Kpi label="Packs" value={packs} />
       </div>
 
-      {/* CREATE */}
-      <div style={card}>
+      <div style={card} data-testid="admin-products-create">
         <h2>➕ Ajouter un produit</h2>
         <ProductForm />
       </div>
 
-      {/* LIST */}
-      <div style={grid}>
+      <div style={grid} data-testid="admin-products-list">
         {products.map((p) => {
           const img = getImageUrl(p.imageUrl);
 
           return (
-            <div key={p.id} style={productCard}>
+            <div key={p.id} style={productCard} data-testid="admin-product-card">
               <div style={imageWrapper}>
-                <img
-                  src={img}
-                  alt={p.name}
-                  style={image}
-                />
+                <img src={img} alt={p.name} style={image} />
 
-                {/* BADGES */}
                 {p.isPack && <span style={packBadge}>PACK</span>}
                 {p.badge && <span style={badge}>{p.badge}</span>}
               </div>
@@ -96,20 +86,15 @@ export default async function AdminProductsPage() {
               <div style={content}>
                 <h3 style={name}>{p.name}</h3>
 
-                {p.packItems && (
-                  <p style={packDesc}>{p.packItems}</p>
-                )}
+                {p.packItems && <p style={packDesc}>{p.packItems}</p>}
 
                 <p style={price}>{formatPrice(p.priceCents)}</p>
 
                 <p style={stock}>
                   Stock :{" "}
-                  <strong>
-                    {p.stock <= 0 ? "Rupture" : p.stock}
-                  </strong>
+                  <strong>{p.stock <= 0 ? "Rupture" : p.stock}</strong>
                 </p>
 
-                {/* TOGGLE */}
                 <ProductToggle
                   productId={p.id}
                   initialState={p.isActive}
@@ -119,6 +104,7 @@ export default async function AdminProductsPage() {
                   <a
                     href={`/admin/products/${p.id}`}
                     style={editBtn}
+                    data-testid="admin-product-edit"
                   >
                     ✏️ Modifier
                   </a>

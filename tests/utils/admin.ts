@@ -5,7 +5,7 @@ export async function loginAsAdmin(page: Page) {
     {
       name: "admin",
       value: "true",
-      domain: "localhost",
+      url: "http://localhost:3000",
       path: "/",
     },
   ]);

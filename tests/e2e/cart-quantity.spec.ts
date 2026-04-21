@@ -1,10 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../setup";
 import { openCart, addFirstProduct } from "../utils/cart";
-
-test.beforeEach(async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-});
 
 test("Augmenter quantité produit", async ({ page }) => {
   await page.goto("/products");
@@ -13,9 +8,9 @@ test("Augmenter quantité produit", async ({ page }) => {
   await addFirstProduct(page);
   await openCart(page);
 
-  const cart = page.getByTestId("mini-cart").first();
+  const plus = page.getByTestId("increase-qty").first();
 
-  await cart.getByRole("button", { name: "+" }).first().click();
+  await plus.click();
 
-  await expect(cart.getByTestId("item-quantity")).toHaveText("2");
+  await expect(page.getByTestId("item-quantity")).toHaveText("2");
 });

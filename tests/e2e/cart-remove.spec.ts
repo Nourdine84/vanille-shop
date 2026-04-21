@@ -1,21 +1,14 @@
-import { test, expect } from "@playwright/test";
-import { openCart } from "../utils/cart";
+import { test, expect } from "../setup";
+import { openCart, addFirstProduct } from "../utils/cart";
 
 test("Suppression produit panier", async ({ page }) => {
   await page.goto("/products");
   await page.waitForLoadState("networkidle");
 
-  await page.getByRole("button", { name: "Ajouter" }).first().click();
-
-  const miniCart = page.getByTestId("mini-cart");
-
-  if (!(await miniCart.isVisible())) {
-    await page.getByTestId("cart-button").click();
-  }
-
-  await expect(page.getByText("Votre panier")).toBeVisible();
+  await addFirstProduct(page);
+  await openCart(page);
 
   await page.getByTestId("remove-item").first().click();
 
-  await expect(page.getByTestId("empty-cart")).toBeVisible();
+  await expect(page.getByTestId("cart-empty")).toBeVisible();
 });

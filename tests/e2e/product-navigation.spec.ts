@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../setup";
 import { openCart } from "../utils/cart";
 
 test("🔎 Accès page produit", async ({ page }) => {

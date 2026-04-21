@@ -1,17 +1,14 @@
-import { test, expect } from "@playwright/test";
-import { openCart } from "../utils/cart";
+import { test, expect } from "../setup";
+import { openCart, addFirstProduct } from "../utils/cart";
 
 test("💰 Total panier correct", async ({ page }) => {
   await page.goto("/products");
   await page.waitForLoadState("networkidle");
 
-  await page.getByRole("button", { name: "Ajouter" }).first().click();
+  await addFirstProduct(page);
+  await openCart(page);
 
-  const cart = page.getByTestId("mini-cart").first();
-
-  await expect(cart).toBeVisible();
-
-  const total = cart.getByTestId("cart-total");
+  const total = page.getByTestId("cart-total");
 
   await expect(total).toBeVisible();
 });

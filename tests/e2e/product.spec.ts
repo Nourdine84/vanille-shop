@@ -1,10 +1,29 @@
-import { test, expect } from "@playwright/test";
-import { openCart } from "../utils/cart";
+import { test, expect } from "../setup";
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+});
 
 test("Accès page produit", async ({ page }) => {
-  await page.goto("http://localhost:3001/products");
+  await page.goto("/products");
 
-  await page.getByText("Voir").first().click();
+  // 🔒 sécurise le rendu produits
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByTestId("product-card").first()).toBeVisible();
+
+  // 👉 clic fiable (scope + first)
+  await page
+    .getByTestId("product-card")
+    .first()
+    .getByRole("link", { name: /voir/i })
+    .click();
+
+  // 🔒 attendre navigation réelle
+  await page.waitForLoadState("domcontentloaded");
 
   await expect(page.locator("h1")).toBeVisible();
 });

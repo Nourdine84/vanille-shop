@@ -17,8 +17,6 @@ type OrderItem = {
   priceCents: number;
 };
 
-/* ================= UTIL ================= */
-
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
 }
@@ -30,8 +28,6 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-/* ================= PAGE ================= */
-
 export default async function AdminOrdersPage({
   searchParams,
 }: {
@@ -42,8 +38,6 @@ export default async function AdminOrdersPage({
   if (!isAdmin) {
     redirect("/admin/login");
   }
-
-  /* ================= FILTER ================= */
 
   const statusRaw = (searchParams?.status || "").trim();
 
@@ -65,30 +59,27 @@ export default async function AdminOrdersPage({
     orders = [];
   }
 
-  /* ================= KPI ================= */
-
   const pendingCount = orders.filter((o) => o.status === "PENDING").length;
   const paidCount = orders.filter((o) => o.status === "PAID").length;
   const shippedCount = orders.filter((o) => o.status === "SHIPPED").length;
 
   return (
-    <div style={container}>
+    <div style={container} data-testid="admin-orders-page">
       <h1 style={title}>🧾 Commandes</h1>
 
-      {/* KPI */}
       <div style={grid3}>
         <Card title="En attente" value={pendingCount} />
         <Card title="Payées" value={paidCount} />
         <Card title="Expédiées" value={shippedCount} />
       </div>
 
-      {/* FILTRE */}
       <div style={card}>
-        <form method="GET" style={filterRow}>
+        <form method="GET" style={filterRow} data-testid="orders-filter-form">
           <select
             name="status"
             defaultValue={status ?? ""}
             style={input}
+            data-testid="orders-filter-status"
           >
             <option value="">Tous les statuts</option>
             {Object.values(OrderStatus).map((s) => (
@@ -104,7 +95,6 @@ export default async function AdminOrdersPage({
         </form>
       </div>
 
-      {/* LISTE */}
       {orders.length === 0 ? (
         <div style={card}>Aucune commande trouvée.</div>
       ) : (
@@ -121,16 +111,13 @@ export default async function AdminOrdersPage({
             }
 
             return (
-              <div key={order.id} style={orderCard}>
-                {/* HEADER */}
+              <div key={order.id} style={orderCard} data-testid="admin-order-card">
                 <div style={orderHeader}>
                   <div>
                     <h3 style={{ margin: 0 }}>
                       Commande {order.id.slice(0, 8)}
                     </h3>
-                    <p style={mutedText}>
-                      {formatDate(order.createdAt)}
-                    </p>
+                    <p style={mutedText}>{formatDate(order.createdAt)}</p>
                   </div>
 
                   <div style={headerRight}>
@@ -139,17 +126,13 @@ export default async function AdminOrdersPage({
                   </div>
                 </div>
 
-                {/* TRACKING */}
                 {order.trackingNumber && (
                   <div style={trackingBox}>
                     📦 Tracking : <strong>{order.trackingNumber}</strong>
-                    {order.carrier && (
-                      <> — {order.carrier.toUpperCase()}</>
-                    )}
+                    {order.carrier && <> — {order.carrier.toUpperCase()}</>}
                   </div>
                 )}
 
-                {/* META */}
                 <div style={metaGrid}>
                   <div>
                     <span style={metaLabel}>Email</span>
@@ -173,7 +156,6 @@ export default async function AdminOrdersPage({
                   </div>
                 </div>
 
-                {/* ITEMS */}
                 <div style={itemsBox}>
                   <h4 style={itemsTitle}>Articles</h4>
 
@@ -184,25 +166,20 @@ export default async function AdminOrdersPage({
                       <div key={`${item.id}-${index}`} style={itemRow}>
                         <span>{item.name}</span>
                         <span>
-                          {item.quantity} ×{" "}
-                          {formatPrice(item.priceCents)}
+                          {item.quantity} × {formatPrice(item.priceCents)}
                         </span>
                       </div>
                     ))
                   )}
                 </div>
 
-                {/* UPDATE */}
                 <form
                   action="/api/admin/update-status"
                   method="POST"
                   style={statusForm}
+                  data-testid="admin-order-status-form"
                 >
-                  <input
-                    type="hidden"
-                    name="orderId"
-                    value={order.id}
-                  />
+                  <input type="hidden" name="orderId" value={order.id} />
 
                   <select
                     name="status"
@@ -247,8 +224,6 @@ export default async function AdminOrdersPage({
   );
 }
 
-/* ================= COMPONENTS ================= */
-
 function Card({ title, value }: { title: string; value: number }) {
   return (
     <div style={card}>
@@ -274,8 +249,6 @@ function StatusBadge({ status }: { status: OrderStatus }) {
     </span>
   );
 }
-
-/* ================= STYLES ================= */
 
 const container = { padding: "30px" };
 const title = { fontSize: "28px", marginBottom: "20px" };

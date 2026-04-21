@@ -93,9 +93,10 @@ export default function ProductsPage() {
             if (!p?.id || !p?.slug) return null;
 
             const isOut = (p.stock ?? 0) <= 0;
+            const isLowStock = (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 5;
 
             return (
-              <div key={p.id} style={card}>
+              <div key={p.id} style={card} data-testid="product-card">
                 <div style={mediaWrapper}>
                   {p.badge && !isOut && <span style={badge}>{p.badge}</span>}
                   {isOut && <span style={out}>ÉPUISÉ</span>}
@@ -119,6 +120,12 @@ export default function ProductsPage() {
                         }`
                       : "Produit premium sélectionné"}
                   </p>
+
+                  {isLowStock && (
+                    <p style={stockLimited} data-testid="stock-limited">
+                      Stock limité
+                    </p>
+                  )}
 
                   <p style={price}>{formatPrice(p.priceCents)}</p>
                 </div>
@@ -254,6 +261,13 @@ const desc: React.CSSProperties = {
   fontSize: "14px",
   margin: "0 0 12px",
   lineHeight: 1.5,
+};
+
+const stockLimited: React.CSSProperties = {
+  color: "#dc2626",
+  fontSize: "13px",
+  fontWeight: 700,
+  margin: "0 0 10px",
 };
 
 const price: React.CSSProperties = {

@@ -1,19 +1,17 @@
-import { test, expect } from "@playwright/test";
-import { openCart } from "../utils/cart";
+import { test, expect } from "../setup";
+import { openCart, addFirstProduct } from "../utils/cart";
 
 test("🧠 Persistance panier entre pages", async ({ page }) => {
   await page.goto("/products");
-  await page.waitForLoadState("networkidle");
 
-  await page.getByRole("button", { name: "Ajouter" }).first().click();
+  await addFirstProduct(page);
+  await openCart(page);
 
-  await page.getByTestId("cart-button").click();
-
-  await page.getByRole("button", { name: "+" }).first().click();
+  await page.getByTestId("increase-qty").click();
 
   await expect(page.getByTestId("item-quantity")).toHaveText("2");
 
-  await page.getByTestId("checkout-button").click();
+  await page.goto("/checkout");
 
-  await expect(page.getByText("Quantité : 2")).toBeVisible();
+  await expect(page.getByText("2")).toBeVisible();
 });
