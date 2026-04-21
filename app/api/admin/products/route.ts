@@ -22,64 +22,59 @@ function isChecked(value: FormDataEntryValue | null) {
 }
 
 /* =========================
-   POST CREATE PRODUCT
+   CREATE PRODUCT
 ========================= */
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
 
-    const name = formData.get("name");
-    const slugRaw = formData.get("slug");
-    const description = formData.get("description");
-    const imageUrl = formData.get("imageUrl");
-    const stock = formData.get("stock");
-    const category = formData.get("category") || "vanille";
-    const unit = formData.get("unit") || "g";
+    const name = formData.get("name")?.toString();
+    const slugRaw = formData.get("slug")?.toString();
+    const description = formData.get("description")?.toString() || "";
+    const imageUrl = formData.get("imageUrl")?.toString();
+    const stock = Number(formData.get("stock"));
+    const category = formData.get("category")?.toString() || "vanille";
+    const unit = formData.get("unit")?.toString() || "g";
 
-    const isPack = formData.get("isPack");
-    const packItems = formData.get("packItems");
-    const badge = formData.get("badge");
+    const isPack = isChecked(formData.get("isPack"));
+    const packItems = formData.get("packItems")?.toString() || null;
+    const badge = formData.get("badge")?.toString() || null;
 
-    if (
-      typeof name !== "string" ||
-      typeof slugRaw !== "string" ||
-      typeof imageUrl !== "string" ||
-      typeof stock !== "string"
-    ) {
-      return NextResponse.json({ error: "Payload invalide" }, { status: 400 });
-    }
-
-    const parsedStock = Number(stock);
-
-    if (!Number.isFinite(parsedStock) || parsedStock < 0) {
-      return NextResponse.json({ error: "Stock invalide" }, { status: 400 });
+    if (!name || !slugRaw || !imageUrl) {
+      return NextResponse.json({ error: "Champs requis" }, { status: 400 });
     }
 
     const slug = normalizeSlug(slugRaw);
 
     /* =========================
-       PRICING DYNAMIQUE
+       PRICING CLEAN
     ========================= */
 
     const pricing: Record<string, number> = {};
 
     for (const [key, value] of formData.entries()) {
-      if (key.startsWith("price_") && typeof value === "string") {
+      if (key.startsWith("price_")) {
         const format = key.replace("price_", "");
         const price = Number(value);
 
-        if (!isNaN(price) && price > 0) {
+        if (Number.isFinite(price) && price > 0) {
           pricing[format] = price;
         }
       }
     }
 
+    if (Object.keys(pricing).length === 0) {
+      return NextResponse.json(
+        { error: "Au moins un prix requis" },
+        { status: 400 }
+      );
+    }
+
     const basePrice =
       pricing["100g"] ||
       pricing["100ml"] ||
-      Object.values(pricing)[0] ||
-      1000;
+      Object.values(pricing)[0];
 
     /* =========================
        CREATE
@@ -87,36 +82,25 @@ export async function POST(req: Request) {
 
     const product = await prisma.product.create({
       data: {
-        name: name.trim(),
+        name,
         slug,
-        description: typeof description === "string" ? description : "",
-        imageUrl: imageUrl.trim(),
+        description,
+        imageUrl,
 
         priceCents: basePrice,
 
-        // ✅ FIX PRISMA JSON
-        pricing: Object.keys(pricing).length
-          ? (pricing as any)
-          : undefined,
+        pricing: pricing as any,
 
-        unit: unit.toString(),
+        unit,
+        stock: Number.isFinite(stock) ? stock : 0,
+        category,
 
-        stock: parsedStock,
-        category: category.toString(),
-
-        badge:
-          typeof badge === "string" && badge.trim()
-            ? badge
-            : null,
+        badge: badge || null,
 
         isActive: true,
+        isPack,
 
-        isPack: isChecked(isPack),
-
-        packItems:
-          typeof packItems === "string" && packItems.trim()
-            ? packItems
-            : null,
+        packItems: isPack ? packItems : null,
       },
     });
 

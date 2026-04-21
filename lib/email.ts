@@ -2,136 +2,88 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-/* ================= TYPES ================= */
-
-type MailPayload = {
-  to: string | string[];
-  subject: string;
-  html: string;
-  replyTo?: string;
-};
-
-type OrderItem = {
-  id?: string;
-  name?: string;
-  quantity?: number;
-  priceCents?: number;
-  imageUrl?: string;
-};
-
-type B2BPayload = {
-  name: string;
-  email: string;
-  company?: string | null;
-  quantity: string;
-  message?: string | null;
-};
-
-type QuotePayload = {
-  to: string;
-  name: string;
-  company?: string | null;
-  quantity: string;
-  amountEuros?: number | null;
-  customMessage?: string | null;
-};
-
 /* ================= CONFIG ================= */
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
   "http://localhost:3000";
 
-const LOGO_URL = `${SITE_URL}/images/logo-vanilleor.png`;
+  const LOGO = "https://vanilleor.fr/images/logo-vanilleor.png";
 
 /* ================= UTILS ================= */
 
 function money(cents: number) {
-  return `${(Number(cents || 0) / 100)
-    .toFixed(2)
-    .replace(".", ",")} €`;
+  return `${(cents / 100).toFixed(2).replace(".", ",")} €`;
 }
 
-function escapeHtml(input: string) {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+/* ================= TEMPLATE PREMIUM ================= */
 
-/* ================= LAYOUT PREMIUM ================= */
-
-function renderLayout({
+function layout({
   title,
   subtitle,
-  body,
+  content,
   footer,
-  ctaLabel,
-  ctaHref,
-}: any) {
+}: {
+  title: string;
+  subtitle?: string;
+  content: string;
+  footer?: string;
+}) {
   return `
-  <body style="margin:0;background:#f6f2eb;font-family:Arial;">
-    <div style="max-width:680px;margin:auto;background:white;border-radius:18px;overflow:hidden;">
+  <body style="margin:0;background:#f5f1ea;font-family:Arial, sans-serif;">
+    <div style="max-width:640px;margin:auto;background:white;border-radius:18px;overflow:hidden;">
       
-      <div style="background:linear-gradient(135deg,#111,#2a2117);padding:30px;text-align:center;">
-        <img src="${LOGO_URL}" style="max-width:200px;margin-bottom:10px"/>
-        <h1 style="color:white;">${title}</h1>
-        ${subtitle ? `<p style="color:#ddd">${subtitle}</p>` : ""}
-      </div>
-
-      <div style="padding:25px;">
-        ${body}
-
+      <!-- HEADER -->
+      <div style="background:linear-gradient(135deg,#0f0f0f,#2a2117);padding:30px;text-align:center;">
+        <img src="${LOGO}" style="width:180px;margin-bottom:10px"/>
+        <h1 style="color:white;margin:0">${title}</h1>
         ${
-          ctaLabel
-            ? `<div style="text-align:center;margin-top:25px">
-                <a href="${ctaHref}" style="
-                  background:#a16207;
-                  color:white;
-                  padding:14px 20px;
-                  border-radius:10px;
-                  text-decoration:none;
-                  font-weight:bold;
-                ">${ctaLabel}</a>
-              </div>`
+          subtitle
+            ? `<p style="color:#ccc;margin-top:8px">${subtitle}</p>`
             : ""
         }
+      </div>
 
-        <div style="margin-top:25px;font-size:12px;color:#777;text-align:center;">
-          ${footer || "VanilleOr — Vanille premium"}
+      <!-- BODY -->
+      <div style="padding:25px;">
+        ${content}
+
+        <div style="margin-top:30px;font-size:12px;color:#777;text-align:center;">
+          ${footer || "VanilleOr — L’excellence de Madagascar"}
         </div>
       </div>
+
     </div>
   </body>
   `;
 }
 
-/* ================= SEND ================= */
-
-async function sendMail(payload: MailPayload) {
-  return resend.emails.send({
-    from: process.env.EMAIL_FROM as string,
-    ...payload,
-  });
-}
-
 /* ================= ITEMS ================= */
 
-function renderItems(items: OrderItem[]) {
+function renderItems(items: any[]) {
   return items
     .map(
       (i) => `
-      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-        <span>${escapeHtml(i.name || "Produit")} x${i.quantity}</span>
-        <strong>${money(
-          (i.priceCents || 0) * (i.quantity || 1)
-        )}</strong>
-      </div>
-    `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;">
+      <span>${i.name} x${i.quantity}</span>
+      <strong>${money(i.priceCents * i.quantity)}</strong>
+    </div>
+  `
     )
     .join("");
+}
+
+/* ================= SEND ================= */
+
+async function sendMail(payload: any) {
+  const res = await resend.emails.send({
+    from: process.env.EMAIL_FROM as string,
+    ...payload,
+  });
+
+  console.log("📧 EMAIL RESULT:", res);
+
+  return res;
 }
 
 /* ================= CLIENT ORDER ================= */
@@ -142,21 +94,38 @@ export async function sendCustomerOrderEmail({
   totalCents,
   items,
 }: any) {
-  const html = renderLayout({
+  const html = layout({
     title: "Commande confirmée",
     subtitle: "Merci pour votre confiance",
-    body: `
-      <p>Votre commande #${orderId}</p>
-      ${renderItems(items)}
-      <h2>Total : ${money(totalCents)}</h2>
+    content: `
+      <p>Votre commande <strong>#${orderId}</strong> a été validée.</p>
+
+      <div style="margin-top:20px">
+        ${renderItems(items)}
+      </div>
+
+      <h2 style="margin-top:20px;color:#a16207">
+        Total : ${money(totalCents)}
+      </h2>
+
+      <div style="margin-top:25px;text-align:center">
+        <a href="${SITE_URL}/products" style="
+          background:#a16207;
+          color:white;
+          padding:14px 22px;
+          border-radius:10px;
+          text-decoration:none;
+          font-weight:bold;
+        ">
+          Continuer mes achats
+        </a>
+      </div>
     `,
-    ctaLabel: "Voir les produits",
-    ctaHref: `${SITE_URL}/products`,
   });
 
   return sendMail({
     to,
-    subject: `Commande #${orderId}`,
+    subject: `Commande confirmée #${orderId}`,
     html,
   });
 }
@@ -169,138 +138,63 @@ export async function sendAdminOrderEmail({
   totalCents,
   items,
 }: any) {
-  const html = renderLayout({
+  const html = layout({
     title: "Nouvelle commande",
-    body: `
-      <p>ID : ${orderId}</p>
-      <p>Email : ${customerEmail}</p>
-      ${renderItems(items)}
-      <h2>Total : ${money(totalCents)}</h2>
+    content: `
+      <p><strong>Commande :</strong> ${orderId}</p>
+      <p><strong>Email :</strong> ${customerEmail}</p>
+
+      <div style="margin-top:20px">
+        ${renderItems(items)}
+      </div>
+
+      <h2 style="margin-top:20px;color:#a16207">
+        Total : ${money(totalCents)}
+      </h2>
     `,
   });
 
   return sendMail({
-    to: process.env.EMAIL_ADMIN_TO as string,
-    subject: `Commande ${orderId}`,
-    html,
-  });
-}
-
-/* ================= SHIPPING ================= */
-
-export async function sendShippingEmail({
-  to,
-  orderId,
-  trackingNumber,
-  carrier,
-}: any) {
-  const html = renderLayout({
-    title: "Commande expédiée",
-    body: `
-      <p>Commande #${orderId}</p>
-      <p>Transporteur : ${carrier}</p>
-      <p>Suivi : ${trackingNumber}</p>
-    `,
-  });
-
-  return sendMail({
-    to,
-    subject: "Commande expédiée",
-    html,
-  });
-}
-
-/* ================= REVIEW ================= */
-
-export async function sendReviewRequestEmail({ to, orderId }: any) {
-  const html = renderLayout({
-    title: "Donnez votre avis ⭐",
-    body: `
-      <p>Commande #${orderId}</p>
-      <p>Votre avis est important pour nous</p>
-    `,
-    ctaLabel: "Laisser un avis",
-    ctaHref: `${SITE_URL}/reviews`,
-  });
-
-  return sendMail({
-    to,
-    subject: "Votre avis compte",
-    html,
-  });
-}
-
-/* ================= ABANDON CART ================= */
-
-export async function sendAbandonedCartEmail({ to, items }: any) {
-  const html = renderLayout({
-    title: "Votre panier vous attend",
-    body: `
-      ${renderItems(items)}
-      <p>Stock limité ⚠️</p>
-    `,
-    ctaLabel: "Finaliser",
-    ctaHref: `${SITE_URL}/checkout`,
-  });
-
-  return sendMail({
-    to,
-    subject: "Panier en attente",
+    to: process.env.EMAIL_ADMIN_TO,
+    subject: `Nouvelle commande ${orderId}`,
     html,
   });
 }
 
 /* ================= B2B ================= */
 
-export async function sendB2BAdminEmail(payload: B2BPayload) {
-  const html = renderLayout({
-    title: "Demande pro",
-    body: `
-      <p>${payload.name}</p>
-      <p>${payload.email}</p>
-      <p>${payload.quantity}</p>
+export async function sendB2BAdminEmail(payload: any) {
+  const html = layout({
+    title: "Nouvelle demande B2B",
+    content: `
+      <p><strong>Nom :</strong> ${payload.name}</p>
+      <p><strong>Email :</strong> ${payload.email}</p>
+      <p><strong>Entreprise :</strong> ${payload.company || "-"}</p>
+      <p><strong>Quantité :</strong> ${payload.quantity}</p>
+      <p><strong>Message :</strong> ${payload.message || "-"}</p>
     `,
   });
 
   return sendMail({
-    to: process.env.EMAIL_ADMIN_TO as string,
+    to: process.env.EMAIL_ADMIN_TO,
     subject: "Nouvelle demande pro",
     html,
   });
 }
 
-export async function sendB2BCustomerAckEmail(payload: B2BPayload) {
-  const html = renderLayout({
+export async function sendB2BCustomerAckEmail(payload: any) {
+  const html = layout({
     title: "Demande reçue",
-    body: `<p>Merci ${payload.name}</p>`,
-  });
-
-  return sendMail({
-    to: payload.email,
-    subject: "Demande reçue",
-    html,
-  });
-}
-
-/* ================= QUOTE ================= */
-
-export async function sendQuoteEmail(payload: QuotePayload) {
-  const html = renderLayout({
-    title: "Votre devis",
-    body: `
-      <p>${payload.name}</p>
-      <p>${payload.quantity}</p>
-      ${
-        payload.amountEuros
-          ? `<h2>${payload.amountEuros} €</h2>`
-          : ""
-      }
+    subtitle: "Nous revenons vers vous rapidement",
+    content: `
+      <p>Merci ${payload.name},</p>
+      <p>Votre demande a bien été enregistrée.</p>
     `,
   });
 
   return sendMail({
-    to: payload.to,
-    subject: "Votre devis",
+    to: payload.email,
+    subject: "Demande bien reçue",
     html,
   });
 }

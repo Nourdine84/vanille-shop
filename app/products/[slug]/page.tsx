@@ -4,6 +4,16 @@ import { prisma } from "@/lib/prisma";
 import ClientProduct from "./product-client";
 import { getImageUrl } from "@/lib/image";
 
+/* =========================
+   CRITICAL FIX (NO STATIC)
+========================= */
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+/* =========================
+   UTILS
+========================= */
+
 function normalizeSlug(input: string) {
   return input
     .toLowerCase()
@@ -18,6 +28,10 @@ type ProductPageProps = {
   params: { slug: string };
 };
 
+/* =========================
+   METADATA (OPTIMISÉ)
+========================= */
+
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
@@ -25,6 +39,7 @@ export async function generateMetadata({
     const products = await prisma.product.findMany({
       where: { isActive: true },
       select: {
+        id: true,
         name: true,
         slug: true,
         description: true,
@@ -40,43 +55,25 @@ export async function generateMetadata({
     if (!product) {
       return {
         title: "Produit introuvable | Vanille’Or",
-        description: "Découvrez notre sélection premium de vanille et d’épices.",
+        description: "Vanille premium de Madagascar",
       };
     }
 
     const title = `${product.name} | Vanille’Or`;
     const description =
       product.description?.trim() ||
-      `Découvrez ${product.name}, un produit premium sélectionné par Vanille’Or.`;
+      `Découvrez ${product.name}, un produit premium Vanille’Or.`;
 
     const image = getImageUrl(product.imageUrl);
 
-    const keywords =
-      product.category === "epices"
-        ? [
-            "épices premium",
-            "épices de Madagascar",
-            "acheter épices en ligne",
-            product.name.toLowerCase(),
-            "Vanille’Or",
-          ]
-        : [
-            "vanille premium",
-            "vanille de Madagascar",
-            "acheter vanille en ligne",
-            product.name.toLowerCase(),
-            "Vanille’Or",
-          ];
-
     return {
+      metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
       title,
       description,
-      keywords,
       openGraph: {
         title,
         description,
         images: [image],
-        type: "website",
       },
       twitter: {
         card: "summary_large_image",
@@ -85,42 +82,54 @@ export async function generateMetadata({
         images: [image],
       },
     };
-  } catch {
+  } catch (error) {
+    console.error("❌ METADATA ERROR:", error);
+
     return {
       title: "Produit | Vanille’Or",
-      description: "Découvrez notre sélection premium de vanille et d’épices.",
+      description: "Vanille premium de Madagascar",
     };
   }
 }
 
+/* =========================
+   PAGE
+========================= */
+
 export default async function ProductPage({ params }: ProductPageProps) {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-  });
+  try {
+    const products = await prisma.product.findMany({
+      where: { isActive: true },
+    });
 
-  const product = products.find(
-    (p) => normalizeSlug(p.slug || p.name) === params.slug
-  );
+    const product = products.find(
+      (p) => normalizeSlug(p.slug || p.name) === params.slug
+    );
 
-  if (!product) {
-    notFound();
+    if (!product) {
+      return notFound();
+    }
+
+    const relatedProducts = products
+      .filter(
+        (p) =>
+          p.id !== product.id &&
+          p.category === product.category &&
+          !p.isPack
+      )
+      .slice(0, 3);
+
+    const safeProduct = JSON.parse(
+      JSON.stringify({
+        ...product,
+        relatedProducts,
+      })
+    );
+
+    return <ClientProduct product={safeProduct} />;
+
+  } catch (error) {
+    console.error("❌ PRODUCT PAGE ERROR:", error);
+    return notFound();
   }
-
-  const relatedProducts = products
-    .filter(
-      (p) =>
-        p.id !== product.id &&
-        p.category === product.category &&
-        !p.isPack
-    )
-    .slice(0, 3);
-
-  const safeProduct = JSON.parse(
-    JSON.stringify({
-      ...product,
-      relatedProducts,
-    })
-  );
-
-  return <ClientProduct product={safeProduct} />;
 }

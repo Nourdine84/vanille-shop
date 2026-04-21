@@ -1,19 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-/* 🔥 AJOUT DU TYPE */
 type Props = {
   onChange?: (url: string) => void;
+  initialUrl?: string;
 };
 
-export default function ImageUploadField({ onChange }: Props) {
-  const [preview, setPreview] = useState<string>("");
-  const [imageUrl, setImageUrl] = useState<string>("");
+export default function ImageUploadField({
+  onChange,
+  initialUrl = "",
+}: Props) {
+  const [preview, setPreview] = useState<string>(initialUrl);
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    setPreview(initialUrl || "");
+  }, [initialUrl]);
+
   const uploadFile = async (file: File) => {
-    setPreview(URL.createObjectURL(file));
+    const localPreview = URL.createObjectURL(file);
+    setPreview(localPreview);
     setUploading(true);
 
     try {
@@ -31,58 +38,71 @@ export default function ImageUploadField({ onChange }: Props) {
         throw new Error(data?.error || "Erreur upload");
       }
 
-      setImageUrl(data.url);
+      if (data?.url) {
+        setPreview(data.url);
 
-      /* 🔥 CALLBACK VERS PARENT */
-      if (onChange) {
-        onChange(data.url);
+        if (onChange) {
+          onChange(data.url);
+        }
       }
-
-    } catch (error) {
-      console.error("UPLOAD ERROR:", error);
+    } catch (err) {
+      console.error("UPLOAD ERROR:", err);
       alert("Erreur upload image");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
     if (file) uploadFile(file);
   };
 
   return (
-    <div style={wrapper}>
+    <div
+      style={dropZone}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
       <input
         type="file"
         accept="image/*"
-        onChange={handleChange}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) uploadFile(file);
+        }}
       />
 
-      {preview && <img src={preview} style={previewImg} />}
+      {!preview && <p>Glisser une image ou cliquer</p>}
 
-      {uploading && <p>Upload...</p>}
+      {preview && (
+        <img
+          src={preview}
+          alt="Prévisualisation"
+          style={previewImg}
+        />
+      )}
 
-      <input
-        name="imageUrl"
-        value={imageUrl}
-        onChange={(e) => setImageUrl(e.target.value)}
-        placeholder="URL image"
-        required
-      />
+      {uploading && <p>Upload en cours...</p>}
     </div>
   );
 }
 
 /* STYLE */
 
-const wrapper = {
-  display: "flex",
-  flexDirection: "column" as const,
-  gap: "10px",
+const dropZone: React.CSSProperties = {
+  border: "2px dashed #ddd",
+  padding: 20,
+  borderRadius: 12,
+  textAlign: "center",
+  cursor: "pointer",
 };
 
-const previewImg = {
-  width: "140px",
-  borderRadius: "10px",
+const previewImg: React.CSSProperties = {
+  width: "100%",
+  maxHeight: 200,
+  objectFit: "cover",
+  borderRadius: 12,
+  marginTop: 12,
 };
