@@ -24,6 +24,9 @@ type CartContextType = {
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+
+  // 🔥 SAFE HYDRATION FLAG (NO IMPACT DESIGN)
+  isReady: boolean;
 };
 
 /* ================= CONTEXT ================= */
@@ -82,7 +85,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...prev, item];
     });
 
-    /* 🔥 TOAST EVENT GLOBAL */
     window.dispatchEvent(
       new CustomEvent("cart:add", {
         detail: {
@@ -119,6 +121,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+
+        // 🔥 IMPORTANT
+        isReady: isHydrated,
       }}
     >
       {children}

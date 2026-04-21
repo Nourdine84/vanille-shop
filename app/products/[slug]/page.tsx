@@ -4,15 +4,8 @@ import { prisma } from "@/lib/prisma";
 import ClientProduct from "./product-client";
 import { getImageUrl } from "@/lib/image";
 
-/* =========================
-   CRITICAL FIX (NO STATIC)
-========================= */
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-/* =========================
-   UTILS
-========================= */
 
 function normalizeSlug(input: string) {
   return input
@@ -27,10 +20,6 @@ function normalizeSlug(input: string) {
 type ProductPageProps = {
   params: { slug: string };
 };
-
-/* =========================
-   METADATA (OPTIMISÉ)
-========================= */
 
 export async function generateMetadata({
   params,
@@ -67,7 +56,9 @@ export async function generateMetadata({
     const image = getImageUrl(product.imageUrl);
 
     return {
-      metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+      metadataBase: new URL(
+        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+      ),
       title,
       description,
       openGraph: {
@@ -91,10 +82,6 @@ export async function generateMetadata({
     };
   }
 }
-
-/* =========================
-   PAGE
-========================= */
 
 export default async function ProductPage({ params }: ProductPageProps) {
   try {
@@ -127,7 +114,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
     );
 
     return <ClientProduct product={safeProduct} />;
-
   } catch (error) {
     console.error("❌ PRODUCT PAGE ERROR:", error);
     return notFound();

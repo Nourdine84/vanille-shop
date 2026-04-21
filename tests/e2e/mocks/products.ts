@@ -1,0 +1,38 @@
+export const mockProducts = [
+    {
+      id: "1",
+      name: "Vanille Bourbon Premium",
+      slug: "vanille-bourbon-premium",
+      priceCents: 1299,
+      imageUrl: "/images/test-vanille.jpg",
+      stock: 10,
+      category: "vanille",
+      badge: "Best Seller",
+      isPack: false,
+      description: "Vanille haut de gamme",
+    },
+    {
+      id: "2",
+      name: "Cannelle de Madagascar",
+      slug: "cannelle-madagascar",
+      priceCents: 899,
+      imageUrl: "/images/test-cannelle.jpg",
+      stock: 3, // 🔥 STOCK LIMITÉ
+      category: "epices",
+      badge: null,
+      isPack: false,
+      description: "Cannelle premium",
+    },
+    {
+      id: "3",
+      name: "Poivre Sauvage",
+      slug: "poivre-sauvage",
+      priceCents: 1099,
+      imageUrl: "/images/test-poivre.jpg",
+      stock: 8,
+      category: "epices",
+      badge: null,
+      isPack: false,
+      description: "Poivre intense",
+    },
+  ];

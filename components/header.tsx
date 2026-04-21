@@ -16,34 +16,27 @@ export default function Header() {
 
   const pathname = usePathname();
 
-  /* ================= CLOSE MENU ON NAV ================= */
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  /* ================= TOAST LISTENER ================= */
   useEffect(() => {
     const handler = (e: any) => {
       if (!e?.detail?.name) return;
-
       setToast(`${e.detail.name} ajouté au panier`);
       setTimeout(() => setToast(null), 2500);
     };
 
     window.addEventListener("cart:add", handler);
-
     return () => window.removeEventListener("cart:add", handler);
   }, []);
 
-  /* ================= CART COUNT ================= */
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <>
-      {/* ================= HEADER ================= */}
       <header style={header}>
-        {/* LOGO */}
-        <Link href="/" style={logo}>
+        <Link href="/" style={logo} data-testid="nav-home">
           <Image
             src="/images/logo-vanilleor.png"
             alt="Vanille'Or"
@@ -54,9 +47,8 @@ export default function Header() {
           />
         </Link>
 
-        {/* NAV DESKTOP */}
         <nav style={navDesktop}>
-          <NavLink href="/products" label="Produits" />
+          <NavLink href="/products" label="Produits" testId="nav-products" />
           <NavLink href="/collections/vanille" label="Vanille" />
           <NavLink href="/collections/epices" label="Épices" />
           <NavLink href="/b2b" label="Professionnels" />
@@ -64,25 +56,34 @@ export default function Header() {
           <NavLink href="/blog" label="Blog" />
         </nav>
 
-        {/* ACTIONS */}
         <div style={actions}>
           <Link href="/products" style={cta}>
             Acheter
           </Link>
 
-          <button style={cartBtn} onClick={openCart}>
+          <button
+            data-testid="cart-button"
+            aria-label="Ouvrir le panier"
+            style={cartBtn}
+            onClick={openCart}
+          >
             🛒
             {totalItems > 0 && <span style={badge}>{totalItems}</span>}
           </button>
 
-          <button style={burger} onClick={() => setMenuOpen(true)}>
+          <button
+            data-testid="burger-button"
+            aria-label="Ouvrir le menu"
+            style={burger}
+            onClick={() => setMenuOpen(true)}
+          >
             ☰
           </button>
         </div>
       </header>
 
-      {/* ================= OVERLAY ================= */}
       <div
+        data-testid="mobile-overlay"
         onClick={() => setMenuOpen(false)}
         style={{
           ...overlay,
@@ -91,19 +92,23 @@ export default function Header() {
         }}
       />
 
-      {/* ================= MENU MOBILE ================= */}
       <div
+        data-testid="mobile-menu"
         style={{
           ...mobileMenu,
           transform: menuOpen ? "translateX(0)" : "translateX(100%)",
           pointerEvents: menuOpen ? "auto" : "none",
         }}
       >
-        <button style={closeBtn} onClick={() => setMenuOpen(false)}>
+        <button
+          style={closeBtn}
+          aria-label="Fermer le menu"
+          onClick={() => setMenuOpen(false)}
+        >
           ✕
         </button>
 
-        <NavLink href="/products" label="Produits" mobile />
+        <NavLink href="/products" label="Produits" mobile testId="nav-products-mobile" />
         <NavLink href="/collections/vanille" label="Vanille" mobile />
         <NavLink href="/collections/epices" label="Épices" mobile />
         <NavLink href="/b2b" label="Professionnels" mobile />
@@ -111,30 +116,26 @@ export default function Header() {
         <NavLink href="/blog" label="Blog" mobile />
       </div>
 
-      {/* ================= TOAST ================= */}
-      {toast && (
-        <div style={toastStyle}>
-          ✅ {toast}
-        </div>
-      )}
+      {toast && <div style={toastStyle}>✅ {toast}</div>}
     </>
   );
 }
-
-/* ================= NAV LINK ================= */
 
 function NavLink({
   href,
   label,
   mobile = false,
+  testId,
 }: {
   href: string;
   label: string;
   mobile?: boolean;
+  testId?: string;
 }) {
   return (
     <Link
       href={href}
+      data-testid={testId}
       style={{
         ...link,
         ...(mobile ? mobileLink : {}),
@@ -144,8 +145,6 @@ function NavLink({
     </Link>
   );
 }
-
-/* ================= STYLES ================= */
 
 const header: React.CSSProperties = {
   position: "sticky",

@@ -1,13 +1,11 @@
-import { test, expect } from "@playwright/test";
-import { openCart } from "../utils/cart";
+import { test, expect } from "../setup";
 
 test("🧭 Navigation header", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("link", { name: "Produits" }).click();
-  await expect(page).toHaveURL("/products");
   await page.getByTestId("nav-products").click();
+  await expect(page).toHaveURL("/products");
 
-  await page.getByRole("link", { name: "Vanille’Or" }).click();
+  await page.getByRole("link", { name: "Vanille'Or" }).click();
   await expect(page).toHaveURL("/");
 });

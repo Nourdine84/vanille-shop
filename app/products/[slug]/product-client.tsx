@@ -13,7 +13,18 @@ function formatPrice(priceCents: number) {
 
 /* ================= ORDER FORMATS ================= */
 
-const ORDER = ["10g", "50g", "100g", "250g", "500g", "1kg", "10ml", "50ml", "100ml", "1l"];
+const ORDER = [
+  "10g",
+  "50g",
+  "100g",
+  "250g",
+  "500g",
+  "1kg",
+  "10ml",
+  "50ml",
+  "100ml",
+  "1l",
+];
 
 /* ================= COMPONENT ================= */
 
@@ -77,6 +88,39 @@ export default function ClientProduct({ product }: { product: any }) {
     setReviews(await refreshed.json());
   };
 
+  /* ================= CROSS SELL SAFE ================= */
+
+  const [related, setRelated] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/products", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+
+        const safe = Array.isArray(data) ? data.filter(Boolean) : [];
+
+        const filtered = safe
+          .filter(
+            (p: any) =>
+              p.id !== product.id &&
+              p.category === product.category &&
+              !p.isPack &&
+              (p.stock ?? 0) > 0
+          )
+          .slice(0, 3);
+
+        setRelated(filtered);
+      })
+      .catch(() => setRelated([]));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product.id]);
+
   /* ================= RENDER ================= */
 
   return (
@@ -89,9 +133,7 @@ export default function ClientProduct({ product }: { product: any }) {
         <div>
           <h1 style={title}>{product.name}</h1>
 
-          <p style={price}>
-            {formatPrice(selected.value)}
-          </p>
+          <p style={price}>{formatPrice(selected.value)}</p>
 
           <p style={desc}>
             {product.description ||
@@ -151,6 +193,50 @@ export default function ClientProduct({ product }: { product: any }) {
           </div>
         </div>
       </div>
+
+      {/* ================= CROSS SELL (SAFE) ================= */}
+
+      {related.length > 0 && (
+        <div style={crossSellWrapper}>
+          <h3 style={crossSellTitle}>Complétez votre sélection</h3>
+
+          <div style={crossSellGrid}>
+            {related.map((p) => (
+              <div key={p.id} style={crossSellCard}>
+                <Link href={`/products/${p.slug}`} style={crossSellLink}>
+                  <img
+                    src={getImageUrl(p.imageUrl)}
+                    alt={p.name}
+                    style={crossSellImg}
+                  />
+                </Link>
+
+                <div>
+                  <p style={crossSellName}>{p.name}</p>
+                  <p style={crossSellPrice}>
+                    {formatPrice(p.priceCents)}
+                  </p>
+
+                  <button
+                    style={crossSellBtn}
+                    onClick={() =>
+                      addToCart({
+                        id: p.id,
+                        name: p.name,
+                        priceCents: p.priceCents,
+                        imageUrl: p.imageUrl || undefined,
+                        quantity: 1,
+                      })
+                    }
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -235,4 +321,57 @@ const trust = {
   marginTop: 15,
   fontSize: 14,
   color: "#555",
+};
+
+/* CROSS SELL */
+
+const crossSellWrapper = {
+  marginTop: 50,
+};
+
+const crossSellTitle = {
+  fontSize: 20,
+  fontWeight: 800,
+  marginBottom: 20,
+};
+
+const crossSellGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+  gap: 20,
+};
+
+const crossSellCard = {
+  background: "white",
+  borderRadius: 14,
+  padding: 12,
+};
+
+const crossSellLink = {
+  display: "block",
+};
+
+const crossSellImg = {
+  width: "100%",
+  borderRadius: 10,
+};
+
+const crossSellName = {
+  fontWeight: 700,
+  marginTop: 10,
+};
+
+const crossSellPrice = {
+  color: "#a16207",
+  fontWeight: 700,
+};
+
+const crossSellBtn = {
+  marginTop: 8,
+  background: "#a16207",
+  color: "white",
+  border: "none",
+  padding: "8px",
+  borderRadius: 8,
+  cursor: "pointer",
 };

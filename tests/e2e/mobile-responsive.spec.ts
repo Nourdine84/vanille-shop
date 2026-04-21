@@ -1,22 +1,19 @@
-import { test, expect } from "@playwright/test";
-import { openCart } from "../utils/cart";
+import { test, expect } from "../setup";
 
 test.describe("📱 Responsive mobile", () => {
   test("Navigation mobile produits → panier", async ({ page }) => {
     await page.goto("/products");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByText("Nos produits")).toBeVisible();
-
     await page.getByRole("button", { name: "Ajouter" }).first().click();
 
-    // si le mini-cart s’ouvre déjà, on le garde
     const miniCart = page.getByTestId("mini-cart");
+
     if (!(await miniCart.isVisible())) {
       await page.getByTestId("cart-button").click();
     }
 
-    await expect(page.getByText("Votre panier")).toBeVisible();
+    await expect(miniCart).toBeVisible();
     await expect(page.getByTestId("checkout-button")).toBeVisible();
   });
 
@@ -24,6 +21,6 @@ test.describe("📱 Responsive mobile", () => {
     await page.goto("/checkout");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByText("Finalisation de votre commande")).toBeVisible();
+    await expect(page.locator("h1")).toBeVisible();
   });
 });

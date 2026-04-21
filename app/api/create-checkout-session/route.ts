@@ -5,19 +5,11 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/* =========================
-   STRIPE INIT
-========================= */
-
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("❌ STRIPE_SECRET_KEY manquante");
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-/* =========================
-   TYPES
-========================= */
 
 type CartItem = {
   id: string;
@@ -27,15 +19,18 @@ type CartItem = {
   imageUrl?: string;
 };
 
-/* =========================
-   SAFE BASE URL (FIX CRITIQUE)
-========================= */
-
 function getBaseUrl(req: Request) {
   const origin = req.headers.get("origin");
 
   if (origin && origin.startsWith("http")) {
     return origin;
+  }
+
+  if (
+    process.env.NEXT_PUBLIC_SITE_URL &&
+    process.env.NEXT_PUBLIC_SITE_URL.startsWith("http")
+  ) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
   }
 
   if (
@@ -45,22 +40,13 @@ function getBaseUrl(req: Request) {
     return process.env.NEXT_PUBLIC_URL;
   }
 
-  // fallback safe
   return "http://localhost:3000";
 }
-
-/* =========================
-   UTILS
-========================= */
 
 function normalizeProductId(rawId: string) {
   if (!rawId) return "";
   return rawId.split("-")[0];
 }
-
-/* =========================
-   POST
-========================= */
 
 export async function POST(req: Request) {
   try {
@@ -85,11 +71,6 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = getBaseUrl(req);
-
-    /* =========================
-       VALIDATION PRODUITS
-    ========================= */
-
     const validatedCart: CartItem[] = [];
 
     for (const item of cart) {
@@ -142,10 +123,6 @@ export async function POST(req: Request) {
       });
     }
 
-    /* =========================
-       PRICING
-    ========================= */
-
     const subtotal = validatedCart.reduce(
       (acc, item) => acc + item.priceCents * item.quantity,
       0
@@ -155,10 +132,6 @@ export async function POST(req: Request) {
     const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
     const total = subtotal + shippingCost;
 
-    /* =========================
-       CREATE ORDER
-    ========================= */
-
     const order = await prisma.order.create({
       data: {
         status: "PENDING",
@@ -167,10 +140,6 @@ export async function POST(req: Request) {
         items: validatedCart,
       },
     });
-
-    /* =========================
-       LINE ITEMS STRIPE
-    ========================= */
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
       validatedCart.map((item) => {
@@ -184,8 +153,7 @@ export async function POST(req: Request) {
             currency: "eur",
             product_data: {
               name: item.name,
-              description:
-                "Vanille premium de Madagascar — Vanille’Or",
+              description: "Vanille premium de Madagascar — Vanille’Or",
               images: [resolvedImageUrl],
             },
             unit_amount: item.priceCents,
@@ -193,10 +161,6 @@ export async function POST(req: Request) {
           quantity: item.quantity,
         };
       });
-
-    /* =========================
-       SHIPPING
-    ========================= */
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -211,37 +175,24 @@ export async function POST(req: Request) {
       });
     }
 
-    /* =========================
-       STRIPE SESSION (FIX FINAL)
-    ========================= */
-
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
-
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/checkout?error=1`,
-
       billing_address_collection: "required",
-
       shipping_address_collection: {
         allowed_countries: ["FR", "BE", "CH"],
       },
-
       phone_number_collection: {
         enabled: true,
       },
-
       metadata: {
         orderId: order.id,
         source: "vanilleor-shop",
       },
     });
-
-    /* =========================
-       SAVE SESSION
-    ========================= */
 
     await prisma.order.update({
       where: { id: order.id },
@@ -251,7 +202,6 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ url: session.url });
-
   } catch (error: any) {
     console.error("🔥 STRIPE FULL ERROR:", error);
 
@@ -261,10 +211,6 @@ export async function POST(req: Request) {
     );
   }
 }
-
-/* =========================
-   HEALTHCHECK
-========================= */
 
 export async function GET() {
   return NextResponse.json({

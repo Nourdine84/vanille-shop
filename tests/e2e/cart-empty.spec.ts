@@ -1,7 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../setup";
 
 test("Panier vide", async ({ page }) => {
-  await page.goto("http://localhost:3001/cart");
+  await page.goto("/products");
 
-  await expect(page.getByText("Votre panier est vide")).toBeVisible();
+  await page.getByTestId("cart-button").click();
+
+  await expect(page.getByTestId("cart-empty")).toBeVisible();
 });

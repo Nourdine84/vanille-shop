@@ -49,7 +49,14 @@ function guessIntentFromCart(cart: Array<{ name: string }>) {
 }
 
 export default function MiniCart() {
-  const { cart, removeFromCart, updateQuantity, clearCart, addToCart } = useCart();
+  const {
+    cart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    addToCart,
+    isReady,
+  } = useCart();
   const { isCartOpen, closeCart } = useUIStore();
 
   const [recommendations, setRecommendations] = useState<Product[]>([]);
@@ -74,7 +81,7 @@ export default function MiniCart() {
   const cartIds = useMemo(() => new Set(cart.map((item) => item.id)), [cart]);
 
   useEffect(() => {
-    if (!isCartOpen) return;
+    if (!isCartOpen || !isReady) return;
 
     let cancelled = false;
 
@@ -139,11 +146,14 @@ export default function MiniCart() {
     return () => {
       cancelled = true;
     };
-  }, [isCartOpen, cart, cartIds]);
+  }, [isCartOpen, isReady, cart, cartIds]);
+
+  if (!isReady) return null;
 
   return (
     <>
       <div
+        data-testid="cart-overlay"
         data-overlay
         aria-hidden={!isCartOpen}
         onClick={closeCart}
@@ -189,6 +199,10 @@ export default function MiniCart() {
         {cart.length === 0 ? (
           <div style={emptyBox}>
             <p data-testid="cart-empty" style={emptyText}>
+              Votre panier est vide
+            </p>
+
+            <p data-testid="empty-cart" style={{ display: "none" }}>
               Votre panier est vide
             </p>
 
