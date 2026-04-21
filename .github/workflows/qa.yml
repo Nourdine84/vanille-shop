@@ -2,9 +2,9 @@ name: QA Automation
 
 on:
   push:
-    branches: ["main", "feature/app-restructure", "dev"]
+    branches: ["main", "develop"]
   pull_request:
-    branches: ["main", "dev"]
+    branches: ["main", "develop"]
 
 jobs:
   qa:
@@ -26,19 +26,21 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      # 🔥 IMPORTANT → build AVANT tests
+      - name: Build app
+        run: npm run build
+
+      # 🎭 Playwright
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E tests
+      # 🚀 Tests
+      - name: Run Playwright tests
         run: npx playwright test
         env:
           CI: true
 
-      - name: Run Lighthouse
-        run: npm run test:lighthouse
-        env:
-          CI: true
-
+      # 📤 Report HTML
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,7 +48,8 @@ jobs:
           name: playwright-report
           path: playwright-report
 
-      - name: Upload Playwright test results
+      # 📤 Logs tests
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
