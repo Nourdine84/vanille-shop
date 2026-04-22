@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 import { usePathname } from "next/navigation";
+import type { CSSProperties } from "react"; // ✅ FIX IMPORTANT
 
 export default function Header() {
   const { cart } = useCart();
@@ -16,12 +17,10 @@ export default function Header() {
 
   const pathname = usePathname();
 
-  /* ================= RESET MENU NAV ================= */
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  /* ================= TOAST EVENT ================= */
   useEffect(() => {
     const handler = (e: any) => {
       if (!e?.detail?.name) return;
@@ -29,7 +28,6 @@ export default function Header() {
       setToast(`${e.detail.name} ajouté au panier`);
 
       const timeout = setTimeout(() => setToast(null), 2500);
-
       return () => clearTimeout(timeout);
     };
 
@@ -39,13 +37,10 @@ export default function Header() {
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  /* ================= RENDER ================= */
-
   return (
     <>
       <header style={header}>
-        {/* LOGO */}
-        <Link href="/" style={logo} data-testid="nav-home">
+        <Link href="/" style={logo}>
           <Image
             src="/images/logo-vanilleor.png"
             alt="Vanille'Or"
@@ -56,9 +51,8 @@ export default function Header() {
           />
         </Link>
 
-        {/* NAV DESKTOP */}
         <nav style={navDesktop}>
-          <NavLink href="/products" label="Produits" testId="nav-products" />
+          <NavLink href="/products" label="Produits" />
           <NavLink href="/collections/vanille" label="Vanille" />
           <NavLink href="/collections/epices" label="Épices" />
           <NavLink href="/b2b" label="Professionnels" />
@@ -66,78 +60,48 @@ export default function Header() {
           <NavLink href="/blog" label="Blog" />
         </nav>
 
-        {/* ACTIONS */}
         <div style={actions}>
           <Link href="/products" style={cta}>
             Acheter
           </Link>
 
-          {/* CART */}
-          <button
-            data-testid="cart-button"
-            aria-label="Ouvrir le panier"
-            style={cartBtn}
-            onClick={openCart}
-          >
+          <button style={cartBtn} onClick={openCart}>
             🛒
             {totalItems > 0 && <span style={badge}>{totalItems}</span>}
           </button>
 
-          {/* BURGER */}
-          <button
-            data-testid="burger-button"
-            aria-label="Ouvrir le menu"
-            style={burger}
-            onClick={() => setMenuOpen(true)}
-          >
+          <button style={burger} onClick={() => setMenuOpen(true)}>
             ☰
           </button>
         </div>
       </header>
 
-      {/* ================= OVERLAY ================= */}
       <div
-        data-testid="mobile-overlay"
         onClick={() => setMenuOpen(false)}
         style={{
           ...overlay,
           display: menuOpen ? "block" : "none",
-          pointerEvents: menuOpen ? "auto" : "none",
         }}
       />
 
-      {/* ================= MOBILE MENU ================= */}
       <div
-        data-testid="mobile-menu"
         style={{
           ...mobileMenu,
           transform: menuOpen ? "translateX(0)" : "translateX(100%)",
-          pointerEvents: menuOpen ? "auto" : "none",
         }}
       >
-        <button
-          style={closeBtn}
-          aria-label="Fermer le menu"
-          onClick={() => setMenuOpen(false)}
-        >
+        <button style={closeBtn} onClick={() => setMenuOpen(false)}>
           ✕
         </button>
 
-        <NavLink
-          href="/products"
-          label="Produits"
-          mobile
-          testId="nav-products-mobile"
-          onClick={() => setMenuOpen(false)}
-        />
-        <NavLink href="/collections/vanille" label="Vanille" mobile onClick={() => setMenuOpen(false)} />
-        <NavLink href="/collections/epices" label="Épices" mobile onClick={() => setMenuOpen(false)} />
-        <NavLink href="/b2b" label="Professionnels" mobile onClick={() => setMenuOpen(false)} />
-        <NavLink href="/about" label="À propos" mobile onClick={() => setMenuOpen(false)} />
-        <NavLink href="/blog" label="Blog" mobile onClick={() => setMenuOpen(false)} />
+        <NavLink href="/products" label="Produits" mobile />
+        <NavLink href="/collections/vanille" label="Vanille" mobile />
+        <NavLink href="/collections/epices" label="Épices" mobile />
+        <NavLink href="/b2b" label="Professionnels" mobile />
+        <NavLink href="/about" label="À propos" mobile />
+        <NavLink href="/blog" label="Blog" mobile />
       </div>
 
-      {/* ================= TOAST ================= */}
       {toast && <div style={toastStyle}>✅ {toast}</div>}
     </>
   );
@@ -145,24 +109,10 @@ export default function Header() {
 
 /* ================= NAV LINK ================= */
 
-function NavLink({
-  href,
-  label,
-  mobile = false,
-  testId,
-  onClick,
-}: {
-  href: string;
-  label: string;
-  mobile?: boolean;
-  testId?: string;
-  onClick?: () => void;
-}) {
+function NavLink({ href, label, mobile = false }: any) {
   return (
     <Link
       href={href}
-      data-testid={testId}
-      onClick={onClick}
       style={{
         ...link,
         ...(mobile ? mobileLink : {}),
@@ -173,9 +123,9 @@ function NavLink({
   );
 }
 
-/* ================= STYLE ================= */
+/* ================= STYLES ================= */
 
-const header: React.CSSProperties = {
+const header: CSSProperties = {
   position: "sticky",
   top: 0,
   zIndex: 100,
@@ -187,50 +137,50 @@ const header: React.CSSProperties = {
   padding: "16px 24px",
 };
 
-const logo = {
+const logo: CSSProperties = {
   display: "flex",
   alignItems: "center",
 };
 
-const navDesktop: React.CSSProperties = {
+const navDesktop: CSSProperties = {
   display: "flex",
   gap: "20px",
   flex: 1,
   justifyContent: "center",
 };
 
-const link = {
+const link: CSSProperties = {
   textDecoration: "none",
   color: "#111",
 };
 
-const mobileLink = {
+const mobileLink: CSSProperties = {
   padding: "18px",
   borderBottom: "1px solid #eee",
 };
 
-const actions: React.CSSProperties = {
+const actions: CSSProperties = {
   display: "flex",
   gap: "10px",
 };
 
-const cta = {
+const cta: CSSProperties = {
   background: "#a16207",
   color: "white",
   padding: "10px 16px",
   borderRadius: "10px",
 };
 
-const cartBtn = {
-  position: "relative" as const,
+const cartBtn: CSSProperties = {
+  position: "relative",
   background: "transparent",
   border: "none",
   fontSize: "20px",
   cursor: "pointer",
 };
 
-const badge = {
-  position: "absolute" as const,
+const badge: CSSProperties = {
+  position: "absolute",
   top: "-4px",
   right: "-4px",
   background: "red",
@@ -240,21 +190,21 @@ const badge = {
   padding: "4px 6px",
 };
 
-const burger = {
+const burger: CSSProperties = {
   fontSize: "22px",
   background: "transparent",
   border: "none",
   cursor: "pointer",
 };
 
-const overlay: React.CSSProperties = {
+const overlay: CSSProperties = {
   position: "fixed",
   inset: 0,
   background: "rgba(0,0,0,0.4)",
   zIndex: 90,
 };
 
-const mobileMenu: React.CSSProperties = {
+const mobileMenu: CSSProperties = {
   position: "fixed",
   top: 0,
   right: 0,
@@ -268,7 +218,7 @@ const mobileMenu: React.CSSProperties = {
   flexDirection: "column",
 };
 
-const closeBtn = {
+const closeBtn: CSSProperties = {
   alignSelf: "flex-end",
   fontSize: "22px",
   border: "none",
@@ -277,7 +227,7 @@ const closeBtn = {
   padding: "10px",
 };
 
-const toastStyle: React.CSSProperties = {
+const toastStyle: CSSProperties = {
   position: "fixed",
   bottom: "20px",
   right: "20px",
@@ -285,10 +235,6 @@ const toastStyle: React.CSSProperties = {
   color: "white",
   padding: "14px 18px",
   borderRadius: "12px",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
   zIndex: 99999,
   fontWeight: 600,
-
-  pointerEvents: "none",
-
-}
+};

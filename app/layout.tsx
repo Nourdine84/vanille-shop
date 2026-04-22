@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="fr">
       <body suppressHydrationWarning style={bodyStyle}>
         <Providers>
-
+          {/* HEADER */}
           <Header />
 
           {/* MINI CART */}
@@ -31,19 +31,24 @@ export default function RootLayout({
           </div>
 
           {/* CONTENU */}
-          <main style={main}>{children}</main>
+          <main style={main}>
+            {children}
+          </main>
 
-          {/* FOOTER */}
+          {/* FOOTER PREMIUM */}
           <footer style={footer}>
             <div style={footerContainer}>
+              {/* BRAND */}
               <div>
                 <h3 style={footerTitle}>Vanille’Or</h3>
                 <p style={footerText}>
-                  Vanille premium de Madagascar <br />
+                  L’excellence de Madagascar <br />
+                  Vanille & épices premium <br />
                   Qualité professionnelle accessible
                 </p>
               </div>
 
+              {/* NAV */}
               <div>
                 <h4 style={footerSubtitle}>Navigation</h4>
                 <FooterLink href="/products" label="Produits" />
@@ -52,6 +57,7 @@ export default function RootLayout({
                 <FooterLink href="/b2b" label="Professionnels" />
               </div>
 
+              {/* SUPPORT */}
               <div>
                 <h4 style={footerSubtitle}>Support</h4>
                 <FooterLink href="/reclamation" label="Réclamation / SAV" />
@@ -60,11 +66,14 @@ export default function RootLayout({
               </div>
             </div>
 
+            {/* FOOTER BOTTOM */}
             <div style={footerBottom}>
-              © {new Date().getFullYear()} Vanille’Or — Tous droits réservés
+              <div style={footerLine} />
+              <p style={footerBottomText}>
+                © {new Date().getFullYear()} Vanille’Or — Tous droits réservés
+              </p>
             </div>
           </footer>
-
         </Providers>
       </body>
     </html>
@@ -81,7 +90,7 @@ function FooterLink({
   label: string;
 }) {
   return (
-    <Link href={href} style={footerLink}>
+    <Link href={href} className="footer-link" style={footerLink}>
       {label}
     </Link>
   );
@@ -92,43 +101,55 @@ function FooterLink({
 const bodyStyle: React.CSSProperties = {
   margin: 0,
   background: "#f8f5ef",
-  fontFamily: "system-ui, sans-serif",
+  fontFamily: "system-ui, -apple-system, sans-serif",
+};
+
+const container: React.CSSProperties = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  width: "100%", // 🔥 FIX stabilité responsive (important)
 };
 
 const main: React.CSSProperties = {
   minHeight: "80vh",
+  padding: 0,
 };
 
+/* ================= FOOTER ================= */
+
 const footer: React.CSSProperties = {
-  background: "#111",
+  background: "#0f0f0f",
   color: "#fff",
-  padding: "50px 20px 20px",
+  padding: "60px 20px 25px",
+  marginTop: "60px",
 };
 
 const footerContainer: React.CSSProperties = {
   maxWidth: "1100px",
   margin: "0 auto",
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-  gap: "30px",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "40px",
 };
 
 const footerTitle: React.CSSProperties = {
-  fontSize: "20px",
-  marginBottom: "10px",
-  color: "#a16207",
+  fontSize: "22px",
+  marginBottom: "12px",
+  color: "#d4af37",
+  fontWeight: 800,
 };
 
 const footerSubtitle: React.CSSProperties = {
   fontSize: "14px",
-  marginBottom: "10px",
-  color: "#ddd",
+  marginBottom: "12px",
+  color: "#bbb",
+  fontWeight: 700,
 };
 
 const footerText: React.CSSProperties = {
   fontSize: "13px",
-  color: "#aaa",
-  lineHeight: "1.6",
+  color: "#999",
+  lineHeight: "1.7",
 };
 
 const footerLink: React.CSSProperties = {
@@ -136,14 +157,24 @@ const footerLink: React.CSSProperties = {
   fontSize: "13px",
   color: "#ccc",
   textDecoration: "none",
-  marginBottom: "6px",
+  marginBottom: "8px",
 };
 
+/* ================= BOTTOM ================= */
+
 const footerBottom: React.CSSProperties = {
-  marginTop: "30px",
-  paddingTop: "15px",
-  borderTop: "1px solid #222",
+  marginTop: "40px",
   textAlign: "center",
+};
+
+const footerLine: React.CSSProperties = {
+  width: "100%",
+  height: "1px",
+  background: "#222",
+  marginBottom: "15px",
+};
+
+const footerBottomText: React.CSSProperties = {
   fontSize: "12px",
-  color: "#777",
+  color: "#666",
 };
