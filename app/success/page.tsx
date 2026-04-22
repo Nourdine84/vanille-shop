@@ -1,12 +1,28 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 
-export default function SuccessContent() {
+/* =========================
+   PAGE WRAPPER (IMPORTANT)
+========================= */
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40 }}>Chargement...</div>}>
+      <SuccessContent />
+    </Suspense>
+  );
+}
+
+/* =========================
+   CLIENT CONTENT
+========================= */
+
+function SuccessContent() {
   const params = useSearchParams();
   const sessionId = params.get("session_id");
 
@@ -32,7 +48,7 @@ export default function SuccessContent() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [clearCart]);
 
   return (
     <div style={container}>
@@ -43,25 +59,18 @@ export default function SuccessContent() {
           transform: visible ? "translateY(0px)" : "translateY(20px)",
         }}
       >
-        {/* 🔥 LOGO FIX */}
+        {/* LOGO */}
         <div style={logoWrapper}>
           <Image
-            src="public/images/logo-vanillor.png"
+            src="/images/logo-vanillor.png"
             alt="Vanille’Or"
             width={140}
             height={50}
             priority
-            style={{
-              objectFit: "contain",
-              margin: "0 auto",
-            }}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/logo.png";
-            }}
+            style={{ objectFit: "contain" }}
           />
         </div>
 
-        {/* ICON */}
         <div style={icon}>🎉</div>
 
         <h1 style={title}>Commande validée</h1>
@@ -103,7 +112,6 @@ export default function SuccessContent() {
           </Link>
         </div>
 
-        {/* AUTO REDIRECT */}
         <p style={redirectText}>
           Redirection automatique dans {redirectTimer}s
         </p>
@@ -140,7 +148,6 @@ const container = {
   alignItems: "center",
   justifyContent: "center",
   background: "#f8f5ef",
-  padding: "20px",
 };
 
 const card = {
@@ -151,14 +158,10 @@ const card = {
   maxWidth: "520px",
   width: "100%",
   boxShadow: "0 25px 60px rgba(0,0,0,0.08)",
-  transition: "all 0.4s ease",
 };
 
 const logoWrapper = {
   marginBottom: "20px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
 };
 
 const icon = {
@@ -168,12 +171,10 @@ const icon = {
 
 const title = {
   fontSize: "30px",
-  marginBottom: "10px",
 };
 
 const subtitle = {
   color: "#666",
-  marginBottom: "10px",
 };
 
 const orderId = {
@@ -181,20 +182,16 @@ const orderId = {
   color: "#999",
 };
 
-/* TIMELINE */
-
 const timeline = {
   display: "flex",
   justifyContent: "space-between",
   marginTop: "25px",
-  marginBottom: "25px",
 };
 
 const step = {
   display: "flex",
   flexDirection: "column" as const,
   alignItems: "center",
-  gap: "6px",
   fontSize: "12px",
 };
 
@@ -204,18 +201,12 @@ const dot = {
   borderRadius: "50%",
 };
 
-/* INFO */
-
 const infoBox = {
-  background: "#faf7f2",
-  padding: "18px",
-  borderRadius: "14px",
-  marginBottom: "20px",
+  marginTop: "20px",
 };
 
-/* CTA */
-
 const actions = {
+  marginTop: "20px",
   display: "flex",
   flexDirection: "column" as const,
   gap: "10px",
@@ -227,7 +218,6 @@ const primaryBtn = {
   color: "white",
   borderRadius: "12px",
   textDecoration: "none",
-  fontWeight: 600,
 };
 
 const secondaryBtn = {
@@ -238,10 +228,7 @@ const secondaryBtn = {
   color: "#111",
 };
 
-/* REDIRECT */
-
 const redirectText = {
   marginTop: "15px",
   fontSize: "12px",
-  color: "#999",
 };

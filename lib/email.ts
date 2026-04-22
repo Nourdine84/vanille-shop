@@ -69,6 +69,7 @@ type QuotePayload = {
   name?: string;
   quantity?: string;
   amountEuros?: number | null;
+  customMessage?: string | null;
 };
 
 type RelancePayload = {
