@@ -9,6 +9,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /* =========================
+   TYPE EMAIL (SAFE)
+========================= */
+type RelancePayload = {
+  to: string;
+  name: string;
+  quantity: string;
+};
+
+/* =========================
    CRON B2B RELANCE
 ========================= */
 export async function GET() {
@@ -31,10 +40,13 @@ export async function GET() {
           (now.getTime() - new Date(lead.createdAt).getTime()) /
           (1000 * 60 * 60);
 
-        const payload = {
+        /* =========================
+           PAYLOAD SAFE
+        ========================= */
+        const payload: RelancePayload = {
+          to: lead.email,
           name: lead.name || "Client",
-          email: lead.email,
-          quantity: lead.quantity || "-",
+          quantity: String(lead.quantity || "-"),
         };
 
         /* =========================
@@ -75,11 +87,10 @@ export async function GET() {
 
         /* =========================
            RELANCE 3 (72h)
-           👉 fallback = V2 (safe)
         ========================= */
         else if (ageHours > 72 && lead.relanceStep === 2) {
           try {
-            await sendB2BRelanceV2Email(payload); // fallback propre
+            await sendB2BRelanceV2Email(payload); // fallback
           } catch (err) {
             console.error("❌ RELANCE 3 EMAIL ERROR:", err);
           }
