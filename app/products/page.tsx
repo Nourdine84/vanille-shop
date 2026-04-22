@@ -65,7 +65,6 @@ export default function ProductsPage() {
       quantity: 1,
     });
 
-    openCart();
   }
 
   return (

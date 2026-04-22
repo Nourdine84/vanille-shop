@@ -1,19 +1,40 @@
 import { test as base, expect } from "@playwright/test";
 
-/* 🔥 IMPORT SAFE (évite crash si mauvais chemin) */
-let mockProducts: any[] = [];
+/* ================= TYPES ================= */
+
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  priceCents: number;
+  imageUrl?: string;
+  stock?: number;
+  category?: string;
+  badge?: string | null;
+  isPack?: boolean;
+  description?: string;
+};
+
+/* ================= MOCK SAFE ================= */
+
+let mockProducts: Product[] = [];
 
 try {
-  // 👉 chemin attendu : tests/mocks/products.ts
-  // ⚠️ IMPORTANT : vérifie bien ce dossier
-  // tests/
-  //   mocks/
-  //     products.ts
-  mockProducts = require("./mocks/products").mockProducts;
-} catch (e) {
-  console.warn("⚠️ mockProducts non trouvé, fallback activé");
+  // ✅ chemin officiel attendu
+  // tests/mocks/products.ts
+  // export const mockProducts = [...]
+  const mod = require("./mocks/products");
 
-  // 🔥 FALLBACK (évite crash total des tests)
+  if (Array.isArray(mod?.mockProducts)) {
+    mockProducts = mod.mockProducts;
+  } else {
+    throw new Error("mockProducts invalide");
+  }
+
+} catch (e) {
+  console.warn("⚠️ mockProducts non trouvé → fallback activé");
+
+  // 🔥 fallback ultra safe CI
   mockProducts = [
     {
       id: "fallback-1",
@@ -27,15 +48,27 @@ try {
       isPack: false,
       description: "Fallback product",
     },
+    {
+      id: "fallback-2",
+      name: "Produit Test 2",
+      slug: "produit-test-2",
+      priceCents: 1200,
+      imageUrl: "/images/test2.jpg",
+      stock: 5,
+      category: "epices",
+      badge: null,
+      isPack: false,
+      description: "Fallback product 2",
+    },
   ];
 }
 
-/* ================= EXTENSION ================= */
+/* ================= EXTENSION PLAYWRIGHT ================= */
 
 export const test = base.extend({
   page: async ({ page }, use) => {
 
-    // 🔥 MOCK GLOBAL API PRODUCTS
+    // 🔥 MOCK GLOBAL API PRODUCTS (CRITIQUE POUR STABILITÉ TESTS)
     await page.route("**/api/products", async (route) => {
       await route.fulfill({
         status: 200,
@@ -47,5 +80,7 @@ export const test = base.extend({
     await use(page);
   },
 });
+
+/* ================= EXPORT ================= */
 
 export { expect };

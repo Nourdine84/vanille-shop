@@ -393,14 +393,38 @@ export default function MiniCart() {
                 Paiement sécurisé • Expédition rapide • Qualité premium
               </p>
 
-              <Link
-                href="/checkout"
-                onClick={closeCart}
+              <button
+                type="button"
                 style={checkoutBtn}
                 data-testid="checkout-button"
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/create-checkout-session", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({ cart }),
+                    });
+
+                    const data = await res.json();
+
+                    if (data?.url) {
+                      setTimeout(() => {
+                      window.location.href = data.url;
+                      }, 50) ;
+                    } else {
+                      console.error("❌ Stripe URL manquante");
+                    }
+                  } catch (e) {
+                    console.error("❌ Checkout error", e);
+                  } finally {
+                    setTimeout (() => closeCart(),50) ;
+                  }
+                }}
               >
                 Commander maintenant
-              </Link>
+              </button>
 
               <button
                 type="button"
@@ -775,6 +799,9 @@ const checkoutBtn: CSSProperties = {
   borderRadius: "12px",
   textDecoration: "none",
   fontWeight: 800,
+  border: "none",
+  width: "100%",
+  cursor: "pointer",
 };
 
 const clearBtn: CSSProperties = {

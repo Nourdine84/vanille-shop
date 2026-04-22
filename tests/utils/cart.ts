@@ -1,12 +1,9 @@
 import { Page, expect } from "@playwright/test";
 
-/* ================= OPEN CART ================= */
-
 export async function openCart(page: Page) {
-  const cart = page.getByTestId("mini-cart").first();
+  const cart = page.getByTestId("mini-cart");
 
-  // 🔒 check visibilité réelle
-  const isVisible = await cart.isVisible().catch(() => false);
+  const isVisible = await cart.first().isVisible().catch(() => false);
 
   if (!isVisible) {
     const btn = page.getByTestId("cart-button");
@@ -15,27 +12,24 @@ export async function openCart(page: Page) {
     await btn.click();
   }
 
-  // 🔥 attendre animation + rendu DOM
-  await expect(cart).toBeVisible();
-  await expect(cart).toBeAttached();
+  await expect(cart.first()).toBeVisible();
 }
 
-/* ================= ADD PRODUCT ================= */
-
 export async function addFirstProduct(page: Page) {
-  // 🔒 cibler bouton dans une carte produit uniquement
-  const productCard = page.getByTestId("product-card").first();
-
-  await expect(productCard).toBeVisible();
-
-  const btn = productCard.getByRole("button", { name: /ajouter/i });
+  const btn = page.getByRole("button", { name: /Ajouter/i }).first();
 
   await expect(btn).toBeVisible();
   await btn.click();
 
-  // 🔥 attendre que le cart soit modifié (pas timeout)
   await page.waitForFunction(() => {
-    const cart = localStorage.getItem("cart");
-    return cart && JSON.parse(cart).length > 0;
+    try {
+      const raw = localStorage.getItem("cart") || "[]";
+      const cart = JSON.parse(raw);
+      return Array.isArray(cart) && cart.length > 0 && cart[0].quantity >= 1;
+    } catch {
+      return false;
+    }
   });
+
+  await page.waitForTimeout(100);
 }

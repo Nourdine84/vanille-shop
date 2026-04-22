@@ -24,8 +24,6 @@ type CartContextType = {
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
-
-  // 🔥 SAFE HYDRATION FLAG (NO IMPACT DESIGN)
   isReady: boolean;
 };
 
@@ -38,6 +36,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  /* ================= HYDRATION ================= */
 
   useEffect(() => {
     const shouldReset = sessionStorage.getItem("order_success");
@@ -74,42 +74,73 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
 
+      let updated: CartItem[];
+
       if (existing) {
-        return prev.map((i) =>
+        updated = prev.map((i) =>
           i.id === item.id
             ? { ...i, quantity: i.quantity + item.quantity }
             : i
         );
+      } else {
+        updated = [...prev, item];
       }
 
-      return [...prev, item];
+      try {
+        localStorage.setItem("cart", JSON.stringify(updated));
+      } catch {}
+
+      return updated;
     });
 
-    window.dispatchEvent(
-      new CustomEvent("cart:add", {
-        detail: {
-          name: item.name,
-        },
-      })
-    );
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("cart:add", {
+          detail: {
+            name: item.name,
+          },
+        })
+      );
+    }, 0);
   }
 
   function removeFromCart(id: string) {
-    setCart((prev) => prev.filter((item) => item.id !== id));
+    setCart((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+
+      try {
+        localStorage.setItem("cart", JSON.stringify(updated));
+      } catch {}
+
+      return updated;
+    });
   }
 
   function updateQuantity(id: string, quantity: number) {
-    if (quantity <= 0) return removeFromCart(id);
+    setCart((prev) => {
+      let updated: CartItem[];
 
-    setCart((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity } : item
-      )
-    );
+      if (quantity <= 0) {
+        updated = prev.filter((item) => item.id !== id);
+      } else {
+        updated = prev.map((item) =>
+          item.id === id ? { ...item, quantity } : item
+        );
+      }
+
+      try {
+        localStorage.setItem("cart", JSON.stringify(updated));
+      } catch {}
+
+      return updated;
+    });
   }
 
   function clearCart() {
-    localStorage.removeItem("cart");
+    try {
+      localStorage.removeItem("cart");
+    } catch {}
+
     setCart([]);
   }
 
@@ -121,8 +152,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
-
-        // 🔥 IMPORTANT
         isReady: isHydrated,
       }}
     >
