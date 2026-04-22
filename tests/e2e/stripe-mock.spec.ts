@@ -2,12 +2,13 @@ import { test, expect } from "../setup";
 import { openCart } from "../utils/cart";
 
 test("💳 Mock paiement Stripe", async ({ page }) => {
+
   await page.route("**/api/create-checkout-session", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        url: "http://localhost:3000/checkout/success?mock=1",
+        url: "/checkout/success?mock=1",
       }),
     });
   });
@@ -15,12 +16,21 @@ test("💳 Mock paiement Stripe", async ({ page }) => {
   await page.goto("/products");
   await page.waitForLoadState("networkidle");
 
-  await page.getByRole("button", { name: /Ajouter/i }).first().click();
+  const btn = page.getByRole("button", { name: /Ajouter/i }).first();
+
+  await btn.click();
+  await page.waitForTimeout(200);
 
   await openCart(page);
 
-  await page.getByTestId("checkout-button").click();
+  const checkoutBtn = page.getByTestId("checkout-button");
 
-  await page.waitForURL("**/checkout/success**", { timeout: 10000 });
+  await expect(checkoutBtn).toBeVisible();
+
+  await checkoutBtn.click();
+
+  // 🔥 FIX → attendre navigation réelle
+  await page.waitForURL(/checkout\/success/, { timeout: 10000 });
+
   await expect(page).toHaveURL(/checkout\/success/);
 });

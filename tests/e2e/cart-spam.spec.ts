@@ -11,10 +11,15 @@ test("🔥 Spam ajout produit", async ({ page }) => {
 
   for (let i = 0; i < 5; i++) {
     await btn.click();
+    await page.waitForTimeout(150); // 🔥 sync UI
   }
 
   await openCart(page);
 
-  await expect(page.getByTestId("cart-item")).toBeVisible();
-  await expect(page.getByTestId("item-quantity")).toBeVisible();
+  const qty = page.getByTestId("item-quantity");
+
+  await expect(qty).toBeVisible();
+
+  // 🔥 CHECK QUANTITÉ (clé du test)
+  await expect(qty).not.toHaveText("0");
 });

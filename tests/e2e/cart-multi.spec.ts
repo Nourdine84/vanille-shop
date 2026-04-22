@@ -7,8 +7,13 @@ test("🛒 Ajout multiple produits", async ({ page }) => {
 
   const addButtons = page.getByRole("button", { name: /Ajouter/i });
 
+  await expect(addButtons.first()).toBeVisible();
+
   await addButtons.nth(0).click();
+  await page.waitForTimeout(200);
+
   await addButtons.nth(1).click();
+  await page.waitForTimeout(300);
 
   await openCart(page);
 
