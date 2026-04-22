@@ -37,7 +37,7 @@ body {
 ========================= */
 
 .btn-primary {
-  background: #a16207; /* Vanille’Or gold */
+  background: #a16207;
   color: white;
   font-weight: 600;
   padding: 12px 18px;
@@ -86,6 +86,18 @@ body {
 }
 
 /* =========================
+   FOOTER LINKS
+========================= */
+
+.footer-link {
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: #d4af37;
+}
+
+/* =========================
    INTERACTIONS SAFE
 ========================= */
 
@@ -98,7 +110,7 @@ select {
 }
 
 /* =========================
-   HEADER / NAV FIX (🔥 IMPORTANT)
+   HEADER FIX
 ========================= */
 
 nav {
@@ -109,20 +121,14 @@ nav {
   nav {
     display: none !important;
   }
-}
 
-/* =========================
-   BURGER BUTTON FIX
-========================= */
-
-@media (max-width: 768px) {
-  button {
-    display: block;
+  .burger-btn {
+    display: block !important;
   }
 }
 
 /* =========================
-   SCROLLBAR (🔥 PREMIUM TOUCH)
+   SCROLLBAR
 ========================= */
 
 ::-webkit-scrollbar {
@@ -139,23 +145,11 @@ nav {
 }
 
 /* =========================
-   HEADER RESPONSIVE
-========================= */
-
-@media (max-width: 768px) {
-  nav {
-    display: none !important;
-  }
-
-  .burger-btn {
-    display: block !important;
-  }
-}
-/* =========================
    CHECKOUT MOBILE FIX
 ========================= */
 
-html, body {
+html,
+body {
   overflow-x: hidden;
 }
 
@@ -163,40 +157,22 @@ iframe {
   max-width: 100% !important;
 }
 
-/* Stripe container fix */
 #__next {
   overflow-x: hidden;
 }
 
 /* =========================
-   MOBILE GLOBAL FIX
+   MOBILE FIX CLEAN (🔥 SAFE VERSION)
 ========================= */
 
 @media (max-width: 768px) {
-
-  /* GRID FIX (checkout + pages) */
-  div[style*="gridTemplateColumns"] {
-    display: block !important;
-  }
-
-  /* CONTAINERS */
+  /* container */
   .container {
     padding-left: 12px !important;
     padding-right: 12px !important;
   }
 
-  /* BUTTON FULL WIDTH */
-  button,
-  a {
-    width: 100%;
-  }
-
-  /* CARD */
-  div[style*="borderRadius"] {
-    padding: 16px !important;
-  }
-
-  /* TEXT */
+  /* text */
   h1 {
     font-size: 24px !important;
   }
@@ -205,20 +181,15 @@ iframe {
     font-size: 18px !important;
   }
 
-  /* IMAGE */
+  /* image */
   img {
     max-width: 100%;
     height: auto;
   }
 
-  /* MINI CART */
-  div[style*="width: 400px"] {
+  /* mini cart */
+  [data-testid="mini-cart"] {
     width: 100% !important;
-  }
-
-  /* CHECKOUT SIDEBAR */
-  div[style*="position: sticky"] {
-    position: relative !important;
-    top: 0 !important;
+    max-width: 100% !important;
   }
 }

@@ -10,83 +10,363 @@ const SITE_URL =
 
 const LOGO = "https://vanilleor.fr/images/logo-vanilleor.png";
 
+/* ================= TYPES ================= */
+
+type EmailItem = {
+  id?: string;
+  name?: string;
+  quantity?: number;
+  priceCents?: number;
+  imageUrl?: string;
+  description?: string;
+  format?: string;
+};
+
+type LayoutProps = {
+  title: string;
+  subtitle?: string;
+  eyebrow?: string;
+  content: string;
+  footer?: string;
+};
+
+type CustomerOrderPayload = {
+  to: string;
+  orderId: string;
+  totalCents: number;
+  items: EmailItem[];
+};
+
+type AdminOrderPayload = {
+  orderId: string;
+  customerEmail?: string | null;
+  totalCents: number;
+  items: EmailItem[];
+};
+
+type ShippingPayload = {
+  to: string;
+  orderId: string;
+  trackingNumber?: string;
+  carrier?: string;
+};
+
+type AbandonedCartPayload = {
+  to: string;
+  items: EmailItem[];
+};
+
+type B2BPayload = {
+  name?: string;
+  email?: string;
+  company?: string;
+  quantity?: string;
+  message?: string;
+};
+
+type QuotePayload = {
+  to: string;
+  name?: string;
+  quantity?: string;
+  amountEuros?: number | null;
+};
+
+type RelancePayload = {
+  to: string;
+  name?: string;
+};
+
 /* ================= UTILS ================= */
 
 function money(cents: number) {
-  return `${(Number(cents || 0) / 100)
-    .toFixed(2)
-    .replace(".", ",")} €`;
+  return `${(Number(cents || 0) / 100).toFixed(2).replace(".", ",")} €`;
 }
 
-/* ================= TEMPLATE PREMIUM ================= */
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function resolveImageUrl(imageUrl?: string) {
+  if (!imageUrl) return "";
+  if (imageUrl.startsWith("http")) return imageUrl;
+  return `${SITE_URL}${imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`}`;
+}
+
+/* ================= TEMPLATE PREMIUM V4 ================= */
 
 function layout({
   title,
   subtitle,
+  eyebrow,
   content,
   footer,
-}: {
-  title: string;
-  subtitle?: string;
-  content: string;
-  footer?: string;
-}) {
+}: LayoutProps) {
   return `
-  <body style="margin:0;background:#f5f1ea;font-family:Arial, sans-serif;">
-    <div style="max-width:640px;margin:auto;background:white;border-radius:18px;overflow:hidden;">
+  <body style="margin:0;padding:24px 12px;background:#f5f1ea;font-family:Arial,sans-serif;color:#1a1a1a;">
+    <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.08);">
       
-      <div style="background:linear-gradient(135deg,#0f0f0f,#2a2117);padding:30px;text-align:center;">
-        <img src="${LOGO}" style="width:180px;margin-bottom:10px"/>
-        <h1 style="color:white;margin:0">${title}</h1>
+      <div style="background:linear-gradient(135deg,#0f0f0f,#2a2117);padding:34px 28px 28px;text-align:center;">
+        <img
+          src="${LOGO}"
+          alt="VanilleOr"
+          style="width:170px;max-width:100%;height:auto;display:block;margin:0 auto 14px;"
+        />
+
+        ${
+          eyebrow
+            ? `<div style="color:#d4af37;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;font-weight:700;margin-bottom:10px;">${escapeHtml(
+                eyebrow
+              )}</div>`
+            : ""
+        }
+
+        <h1 style="margin:0;color:#ffffff;font-size:30px;line-height:1.2;font-weight:800;">
+          ${escapeHtml(title)}
+        </h1>
+
         ${
           subtitle
-            ? `<p style="color:#ccc;margin-top:8px">${subtitle}</p>`
+            ? `<p style="margin:10px auto 0;color:#d6d0c8;font-size:15px;line-height:1.5;max-width:500px;">${escapeHtml(
+                subtitle
+              )}</p>`
             : ""
         }
       </div>
 
-      <div style="padding:25px;">
+      <div style="padding:30px 26px;">
         ${content}
 
-        <div style="margin-top:30px;font-size:12px;color:#777;text-align:center;">
-          ${footer || "VanilleOr — L’excellence de Madagascar"}
+        <div style="margin-top:34px;padding-top:18px;border-top:1px solid #eee;text-align:center;font-size:12px;color:#777;line-height:1.6;">
+          ${
+            footer ||
+            "VanilleOr — L’excellence de Madagascar<br/>Vanille & épices premium"
+          }
         </div>
       </div>
-
     </div>
   </body>
   `;
 }
 
-/* ================= ITEMS ================= */
+/* ================= BLOCKS ================= */
 
-function renderItems(items: any[]) {
-  return (items || [])
-    .map(
-      (i) => `
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;">
-      <span>${i?.name || "Produit"} x${i?.quantity || 1}</span>
-      <strong>${money((i?.priceCents || 0) * (i?.quantity || 1))}</strong>
+function sectionCard(content: string) {
+  return `
+    <div style="
+      margin-top:18px;
+      background:#faf8f4;
+      border:1px solid #eee7dd;
+      border-radius:16px;
+      padding:16px;
+    ">
+      ${content}
     </div>
-  `
-    )
+  `;
+}
+
+function statRow(label: string, value: string, emphasized = false) {
+  return `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      padding:${emphasized ? "16px 0 0" : "0"};
+      margin-top:${emphasized ? "8px" : "0"};
+      border-top:${emphasized ? "1px solid #eadfce" : "none"};
+    ">
+      <span style="
+        font-size:${emphasized ? "18px" : "14px"};
+        font-weight:${emphasized ? "800" : "600"};
+        color:${emphasized ? "#1a1a1a" : "#5f5f5f"};
+      ">
+        ${escapeHtml(label)}
+      </span>
+
+      <span style="
+        font-size:${emphasized ? "18px" : "14px"};
+        font-weight:800;
+        color:${emphasized ? "#a16207" : "#1a1a1a"};
+        text-align:right;
+      ">
+        ${escapeHtml(value)}
+      </span>
+    </div>
+  `;
+}
+
+function ctaButton(label: string, href: string) {
+  return `
+    <div style="margin-top:28px;text-align:center;">
+      <a href="${escapeHtml(href)}" style="
+        display:inline-block;
+        background:#a16207;
+        color:#ffffff;
+        padding:14px 28px;
+        border-radius:999px;
+        text-decoration:none;
+        font-weight:700;
+        font-size:15px;
+        box-shadow:0 8px 20px rgba(161,98,7,0.22);
+      ">
+        ${escapeHtml(label)}
+      </a>
+    </div>
+  `;
+}
+
+/* ================= ITEMS RENDER ================= */
+
+function renderItems(items: EmailItem[] = []) {
+  if (!items.length) {
+    return `
+      <div style="
+        padding:18px 0;
+        color:#777;
+        font-size:14px;
+      ">
+        Aucun produit renseigné.
+      </div>
+    `;
+  }
+
+  return items
+    .map((item) => {
+      const name = item?.name || "Produit";
+      const qty = Number(item?.quantity) || 1;
+      const priceCents = Number(item?.priceCents) || 0;
+      const lineTotal = money(priceCents * qty);
+      const description = item?.description?.trim();
+      const format = item?.format?.trim();
+      const imageUrl = resolveImageUrl(item?.imageUrl);
+
+      return `
+        <div style="
+          display:flex;
+          gap:14px;
+          padding:14px 0;
+          border-bottom:1px solid #ece7df;
+          align-items:flex-start;
+        ">
+          ${
+            imageUrl
+              ? `
+            <img
+              src="${escapeHtml(imageUrl)}"
+              alt="${escapeHtml(name)}"
+              style="
+                width:64px;
+                height:64px;
+                border-radius:12px;
+                object-fit:cover;
+                display:block;
+                background:#f2eee8;
+                border:1px solid #eee;
+              "
+            />
+          `
+              : `
+            <div style="
+              width:64px;
+              height:64px;
+              border-radius:12px;
+              background:#f2eee8;
+              border:1px solid #eee;
+              flex-shrink:0;
+            "></div>
+          `
+          }
+
+          <div style="flex:1;min-width:0;">
+            <div style="
+              font-size:15px;
+              font-weight:800;
+              color:#141414;
+              line-height:1.35;
+              margin:0;
+            ">
+              ${escapeHtml(name)}
+            </div>
+
+            ${
+              format
+                ? `<div style="margin-top:4px;font-size:12px;color:#8a8a8a;font-weight:600;">Format : ${escapeHtml(
+                    format
+                  )}</div>`
+                : ""
+            }
+
+            ${
+              description
+                ? `<div style="margin-top:6px;font-size:13px;line-height:1.55;color:#6e6e6e;">${escapeHtml(
+                    description
+                  )}</div>`
+                : ""
+            }
+
+            <div style="margin-top:8px;font-size:13px;color:#7a7a7a;font-weight:600;">
+              Quantité : ${qty}
+            </div>
+          </div>
+
+          <div style="
+            font-size:16px;
+            font-weight:800;
+            color:#a16207;
+            white-space:nowrap;
+            text-align:right;
+            line-height:1.3;
+          ">
+            ${escapeHtml(lineTotal)}
+          </div>
+        </div>
+      `;
+    })
     .join("");
 }
 
-/* ================= SEND ================= */
+/* ================= SEND (DEBUG SAFE) ================= */
 
-async function sendMail(payload: any) {
+async function sendMail(payload: {
+  to: string | string[] | undefined;
+  subject: string;
+  html: string;
+}) {
   try {
+    // ✅ FIX : bon check
+    if (!payload.to) {
+      console.warn("⚠️ EMAIL SKIPPED → no recipient");
+      return null;
+    }
+
+    console.log("\n📧 ===== EMAIL DEBUG START =====");
+    console.log("📧 API KEY:", !!process.env.RESEND_API_KEY);
+    console.log("📧 FROM:", process.env.EMAIL_FROM);
+    console.log("📧 TO:", payload.to);
+    console.log("📧 SUBJECT:", payload.subject);
+
     const res = await resend.emails.send({
       from: process.env.EMAIL_FROM as string,
-      ...payload,
+      to: payload.to,
+      subject: payload.subject,
+
+      // ✅ FIX RESEND V4 → obligatoire
+      html: payload.html,
+      text: payload.subject, // fallback simple (obligatoire pour TS)
     });
 
-    console.log("📧 EMAIL RESULT:", res);
+    console.log("📧 EMAIL RESULT:", JSON.stringify(res, null, 2));
+    console.log("📧 ===== EMAIL DEBUG END =====\n");
 
     return res;
-  } catch (err) {
-    console.error("❌ EMAIL ERROR:", err);
+  } catch (err: any) {
+    console.error("\n❌ EMAIL ERROR:", err?.message || err);
+    console.error(err);
     return null;
   }
 }
@@ -98,33 +378,28 @@ export async function sendCustomerOrderEmail({
   orderId,
   totalCents,
   items,
-}: any) {
+}: CustomerOrderPayload) {
   const html = layout({
+    eyebrow: "Commande",
     title: "Commande confirmée",
-    subtitle: "Merci pour votre confiance",
+    subtitle: "Merci pour votre confiance. Nous préparons votre sélection avec le plus grand soin.",
     content: `
-      <p>Votre commande <strong>#${orderId}</strong> a été validée.</p>
+      <p style="margin:0 0 10px;font-size:16px;line-height:1.65;color:#333;">
+        Votre commande <strong>#${escapeHtml(orderId)}</strong> a bien été validée.
+      </p>
 
-      <div style="margin-top:20px">
-        ${renderItems(items)}
-      </div>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#6b6b6b;">
+        Voici le récapitulatif de votre achat :
+      </p>
 
-      <h2 style="margin-top:20px;color:#a16207">
-        Total : ${money(totalCents)}
-      </h2>
+      ${sectionCard(renderItems(items))}
 
-      <div style="margin-top:25px;text-align:center">
-        <a href="${SITE_URL}/products" style="
-          background:#a16207;
-          color:white;
-          padding:14px 22px;
-          border-radius:10px;
-          text-decoration:none;
-          font-weight:bold;
-        ">
-          Continuer mes achats
-        </a>
-      </div>
+      ${sectionCard(
+        statRow("Référence", `#${orderId}`) +
+          statRow("Total", money(totalCents), true)
+      )}
+
+      ${ctaButton("Continuer mes achats", `${SITE_URL}/products`)}
     `,
   });
 
@@ -142,20 +417,19 @@ export async function sendAdminOrderEmail({
   customerEmail,
   totalCents,
   items,
-}: any) {
+}: AdminOrderPayload) {
   const html = layout({
+    eyebrow: "Administration",
     title: "Nouvelle commande",
+    subtitle: "Une nouvelle commande a été enregistrée sur VanilleOr.",
     content: `
-      <p><strong>Commande :</strong> ${orderId}</p>
-      <p><strong>Email :</strong> ${customerEmail || "-"}</p>
+      ${sectionCard(
+        statRow("Commande", orderId) +
+          statRow("Email client", customerEmail || "-") +
+          statRow("Total", money(totalCents), true)
+      )}
 
-      <div style="margin-top:20px">
-        ${renderItems(items)}
-      </div>
-
-      <h2 style="margin-top:20px;color:#a16207">
-        Total : ${money(totalCents)}
-      </h2>
+      ${sectionCard(renderItems(items))}
     `,
   });
 
@@ -168,18 +442,19 @@ export async function sendAdminOrderEmail({
 
 /* ================= SHIPPING ================= */
 
-export async function sendShippingEmail(payload: {
-  to: string;
-  orderId: string;
-  trackingNumber?: string;
-  carrier?: string;
-}) {
+export async function sendShippingEmail(payload: ShippingPayload) {
   const html = layout({
+    eyebrow: "Expédition",
     title: "Commande expédiée",
+    subtitle: "Votre colis est en route.",
     content: `
-      <p>Commande #${payload.orderId}</p>
-      <p>Transporteur : ${payload.carrier || "N/A"}</p>
-      <p>Suivi : ${payload.trackingNumber || "N/A"}</p>
+      ${sectionCard(
+        statRow("Commande", payload.orderId) +
+          statRow("Transporteur", payload.carrier || "N/A") +
+          statRow("Suivi", payload.trackingNumber || "N/A")
+      )}
+
+      ${ctaButton("Découvrir nos produits", `${SITE_URL}/products`)}
     `,
   });
 
@@ -190,17 +465,59 @@ export async function sendShippingEmail(payload: {
   });
 }
 
+/* ================= ABANDON CART ================= */
+
+export async function sendAbandonedCartEmail({
+  to,
+  items,
+}: AbandonedCartPayload) {
+  const html = layout({
+    eyebrow: "Panier",
+    title: "Votre panier vous attend",
+    subtitle: "Votre sélection est toujours disponible.",
+    content: `
+      <p style="margin:0;font-size:15px;line-height:1.65;color:#4a4a4a;">
+        Retrouvez vos produits favoris et finalisez votre commande en quelques clics.
+      </p>
+
+      ${sectionCard(renderItems(items))}
+
+      ${ctaButton("Finaliser ma commande", `${SITE_URL}/checkout`)}
+    `,
+  });
+
+  return sendMail({
+    to,
+    subject: "Votre panier vous attend 🛒",
+    html,
+  });
+}
+
 /* ================= B2B ================= */
 
-export async function sendB2BAdminEmail(payload: any) {
+export async function sendB2BAdminEmail(payload: B2BPayload) {
   const html = layout({
-    title: "Nouvelle demande B2B",
+    eyebrow: "B2B",
+    title: "Nouvelle demande professionnelle",
+    subtitle: "Un prospect a soumis une demande via le formulaire pro.",
     content: `
-      <p><strong>Nom :</strong> ${payload.name}</p>
-      <p><strong>Email :</strong> ${payload.email}</p>
-      <p><strong>Entreprise :</strong> ${payload.company || "-"}</p>
-      <p><strong>Quantité :</strong> ${payload.quantity}</p>
-      <p><strong>Message :</strong> ${payload.message || "-"}</p>
+      ${sectionCard(
+        statRow("Nom", payload.name || "-") +
+          statRow("Email", payload.email || "-") +
+          statRow("Entreprise", payload.company || "-") +
+          statRow("Quantité", payload.quantity || "-")
+      )}
+
+      ${
+        payload.message
+          ? sectionCard(`
+              <div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:8px;">Message</div>
+              <div style="font-size:14px;line-height:1.65;color:#666;">${escapeHtml(
+                payload.message
+              )}</div>
+            `)
+          : ""
+      }
     `,
   });
 
@@ -211,13 +528,21 @@ export async function sendB2BAdminEmail(payload: any) {
   });
 }
 
-export async function sendB2BCustomerAckEmail(payload: any) {
+export async function sendB2BCustomerAckEmail(payload: B2BPayload) {
   const html = layout({
-    title: "Demande reçue",
-    subtitle: "Nous revenons vers vous rapidement",
+    eyebrow: "B2B",
+    title: "Demande bien reçue",
+    subtitle: "Nous revenons vers vous rapidement avec une réponse adaptée à votre besoin.",
     content: `
-      <p>Merci ${payload.name},</p>
-      <p>Votre demande a bien été enregistrée.</p>
+      <p style="margin:0 0 10px;font-size:16px;line-height:1.65;color:#333;">
+        Merci ${escapeHtml(payload.name || "")},
+      </p>
+
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#666;">
+        Votre demande a bien été enregistrée. Notre équipe reviendra vers vous dans les meilleurs délais.
+      </p>
+
+      ${payload.quantity ? sectionCard(statRow("Quantité demandée", payload.quantity)) : ""}
     `,
   });
 
@@ -230,22 +555,21 @@ export async function sendB2BCustomerAckEmail(payload: any) {
 
 /* ================= QUOTE ================= */
 
-export async function sendQuoteEmail(payload: {
-  to: string;
-  name: string;
-  quantity: string;
-  amountEuros?: number | null;
-}) {
+export async function sendQuoteEmail(payload: QuotePayload) {
   const html = layout({
+    eyebrow: "Devis",
     title: "Votre devis VanilleOr",
+    subtitle: "Voici un récapitulatif de votre demande.",
     content: `
-      <p>${payload.name}</p>
-      <p>${payload.quantity}</p>
-      ${
-        payload.amountEuros
-          ? `<h2>${payload.amountEuros} €</h2>`
-          : ""
-      }
+      ${sectionCard(
+        statRow("Nom", payload.name || "-") +
+          statRow("Quantité", payload.quantity || "-") +
+          (payload.amountEuros != null
+            ? statRow("Montant estimé", `${payload.amountEuros} €`, true)
+            : "")
+      )}
+
+      ${ctaButton("Découvrir nos produits", `${SITE_URL}/products`)}
     `,
   });
 
@@ -258,24 +582,46 @@ export async function sendQuoteEmail(payload: {
 
 /* ================= RELANCE ================= */
 
-export async function sendB2BRelanceEmail(payload: {
-  to: string;
-  name: string;
-}) {
+export async function sendB2BRelanceEmail(payload: RelancePayload) {
+  const html = layout({
+    eyebrow: "Relance",
+    title: "Nous revenons vers vous",
+    subtitle: "Votre demande nous intéresse toujours.",
+    content: `
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#555;">
+        Bonjour ${escapeHtml(payload.name || "")},<br/><br/>
+        Nous revenons vers vous concernant votre intérêt pour nos produits VanilleOr.
+      </p>
+
+      ${ctaButton("Découvrir VanilleOr", `${SITE_URL}/products`)}
+    `,
+  });
+
   return sendMail({
     to: payload.to,
     subject: "Relance VanilleOr",
-    html: `<p>Bonjour ${payload.name}, nous revenons vers vous.</p>`,
+    html,
   });
 }
 
-export async function sendB2BRelanceV2Email(payload: {
-  to: string;
-  name: string;
-}) {
+export async function sendB2BRelanceV2Email(payload: RelancePayload) {
+  const html = layout({
+    eyebrow: "Relance",
+    title: "Dernier message de suivi",
+    subtitle: "Nous restons disponibles pour échanger.",
+    content: `
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#555;">
+        Bonjour ${escapeHtml(payload.name || "")},<br/><br/>
+        Nous vous adressons un dernier message de suivi concernant votre demande.
+      </p>
+
+      ${ctaButton("Voir nos produits", `${SITE_URL}/products`)}
+    `,
+  });
+
   return sendMail({
     to: payload.to,
     subject: "Dernière relance",
-    html: `<p>Dernière relance ${payload.name}</p>`,
+    html,
   });
 }
