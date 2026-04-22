@@ -126,7 +126,10 @@ export async function POST(req: Request) {
           to: updatedOrder.email!,
           orderId: updatedOrder.id,
           trackingNumber: updatedOrder.trackingNumber!,
-          carrier: updatedOrder.carrier,
+          carrier:
+            typeof updatedOrder.carrier === "string"
+              ? updatedOrder.carrier
+              : undefined,
         });
 
         console.log("📧 Shipping email sent:", updatedOrder.email);
