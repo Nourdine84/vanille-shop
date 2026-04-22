@@ -1,28 +1,62 @@
-# Vanille Shop - E-commerce de Vanilles
+# 🛒 Vanille'Or Shop — E-commerce Premium
 
-Un site e-commerce moderne pour la vente de vanilles, construit avec Next.js 14, TypeScript, Tailwind CSS et Stripe.
+[![E2E Tests](https://github.com/Nourdine84/vanille-shop/actions/workflows/playwright.yml/badge.svg)](https://github.com/Nourdine84/vanille-shop/actions/workflows/playwright.yml)
 
-## 🚀 Fonctionnalités
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+![Playwright](https://img.shields.io/badge/Playwright-E2E-green?logo=playwright)
+![Stripe](https://img.shields.io/badge/Stripe-Payments-purple?logo=stripe)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-blue?logo=prisma)
+![Status](https://img.shields.io/badge/status-production_ready-brightgreen)
 
-- ✅ Catalogue de produits (vanilles)
-- ✅ Panier d'achat
-- ✅ Système de paiement avec Stripe
-- ✅ Authentification utilisateur
-- ✅ Gestion des commandes
-- ✅ Design responsive avec Tailwind CSS
-- ✅ API RESTful
+---
+
+## 🚀 Description
+
+Vanille'Or Shop est un e-commerce moderne dédié à la vente de vanille et d’épices premium de Madagascar.
+
+👉 Objectif : proposer une expérience fluide, fiable et orientée conversion, avec une approche **qualité produit + qualité technique**.
+
+---
+
+## 🧪 QA & Fiabilité
+
+- ✅ Tests E2E Playwright (100% stable)
+- ✅ Mock Stripe sécurisé (CI ready)
+- ✅ Tests panier & checkout robustes
+- ✅ Compatible CI/CD (GitHub Actions)
+- ✅ Gestion des cas flaky (overlay, async, navigation)
+
+---
+
+## 🛒 Fonctionnalités
+
+- Catalogue produits dynamique
+- Panier intelligent (persistant)
+- Checkout sécurisé Stripe
+- Recommandations produits (cross-sell)
+- Authentification utilisateur
+- Admin panel (produits & commandes)
+- UX responsive mobile / desktop
+
+---
 
 ## 📋 Stack Technique
 
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **Styling**: Tailwind CSS
-- **Payment**: Stripe
-- **Database**: (À configurer - PostgreSQL recommandé)
-- **Deployment**: Vercel (recommandé)
+- **Backend**: API Routes Next.js
+- **Database**: Prisma (PostgreSQL)
+- **Paiement**: Stripe
+- **Tests**: Playwright E2E
+- **CI/CD**: GitHub Actions
+- **Deployment**: Vercel
+
+---
 
 ## 🛠️ Installation
 
-1. **Cloner le repository**
+### 1. Cloner le repo
+
 ```bash
 git clone https://github.com/Nourdine84/vanille-shop.git
 cd vanille-shop
@@ -47,6 +81,12 @@ npm run dev
 ```
 
 Ouvrir [http://localhost:3000](http://localhost:3000) dans le navigateur.
+
+🧪 Lancer les tests E2E
+npx playwright test
+
+Rapport HTML : 
+npx playwright show-report
 
 ## 📁 Structure du Projet
 
@@ -101,3 +141,4 @@ MIT
 ## 👨‍💻 Auteur
 
 Nourdine84
+QA Engineer . E-commerce . Automation . AI-driven dev
