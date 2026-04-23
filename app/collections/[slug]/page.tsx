@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
+export const dynamic = "force-dynamic";
 
 export default function CollectionPage() {
   const { slug } = useParams();

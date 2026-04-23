@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
 import type { CSSProperties } from "react";
+export const dynamic = "force-dynamic";
 
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
