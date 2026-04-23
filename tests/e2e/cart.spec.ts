@@ -5,7 +5,7 @@ test.describe("🛒 Cart stable", () => {
   test("Ajout + ouverture + checkout", async ({ page }) => {
 
     // 🔥 MOCK CHECKOUT (CRITIQUE)
-    await page.route("**/api/create-checkout-session", async (route) => {
+    await page.route("**/api/checkout-session", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",

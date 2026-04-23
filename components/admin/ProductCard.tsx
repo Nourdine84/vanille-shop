@@ -3,6 +3,14 @@
 export default function ProductCard({ product }: any) {
   const isOut = product.stock <= 0;
 
+  /* =========================
+     IMAGE SAFE (🔥 FIX)
+  ========================= */
+  const imageSrc =
+    product.imageUrl && product.imageUrl !== ""
+      ? product.imageUrl
+      : "/products/default.jpg";
+
   return (
     <div
       style={card}
@@ -18,11 +26,15 @@ export default function ProductCard({ product }: any) {
       }}
     >
       <div style={imageWrapper}>
-        {product.imageUrl ? (
-          <img src={product.imageUrl} style={productImage} />
-        ) : (
-          <div style={noImage}>No image</div>
-        )}
+        <img
+          src={imageSrc}
+          style={productImage}
+          alt={product.name}
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.src = "/products/default.jpg";
+          }}
+        />
 
         {product.badge && (
           <div style={badgeOverlay}>{product.badge}</div>
@@ -65,7 +77,7 @@ export default function ProductCard({ product }: any) {
   );
 }
 
-/* STYLE */
+/* ================= STYLE ================= */
 
 const card = {
   background: "white",

@@ -4,7 +4,7 @@ import { openCart, addFirstProduct } from "../utils/cart";
 test.beforeEach(async ({ page }) => {
 
   // 🔥 MOCK CHECKOUT GLOBAL
-  await page.route("**/api/create-checkout-session", async (route) => {
+  await page.route("**/api/checkout-session", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",

@@ -4,9 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import CrossSell from "@/components/cross-sell";
 
-function formatPrice(priceCents: number) {
-  return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
+/* ================= SAFE UTILS ================= */
+
+function safeNumber(value: any) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
 }
+
+function formatPrice(priceCents: number) {
+  const safe = safeNumber(priceCents);
+  return (safe / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+/* ================= PAGE ================= */
 
 export default function CheckoutPage() {
   const { cart } = useCart();
@@ -19,10 +29,11 @@ export default function CheckoutPage() {
   }, []);
 
   const subtotal = useMemo(() => {
-    return cart.reduce(
-      (acc, item) => acc + item.priceCents * item.quantity,
-      0
-    );
+    return cart.reduce((acc, item) => {
+      const price = safeNumber(item.priceCents);
+      const qty = safeNumber(item.quantity);
+      return acc + price * qty;
+    }, 0);
   }, [cart]);
 
   const freeShippingThreshold = 5000;
@@ -30,13 +41,17 @@ export default function CheckoutPage() {
   const total = subtotal + shippingCost;
   const remaining = Math.max(0, freeShippingThreshold - subtotal);
 
+  /* ================= CHECKOUT ================= */
+
   const handleCheckout = async () => {
-    if (!cart.length) return;
+    if (!cart.length || loading) return;
 
     try {
       setLoading(true);
 
-      const res = await fetch("/api/create-checkout-session", {
+      console.log("🛒 Sending cart:", cart);
+
+      const res = await fetch("/api/checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -44,14 +59,35 @@ export default function CheckoutPage() {
         body: JSON.stringify({ cart }),
       });
 
-      const data = await res.json();
+      let data: any = null;
 
-      if (!res.ok) throw new Error(data.error || "Erreur checkout");
+      try {
+        data = await res.json();
+      } catch {
+        console.warn("⚠️ JSON parsing failed");
+      }
 
-      window.location.href = data.url;
+      console.log("🧾 CHECKOUT RESPONSE:", data);
+
+      /* ✅ SUCCESS → STRIPE */
+      if (res.ok && data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      /* ❌ ERREUR API */
+      console.error("❌ Checkout API error:", data);
+
+      alert(
+        data?.error ||
+          "Une erreur est survenue lors du paiement. Veuillez réessayer."
+      );
+
     } catch (err) {
-      console.error(err);
-      alert("Erreur paiement");
+      console.error("❌ NETWORK ERROR:", err);
+
+      alert("Erreur serveur. Merci de réessayer.");
+    } finally {
       setLoading(false);
     }
   };
@@ -78,6 +114,7 @@ export default function CheckoutPage() {
 
       <div style={container}>
         <div style={grid}>
+          {/* LEFT */}
           <div>
             <div style={card}>
               <h2 style={sectionTitle}>Votre panier</h2>
@@ -91,6 +128,9 @@ export default function CheckoutPage() {
                       src={item.imageUrl || "/images/default.jpg"}
                       alt={item.name}
                       style={image}
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/default.jpg";
+                      }}
                     />
 
                     <div style={{ flex: 1 }}>
@@ -115,14 +155,14 @@ export default function CheckoutPage() {
             <CrossSell />
           </div>
 
+          {/* RIGHT */}
           <div style={summary}>
             <h2 style={sectionTitle}>Résumé</h2>
 
             {remaining > 0 ? (
               <div style={shippingBox}>
                 Ajoutez encore{" "}
-                <strong>{formatPrice(remaining)}</strong> pour bénéficier de la{" "}
-                <strong>livraison offerte</strong>
+                <strong>{formatPrice(remaining)}</strong> pour la livraison offerte
               </div>
             ) : (
               <div style={shippingFree}>
@@ -154,6 +194,7 @@ export default function CheckoutPage() {
               style={{
                 ...cta,
                 opacity: loading ? 0.7 : 1,
+                cursor: loading ? "wait" : "pointer",
               }}
               disabled={loading || cart.length === 0}
             >
@@ -167,6 +208,8 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+/* ================= STYLES ================= */
 
 const page: React.CSSProperties = {
   background: "#f8f5ef",
@@ -293,16 +336,12 @@ const shippingBox: React.CSSProperties = {
   padding: "12px",
   borderRadius: "12px",
   marginBottom: "15px",
-  fontSize: "14px",
 };
 
 const shippingFree: React.CSSProperties = {
   background: "#ecfdf5",
   padding: "12px",
   borderRadius: "12px",
-  marginBottom: "15px",
-  color: "#065f46",
-  fontWeight: 600,
 };
 
 const cta: React.CSSProperties = {
@@ -314,7 +353,6 @@ const cta: React.CSSProperties = {
   borderRadius: "12px",
   border: "none",
   fontWeight: 800,
-  cursor: "pointer",
 };
 
 const secure: React.CSSProperties = {

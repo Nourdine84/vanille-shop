@@ -3,7 +3,7 @@ import { openCart } from "../utils/cart";
 
 test("💳 Mock paiement Stripe", async ({ page }) => {
 
-  await page.route("**/api/create-checkout-session", async (route) => {
+  await page.route("**/api/checkout-session", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",

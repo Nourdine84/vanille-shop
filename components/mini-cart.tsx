@@ -18,7 +18,7 @@ type Product = {
   category?: string | null;
 };
 
-function safeNumber(value: any) {
+function safeNumber(value: unknown) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 }
@@ -57,9 +57,11 @@ export default function MiniCart() {
     addToCart,
     isReady,
   } = useCart();
+
   const { isCartOpen, closeCart } = useUIStore();
 
   const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const subtotal = useMemo(
     () =>
@@ -94,7 +96,7 @@ export default function MiniCart() {
         const intent = guessIntentFromCart(cart);
 
         const filtered = all.filter((p) => {
-          if (!p || !p.id || p.isPack) return false;
+          if (!p || !p.id || !p.slug || p.isPack) return false;
           if ((p.stock ?? 0) <= 0) return false;
           if (cartIds.has(p.id)) return false;
           return true;
@@ -140,13 +142,23 @@ export default function MiniCart() {
         setRecommendations(scored);
       })
       .catch(() => {
-        if (!cancelled) setRecommendations([]);
+        if (!cancelled) {
+          setRecommendations([]);
+        }
       });
 
     return () => {
       cancelled = true;
     };
   }, [isCartOpen, isReady, cart, cartIds]);
+
+  function handleGoToCheckout() {
+    if (!cart.length || isRedirecting) return;
+
+    setIsRedirecting(true);
+    closeCart();
+    window.location.href = "/checkout";
+  }
 
   if (!isReady) return null;
 
@@ -167,8 +179,8 @@ export default function MiniCart() {
 
       <aside
         data-panel
-        aria-hidden={!isCartOpen}
         data-testid="mini-cart"
+        aria-hidden={!isCartOpen}
         style={{
           ...panel,
           display: isCartOpen ? "flex" : "none",
@@ -217,6 +229,9 @@ export default function MiniCart() {
                         src={getImageUrl(product.imageUrl)}
                         alt={product.name}
                         style={suggestionImg}
+                        onError={(e) => {
+                          e.currentTarget.src = "/images/default.jpg";
+                        }}
                       />
 
                       <div style={suggestionContent}>
@@ -224,6 +239,7 @@ export default function MiniCart() {
                         <p style={suggestionPrice}>
                           {formatPrice(product.priceCents)}
                         </p>
+
                         <Link
                           href={`/products/${product.slug}`}
                           onClick={closeCart}
@@ -263,6 +279,9 @@ export default function MiniCart() {
                     src={getImageUrl(item.imageUrl)}
                     alt={item.name}
                     style={img}
+                    onError={(e) => {
+                      e.currentTarget.src = "/images/default.jpg";
+                    }}
                   />
 
                   <div data-testid={`cart-item-${index}`} style={itemContent}>
@@ -277,7 +296,10 @@ export default function MiniCart() {
                           data-testid="decrease-qty"
                           style={qtyBtn}
                           onClick={() =>
-                            updateQuantity(item.id, safeNumber(item.quantity) - 1)
+                            updateQuantity(
+                              item.id,
+                              Math.max(1, safeNumber(item.quantity) - 1)
+                            )
                           }
                           aria-label="Diminuer la quantité"
                         >
@@ -341,6 +363,9 @@ export default function MiniCart() {
                             src={getImageUrl(product.imageUrl)}
                             alt={product.name}
                             style={crossSellImg}
+                            onError={(e) => {
+                              e.currentTarget.src = "/images/default.jpg";
+                            }}
                           />
                         </Link>
 
@@ -395,35 +420,16 @@ export default function MiniCart() {
 
               <button
                 type="button"
-                style={checkoutBtn}
-                data-testid="checkout-button"
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/create-checkout-session", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ cart }),
-                    });
-
-                    const data = await res.json();
-
-                    if (data?.url) {
-                      setTimeout(() => {
-                      window.location.href = data.url;
-                      }, 50) ;
-                    } else {
-                      console.error("❌ Stripe URL manquante");
-                    }
-                  } catch (e) {
-                    console.error("❌ Checkout error", e);
-                  } finally {
-                    setTimeout (() => closeCart(),50) ;
-                  }
+                style={{
+                  ...checkoutBtn,
+                  opacity: isRedirecting ? 0.75 : 1,
+                  cursor: isRedirecting ? "wait" : "pointer",
                 }}
+                data-testid="checkout-button"
+                onClick={handleGoToCheckout}
+                disabled={isRedirecting}
               >
-                Commander maintenant
+                {isRedirecting ? "Ouverture..." : "Commander maintenant"}
               </button>
 
               <button
@@ -801,7 +807,6 @@ const checkoutBtn: CSSProperties = {
   fontWeight: 800,
   border: "none",
   width: "100%",
-  cursor: "pointer",
 };
 
 const clearBtn: CSSProperties = {

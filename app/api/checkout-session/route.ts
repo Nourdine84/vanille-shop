@@ -1,23 +1,13 @@
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { stripe } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
-/* =========================
-   INIT STRIPE
-========================= */
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("❌ STRIPE_SECRET_KEY manquante");
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-/* =========================
-   TYPES
-========================= */
+/* ================= TYPES ================= */
 
 type CartItem = {
   id: string;
@@ -31,28 +21,16 @@ type CheckoutBody = {
   cart?: CartItem[];
 };
 
-/* =========================
-   HELPERS
-========================= */
+/* ================= HELPERS ================= */
 
 function getBaseUrl(req: Request) {
   const origin = req.headers.get("origin");
 
   if (origin) return origin;
-
-  if (process.env.NEXT_PUBLIC_URL) {
-    return process.env.NEXT_PUBLIC_URL;
-  }
-
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
+  if (process.env.NEXT_PUBLIC_URL) return process.env.NEXT_PUBLIC_URL;
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
 
   return "http://localhost:3000";
-}
-
-function getSafeProductId(rawId: string) {
-  return rawId.trim();
 }
 
 function getSafeImageUrl(baseUrl: string, imageUrl?: string) {
@@ -60,17 +38,10 @@ function getSafeImageUrl(baseUrl: string, imageUrl?: string) {
     return `${baseUrl}/images/default.jpg`;
   }
 
-  const clean = imageUrl.trim();
+  if (imageUrl.startsWith("http")) return imageUrl;
+  if (imageUrl.startsWith("/")) return `${baseUrl}${imageUrl}`;
 
-  if (clean.startsWith("http://") || clean.startsWith("https://")) {
-    return clean;
-  }
-
-  if (clean.startsWith("/")) {
-    return `${baseUrl}${clean}`;
-  }
-
-  return `${baseUrl}/images/${clean}`;
+  return `${baseUrl}/images/${imageUrl}`;
 }
 
 function isValidCartItem(item: any): item is CartItem {
@@ -79,7 +50,6 @@ function isValidCartItem(item: any): item is CartItem {
     typeof item.id === "string" &&
     item.id.trim() !== "" &&
     typeof item.name === "string" &&
-    item.name.trim() !== "" &&
     typeof item.priceCents === "number" &&
     Number.isFinite(item.priceCents) &&
     item.priceCents > 0 &&
@@ -89,9 +59,7 @@ function isValidCartItem(item: any): item is CartItem {
   );
 }
 
-/* =========================
-   POST CHECKOUT
-========================= */
+/* ================= POST ================= */
 
 export async function POST(req: Request) {
   try {
@@ -100,96 +68,102 @@ export async function POST(req: Request) {
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
+      return NextResponse.json(
+        { error: "JSON invalide" },
+        { status: 400 }
+      );
     }
 
-    if (!body.cart || !Array.isArray(body.cart) || body.cart.length === 0) {
-      return NextResponse.json({ error: "Panier vide" }, { status: 400 });
-    }
-
-    const cart = body.cart.filter(isValidCartItem);
-
-    if (cart.length === 0) {
+    if (!body.cart || !Array.isArray(body.cart)) {
       return NextResponse.json(
         { error: "Panier invalide" },
         { status: 400 }
       );
     }
 
+    const cart = body.cart.filter(isValidCartItem);
+
+    if (cart.length === 0) {
+      return NextResponse.json(
+        { error: "Panier vide" },
+        { status: 400 }
+      );
+    }
+
+    console.log("🛒 CART RECEIVED:", cart);
+
     const baseUrl = getBaseUrl(req);
 
-    /* =========================
-       VALIDATION PRODUITS DB
-    ========================= */
+    /* ================= VALIDATION DB ================= */
+
+    const validatedItems: CartItem[] = [];
 
     for (const item of cart) {
-      const productId = getSafeProductId(item.id);
+      try {
+        const productId = item.id.split("-")[0];
 
-      const product = await prisma.product.findUnique({
-        where: { id: productId },
-      });
+        const product = await prisma.product.findUnique({
+          where: { id: productId },
+        });
 
-      if (!product) {
-        return NextResponse.json(
-          { error: `Produit introuvable : ${item.name}` },
-          { status: 404 }
-        );
-      }
+        if (!product) {
+          console.warn("⚠️ Produit introuvable ignoré:", item.id);
+          continue;
+        }
 
-      if (!product.isActive) {
-        return NextResponse.json(
-          { error: `Produit inactif : ${item.name}` },
-          { status: 400 }
-        );
-      }
+        if (!product.isActive) {
+          console.warn("⚠️ Produit inactif:", item.id);
+          continue;
+        }
 
-      if (product.stock < item.quantity) {
-        return NextResponse.json(
-          { error: `Stock insuffisant pour ${item.name}` },
-          { status: 400 }
-        );
-      }
+        if (product.stock < item.quantity) {
+          console.warn("⚠️ Stock insuffisant:", item.id);
+          continue;
+        }
 
-      if (product.priceCents !== item.priceCents) {
-        return NextResponse.json(
-          { error: `Prix invalide pour ${item.name}` },
-          { status: 400 }
-        );
+        if (product.priceCents !== item.priceCents) {
+          console.warn("⚠️ Prix mismatch:", item.id);
+          continue;
+        }
+
+        validatedItems.push(item);
+      } catch (err) {
+        console.error("❌ DB ERROR ITEM:", item.id, err);
       }
     }
 
-    /* =========================
-       CALCUL PRIX
-    ========================= */
+    if (validatedItems.length === 0) {
+      return NextResponse.json(
+        { error: "Aucun produit valide" },
+        { status: 400 }
+      );
+    }
 
-    const subtotal = cart.reduce(
+    /* ================= PRIX ================= */
+
+    const subtotal = validatedItems.reduce(
       (acc, item) => acc + item.priceCents * item.quantity,
       0
     );
 
-    const freeShippingThreshold = 5000;
-    const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
+    const shippingCost = subtotal >= 5000 ? 0 : 490;
     const total = subtotal + shippingCost;
 
-    /* =========================
-       CREATE ORDER
-    ========================= */
+    /* ================= ORDER ================= */
 
     const order = await prisma.order.create({
       data: {
         status: "PENDING",
         totalCents: total,
         currency: "EUR",
-        items: cart,
+        items: validatedItems,
       },
     });
 
-    /* =========================
-       STRIPE LINE ITEMS
-    ========================= */
+    /* ================= STRIPE ================= */
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = cart.map(
-      (item) => ({
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      validatedItems.map((item) => ({
         price_data: {
           currency: "eur",
           product_data: {
@@ -200,25 +174,20 @@ export async function POST(req: Request) {
           unit_amount: item.priceCents,
         },
         quantity: item.quantity,
-      })
-    );
+      }));
 
     if (shippingCost > 0) {
       lineItems.push({
         price_data: {
           currency: "eur",
-          product_data: {
-            name: "Frais de livraison",
-          },
+          product_data: { name: "Frais de livraison" },
           unit_amount: shippingCost,
         },
         quantity: 1,
       });
     }
 
-    /* =========================
-       CREATE STRIPE SESSION
-    ========================= */
+    console.log("💳 STRIPE CALL...");
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -230,24 +199,20 @@ export async function POST(req: Request) {
       shipping_address_collection: {
         allowed_countries: ["FR", "BE", "CH"],
       },
-      phone_number_collection: {
-        enabled: true,
-      },
+      phone_number_collection: { enabled: true },
       metadata: {
         orderId: order.id,
         source: "vanilleor-shop",
       },
     });
 
-    /* =========================
-       LINK ORDER TO SESSION
-    ========================= */
+    console.log("✅ STRIPE SESSION:", session.id);
+
+    /* ================= LINK ================= */
 
     await prisma.order.update({
       where: { id: order.id },
-      data: {
-        stripeSessionId: session.id,
-      },
+      data: { stripeSessionId: session.id },
     });
 
     return NextResponse.json({
@@ -255,25 +220,22 @@ export async function POST(req: Request) {
       sessionId: session.id,
       orderId: order.id,
     });
+
   } catch (error: any) {
-    console.error("🔥 STRIPE FULL ERROR:", error);
+    console.error("🔥 GLOBAL CHECKOUT ERROR:", error);
 
     return NextResponse.json(
-      {
-        error: error?.message || "Erreur Stripe",
-      },
+      { error: error?.message || "Erreur serveur" },
       { status: 500 }
     );
   }
 }
 
-/* =========================
-   GET DEBUG
-========================= */
+/* ================= DEBUG ================= */
 
 export async function GET() {
   return NextResponse.json({
-    message: "API checkout OK",
-    env: !!process.env.STRIPE_SECRET_KEY,
+    ok: true,
+    stripe: !!process.env.STRIPE_SECRET_KEY,
   });
 }
