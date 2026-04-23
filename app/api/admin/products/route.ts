@@ -22,33 +22,40 @@ function isChecked(value: FormDataEntryValue | null) {
   return value === "on" || value === "true" || value === "1";
 }
 
-function isNonEmptyString(value: FormDataEntryValue | null): value is string {
-  return typeof value === "string" && value.trim() !== "";
-}
+/* =========================
+   SAFE CLOUDINARY
+========================= */
 
 async function uploadFileToCloudinary(file: File) {
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
+  try {
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-  const result = await new Promise<any>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "vanilleor",
-        resource_type: "image",
-      },
-      (error, uploaded) => {
-        if (error) {
-          reject(error);
-          return;
+    const result = await new Promise<any>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "vanilleor",
+          resource_type: "image",
+        },
+        (error, uploaded) => {
+          if (error) {
+            console.error("❌ CLOUDINARY ERROR:", error);
+            reject(error);
+            return;
+          }
+          resolve(uploaded);
         }
-        resolve(uploaded);
-      }
-    );
+      );
 
-    stream.end(buffer);
-  });
+      stream.end(buffer);
+    });
 
-  return result?.secure_url as string;
+    return result?.secure_url as string;
+
+  } catch (err) {
+    console.error("❌ UPLOAD FAILED:", err);
+    return "";
+  }
 }
 
 /* =========================
@@ -72,22 +79,29 @@ export async function POST(req: Request) {
     const badge = formData.get("badge")?.toString().trim() || null;
 
     /* =========================
-       IMAGE SUPPORT
-       - imageUrl (current admin form)
-       - image file upload (future-ready)
+       IMAGE (SAFE)
     ========================= */
 
     let imageUrl = formData.get("imageUrl")?.toString().trim() || "";
 
     const file = formData.get("image");
 
+    // upload uniquement si URL vide
     if (!imageUrl && file && typeof file !== "string" && file.size > 0) {
       imageUrl = await uploadFileToCloudinary(file);
     }
 
-    if (!name || !slugRaw || !imageUrl) {
+    if (!imageUrl) {
+      console.error("❌ IMAGE MISSING");
       return NextResponse.json(
-        { error: "Champs requis" },
+        { error: "Image requise" },
+        { status: 400 }
+      );
+    }
+
+    if (!name || !slugRaw) {
+      return NextResponse.json(
+        { error: "Nom et slug requis" },
         { status: 400 }
       );
     }
@@ -95,9 +109,7 @@ export async function POST(req: Request) {
     const slug = normalizeSlug(slugRaw);
 
     /* =========================
-       PRICING SUPPORT
-       - current admin form: priceCents
-       - advanced future form: price_100g, price_250g, etc.
+       PRICING (SAFE)
     ========================= */
 
     const pricing: Record<string, number> = {};
@@ -116,24 +128,24 @@ export async function POST(req: Request) {
     const rawPriceCents = Number(formData.get("priceCents"));
     const hasSimplePrice = Number.isFinite(rawPriceCents) && rawPriceCents > 0;
 
-    if (Object.keys(pricing).length === 0 && !hasSimplePrice) {
-      return NextResponse.json(
-        { error: "Au moins un prix requis" },
-        { status: 400 }
-      );
-    }
-
-    // Si aucun pricing avancé n'est fourni, on génère une base minimale
+    // fallback simple
     if (Object.keys(pricing).length === 0 && hasSimplePrice) {
       const defaultFormat = unit === "ml" ? "100ml" : "100g";
       pricing[defaultFormat] = rawPriceCents;
     }
 
+    if (Object.keys(pricing).length === 0) {
+      return NextResponse.json(
+        { error: "Prix requis" },
+        { status: 400 }
+      );
+    }
+
     const basePrice =
-      (pricing["100g"] && Number(pricing["100g"])) ||
-      (pricing["100ml"] && Number(pricing["100ml"])) ||
-      (hasSimplePrice ? rawPriceCents : 0) ||
-      Number(Object.values(pricing)[0]);
+      pricing["100g"] ||
+      pricing["100ml"] ||
+      rawPriceCents ||
+      Object.values(pricing)[0];
 
     if (!Number.isFinite(basePrice) || basePrice <= 0) {
       return NextResponse.json(
@@ -143,7 +155,7 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       CREATE
+       CREATE (SAFE DB)
     ========================= */
 
     const product = await prisma.product.create({
@@ -152,12 +164,12 @@ export async function POST(req: Request) {
         slug,
         description,
         imageUrl,
-        priceCents: basePrice,
+        priceCents: Number(basePrice),
         pricing: pricing as any,
         unit,
         stock: Number.isFinite(stock) ? stock : 0,
         category,
-        badge: badge || null,
+        badge,
         isActive,
         isPack,
         packItems: isPack ? packItems : null,
@@ -166,9 +178,11 @@ export async function POST(req: Request) {
 
     console.log("✅ PRODUCT CREATED:", product.id);
 
-    return NextResponse.redirect(new URL("/admin/products", req.url), {
-      status: 303,
-    });
+    return NextResponse.redirect(
+      new URL("/admin/products", req.url),
+      { status: 303 }
+    );
+
   } catch (error: any) {
     console.error("🔥 CREATE PRODUCT ERROR:", error);
 
@@ -180,7 +194,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { error: "Erreur serveur" },
+      { error: error?.message || "Erreur serveur" },
       { status: 500 }
     );
   }
