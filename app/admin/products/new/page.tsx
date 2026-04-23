@@ -4,6 +4,7 @@ import { useState } from "react";
 
 export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -23,20 +24,34 @@ export default function NewProductPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  /* ================= SUBMIT ================= */
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     if (loading) return;
+
+    setError("");
 
     /* ================= VALIDATION ================= */
 
-    if (!form.name || !form.slug || !form.priceCents || !form.imageUrl) {
-      alert("❌ Champs obligatoires manquants");
+    if (!form.name.trim() || !form.slug.trim()) {
+      setError("Nom et slug requis");
+      return;
+    }
+
+    const price = Number(form.priceCents);
+    if (!Number.isFinite(price) || price <= 0) {
+      setError("Prix invalide");
+      return;
+    }
+
+    if (!form.imageUrl.trim()) {
+      setError("Image requise");
       return;
     }
 
     if (form.isPack && !form.packItems.trim()) {
-      alert("❌ Ajoute le contenu du pack");
+      setError("Ajoute le contenu du pack");
       return;
     }
 
@@ -49,7 +64,7 @@ export default function NewProductPage() {
 
       formData.append("name", form.name.trim());
       formData.append("slug", form.slug.trim());
-      formData.append("priceCents", form.priceCents);
+      formData.append("priceCents", String(price));
       formData.append("imageUrl", form.imageUrl.trim());
       formData.append("stock", form.stock || "0");
       formData.append("description", form.description.trim());
@@ -65,15 +80,12 @@ export default function NewProductPage() {
 
       if (form.isPack) {
         formData.append("isPack", "on");
-
-        if (form.packItems.trim()) {
-          formData.append("packItems", form.packItems.trim());
-        }
+        formData.append("packItems", form.packItems.trim());
       }
 
-      /* ================= CALL API ================= */
+      /* ================= API ================= */
 
-      const res = await fetch("/api/admin/create-product", {
+      const res = await fetch("/api/admin/products", {
         method: "POST",
         body: formData,
       });
@@ -81,7 +93,6 @@ export default function NewProductPage() {
       if (res.ok) {
         alert("✅ Produit créé avec succès");
 
-        // reset propre
         setForm({
           name: "",
           slug: "",
@@ -98,20 +109,24 @@ export default function NewProductPage() {
 
         window.location.href = "/admin/products";
       } else {
-        const err = await res.json();
-        alert("❌ " + (err.error || "Erreur serveur"));
+        const err = await res.json().catch(() => null);
+        setError(err?.error || "Erreur serveur");
       }
-    } catch (error) {
-      console.error(error);
-      alert("❌ Erreur réseau");
+    } catch (err) {
+      console.error(err);
+      setError("Erreur réseau");
     } finally {
       setLoading(false);
     }
   }
 
+  /* ================= UI ================= */
+
   return (
     <div style={container}>
       <h1 style={title}>Créer un produit</h1>
+
+      {error && <p style={errorStyle}>❌ {error}</p>}
 
       <form onSubmit={handleSubmit} style={formStyle}>
         <input
@@ -119,7 +134,6 @@ export default function NewProductPage() {
           value={form.name}
           onChange={(e) => handleChange("name", e.target.value)}
           style={input}
-          required
         />
 
         <input
@@ -127,7 +141,6 @@ export default function NewProductPage() {
           value={form.slug}
           onChange={(e) => handleChange("slug", e.target.value)}
           style={input}
-          required
         />
 
         <input
@@ -136,7 +149,6 @@ export default function NewProductPage() {
           value={form.priceCents}
           onChange={(e) => handleChange("priceCents", e.target.value)}
           style={input}
-          required
         />
 
         <input
@@ -144,8 +156,19 @@ export default function NewProductPage() {
           value={form.imageUrl}
           onChange={(e) => handleChange("imageUrl", e.target.value)}
           style={input}
-          required
         />
+
+        {/* PREVIEW IMAGE 🔥 */}
+        {form.imageUrl && (
+          <img
+            src={form.imageUrl}
+            alt="preview"
+            style={preview}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        )}
 
         <input
           placeholder="Stock"
@@ -176,7 +199,7 @@ export default function NewProductPage() {
           style={textarea}
         />
 
-        {/* ACTIF */}
+        {/* ACTIVE */}
         <label style={checkboxRow}>
           <input
             type="checkbox"
@@ -200,10 +223,9 @@ export default function NewProductPage() {
           Produit pack
         </label>
 
-        {/* PACK CONTENT */}
         {form.isPack && (
           <textarea
-            placeholder="Contenu du pack (ex: 10g vanille + cacao + cannelle)"
+            placeholder="Contenu du pack"
             value={form.packItems}
             onChange={(e) =>
               handleChange("packItems", e.target.value)
@@ -230,12 +252,13 @@ export default function NewProductPage() {
 
 /* ================= STYLE ================= */
 
-const container = {
-  padding: 30,
-};
+const container = { padding: 30 };
 
-const title = {
-  marginBottom: 20,
+const title = { marginBottom: 20 };
+
+const errorStyle = {
+  color: "#dc2626",
+  marginBottom: 15,
 };
 
 const formStyle = {
@@ -256,6 +279,13 @@ const textarea = {
   borderRadius: 8,
   border: "1px solid #ddd",
   minHeight: 80,
+};
+
+const preview = {
+  width: "100%",
+  maxHeight: 200,
+  objectFit: "cover" as const,
+  borderRadius: 10,
 };
 
 const checkboxRow = {
