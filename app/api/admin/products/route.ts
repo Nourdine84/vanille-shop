@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import cloudinary from "@/lib/cloudinary";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,6 @@ export async function POST(req: Request) {
     const name = formData.get("name")?.toString();
     const slugRaw = formData.get("slug")?.toString();
     const description = formData.get("description")?.toString() || "";
-    const imageUrl = formData.get("imageUrl")?.toString();
     const stock = Number(formData.get("stock"));
     const category = formData.get("category")?.toString() || "vanille";
     const unit = formData.get("unit")?.toString() || "g";
@@ -41,6 +41,33 @@ export async function POST(req: Request) {
     const packItems = formData.get("packItems")?.toString() || null;
     const badge = formData.get("badge")?.toString() || null;
 
+    /* =========================
+       IMAGE UPLOAD
+    ========================= */
+
+    let imageUrl = "";
+
+    const file = formData.get("image");
+
+    if (file && typeof file !== "string") {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const upload = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            { folder: "vanilleor" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          )
+          .end(buffer);
+      });
+
+      imageUrl = upload.secure_url;
+    }
+
     if (!name || !slugRaw || !imageUrl) {
       return NextResponse.json({ error: "Champs requis" }, { status: 400 });
     }
@@ -48,7 +75,7 @@ export async function POST(req: Request) {
     const slug = normalizeSlug(slugRaw);
 
     /* =========================
-       PRICING CLEAN
+       PRICING
     ========================= */
 
     const pricing: Record<string, number> = {};
@@ -86,20 +113,14 @@ export async function POST(req: Request) {
         slug,
         description,
         imageUrl,
-
         priceCents: basePrice,
-
         pricing: pricing as any,
-
         unit,
         stock: Number.isFinite(stock) ? stock : 0,
         category,
-
         badge: badge || null,
-
         isActive: true,
         isPack,
-
         packItems: isPack ? packItems : null,
       },
     });
