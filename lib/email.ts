@@ -332,6 +332,13 @@ function renderItems(items: EmailItem[] = []) {
 }
 
 /* ================= SEND (DEBUG SAFE) ================= */
+function getFromEmail() {
+  return (
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.EMAIL_FROM ||
+    "VanilleOr <onboarding@resend.dev>"
+  );
+}
 
 async function sendMail(payload: {
   to: string | string[] | undefined;
@@ -339,11 +346,13 @@ async function sendMail(payload: {
   html: string;
 }) {
   try {
-    // ✅ FIX : bon check
     if (!payload.to) {
       console.warn("⚠️ EMAIL SKIPPED → no recipient");
       return null;
     }
+
+    // ✅ FIX CRITIQUE
+    const from = getFromEmail();
 
     console.log("\n📧 ===== EMAIL DEBUG START =====");
     console.log("📧 API KEY:", !!process.env.RESEND_API_KEY);
@@ -352,13 +361,11 @@ async function sendMail(payload: {
     console.log("📧 SUBJECT:", payload.subject);
 
     const res = await resend.emails.send({
-      from: process.env.EMAIL_FROM as string,
+      from, // ✅ FIX
       to: payload.to,
       subject: payload.subject,
-
-      // ✅ FIX RESEND V4 → obligatoire
       html: payload.html,
-      text: payload.subject, // fallback simple (obligatoire pour TS)
+      text: payload.subject,
     });
 
     console.log("📧 EMAIL RESULT:", JSON.stringify(res, null, 2));
