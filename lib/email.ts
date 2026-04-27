@@ -347,7 +347,7 @@ async function sendMail(payload: {
 
     console.log("\n📧 ===== EMAIL DEBUG START =====");
     console.log("📧 API KEY:", !!process.env.RESEND_API_KEY);
-    console.log("📧 FROM:", process.env.EMAIL_FROM);
+    console.log("📧 FROM:", from);
     console.log("📧 TO:", payload.to);
     console.log("📧 SUBJECT:", payload.subject);
 
