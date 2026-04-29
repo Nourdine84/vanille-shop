@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import CrossSell from "@/components/cross-sell";
+import { useToast } from "@/components/ui/toast";
 
 /* ================= SAFE UTILS ================= */
 
@@ -20,6 +21,7 @@ function formatPrice(priceCents: number) {
 
 export default function CheckoutPage() {
   const { cart } = useCart();
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -41,15 +43,11 @@ export default function CheckoutPage() {
   const total = subtotal + shippingCost;
   const remaining = Math.max(0, freeShippingThreshold - subtotal);
 
-  /* ================= CHECKOUT ================= */
-
   const handleCheckout = async () => {
     if (!cart.length || loading) return;
 
     try {
       setLoading(true);
-
-      console.log("🛒 Sending cart:", cart);
 
       const res = await fetch("/api/checkout-session", {
         method: "POST",
@@ -59,34 +57,31 @@ export default function CheckoutPage() {
         body: JSON.stringify({ cart }),
       });
 
-      let data: any = null;
+      const data = await res.json().catch(() => null);
 
-      try {
-        data = await res.json();
-      } catch {
-        console.warn("⚠️ JSON parsing failed");
-      }
+      if (!res.ok || !data?.url) {
+        let message = data?.error || "Erreur paiement";
 
-      console.log("🧾 CHECKOUT RESPONSE:", data);
+        if (message.toLowerCase().includes("stock")) {
+          message =
+            "Un produit de votre panier est en rupture de stock. Merci de mettre à jour votre panier.";
+        }
 
-      /* ✅ SUCCESS → STRIPE */
-      if (res.ok && data?.url) {
-        window.location.href = data.url;
+        showToast(message, "error");
         return;
       }
 
-      /* ❌ ERREUR API */
-      console.error("❌ Checkout API error:", data);
+      window.location.href = data.url;
+    } catch (err: unknown) {
+      console.error("🔥 CHECKOUT ERROR:", err);
 
-      alert(
-        data?.error ||
-          "Une erreur est survenue lors du paiement. Veuillez réessayer."
-      );
+      let message = "Erreur réseau. Merci de réessayer.";
 
-    } catch (err) {
-      console.error("❌ NETWORK ERROR:", err);
+      if (err instanceof Error && err.message) {
+        message = err.message;
+      }
 
-      alert("Erreur serveur. Merci de réessayer.");
+      showToast(message, "error");
     } finally {
       setLoading(false);
     }
@@ -98,14 +93,11 @@ export default function CheckoutPage() {
     <div style={page}>
       <section style={hero}>
         <div style={heroOverlay} />
-
         <div style={heroContent}>
           <p style={heroTag}>VanilleOr</p>
-
           <h1 style={heroTitle}>
             Finalisez votre commande en toute sérénité
           </h1>
-
           <p style={heroSub}>
             Paiement sécurisé • Livraison rapide • Qualité premium
           </p>
@@ -114,7 +106,6 @@ export default function CheckoutPage() {
 
       <div style={container}>
         <div style={grid}>
-          {/* LEFT */}
           <div>
             <div style={card}>
               <h2 style={sectionTitle}>Votre panier</h2>
@@ -128,9 +119,6 @@ export default function CheckoutPage() {
                       src={item.imageUrl || "/images/default.jpg"}
                       alt={item.name}
                       style={image}
-                      onError={(e) => {
-                        e.currentTarget.src = "/images/default.jpg";
-                      }}
                     />
 
                     <div style={{ flex: 1 }}>
@@ -155,19 +143,17 @@ export default function CheckoutPage() {
             <CrossSell />
           </div>
 
-          {/* RIGHT */}
           <div style={summary}>
             <h2 style={sectionTitle}>Résumé</h2>
 
             {remaining > 0 ? (
               <div style={shippingBox}>
                 Ajoutez encore{" "}
-                <strong>{formatPrice(remaining)}</strong> pour la livraison offerte
+                <strong>{formatPrice(remaining)}</strong> pour bénéficier de la
+                livraison offerte
               </div>
             ) : (
-              <div style={shippingFree}>
-                Livraison offerte appliquée 🎉
-              </div>
+              <div style={shippingFree}>Livraison offerte appliquée 🎉</div>
             )}
 
             <div style={row}>
@@ -194,7 +180,8 @@ export default function CheckoutPage() {
               style={{
                 ...cta,
                 opacity: loading ? 0.7 : 1,
-                cursor: loading ? "wait" : "pointer",
+                cursor:
+                  loading || cart.length === 0 ? "not-allowed" : "pointer",
               }}
               disabled={loading || cart.length === 0}
             >

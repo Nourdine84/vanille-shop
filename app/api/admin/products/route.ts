@@ -23,7 +23,7 @@ function isChecked(value: FormDataEntryValue | null) {
 }
 
 /* =========================
-   SAFE CLOUDINARY
+   CLOUDINARY
 ========================= */
 
 async function uploadFileToCloudinary(file: File) {
@@ -51,7 +51,6 @@ async function uploadFileToCloudinary(file: File) {
     });
 
     return result?.secure_url as string;
-
   } catch (err) {
     console.error("❌ UPLOAD FAILED:", err);
     return "";
@@ -66,33 +65,49 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
 
+    /* =========================
+       BASIC FIELDS
+    ========================= */
+
     const name = formData.get("name")?.toString().trim() || "";
     const slugRaw = formData.get("slug")?.toString().trim() || "";
     const description = formData.get("description")?.toString().trim() || "";
-    const stock = Number(formData.get("stock"));
-    const category = formData.get("category")?.toString().trim() || "vanille";
-    const unit = formData.get("unit")?.toString().trim() || "g";
+
+    const stockRaw = Number(formData.get("stock"));
+    const stock = Number.isFinite(stockRaw) && stockRaw >= 0 ? stockRaw : 0;
+
+    const category =
+      formData.get("category")?.toString().trim() || "vanille";
+
+    const unitRaw = formData.get("unit")?.toString().trim();
+    const unit = unitRaw === "ml" ? "ml" : "g";
 
     const isPack = isChecked(formData.get("isPack"));
-    const isActive = isChecked(formData.get("isActive"));
-    const packItems = formData.get("packItems")?.toString().trim() || null;
-    const badge = formData.get("badge")?.toString().trim() || null;
+
+    const isActiveRaw = formData.get("isActive");
+    const isActive =
+      isActiveRaw === null ? true : isChecked(isActiveRaw);
+
+    const packItems =
+      formData.get("packItems")?.toString().trim() || null;
+
+    const badgeRaw = formData.get("badge")?.toString().trim();
+    const badge = badgeRaw ? badgeRaw : null;
 
     /* =========================
-       IMAGE (SAFE)
+       IMAGE
     ========================= */
 
-    let imageUrl = formData.get("imageUrl")?.toString().trim() || "";
+    let imageUrl =
+      formData.get("imageUrl")?.toString().trim() || "";
 
     const file = formData.get("image");
 
-    // upload uniquement si URL vide
     if (!imageUrl && file && typeof file !== "string" && file.size > 0) {
       imageUrl = await uploadFileToCloudinary(file);
     }
 
     if (!imageUrl) {
-      console.error("❌ IMAGE MISSING");
       return NextResponse.json(
         { error: "Image requise" },
         { status: 400 }
@@ -109,7 +124,7 @@ export async function POST(req: Request) {
     const slug = normalizeSlug(slugRaw);
 
     /* =========================
-       PRICING (SAFE)
+       PRICING
     ========================= */
 
     const pricing: Record<string, number> = {};
@@ -126,24 +141,40 @@ export async function POST(req: Request) {
     }
 
     const rawPriceCents = Number(formData.get("priceCents"));
-    const hasSimplePrice = Number.isFinite(rawPriceCents) && rawPriceCents > 0;
+    const hasSimplePrice =
+      Number.isFinite(rawPriceCents) && rawPriceCents > 0;
 
-    // fallback simple
-    if (Object.keys(pricing).length === 0 && hasSimplePrice) {
+    /* =========================
+       PACK FIX
+    ========================= */
+
+    if (isPack) {
+      // un pack ne doit pas avoir de pricing multiple
+      Object.keys(pricing).forEach((k) => delete pricing[k]);
+    }
+
+    /* =========================
+       FALLBACK PRICING
+    ========================= */
+
+    if (!isPack && Object.keys(pricing).length === 0 && hasSimplePrice) {
       const defaultFormat = unit === "ml" ? "100ml" : "100g";
       pricing[defaultFormat] = rawPriceCents;
     }
 
-    if (Object.keys(pricing).length === 0) {
+    if (!isPack && Object.keys(pricing).length === 0) {
       return NextResponse.json(
         { error: "Prix requis" },
         { status: 400 }
       );
     }
 
+    /* =========================
+       BASE PRICE
+    ========================= */
+
     const basePrice =
-      pricing["100g"] ||
-      pricing["100ml"] ||
+      (unit === "ml" ? pricing["100ml"] : pricing["100g"]) ||
       rawPriceCents ||
       Object.values(pricing)[0];
 
@@ -155,7 +186,7 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       CREATE (SAFE DB)
+       CREATE DB
     ========================= */
 
     const product = await prisma.product.create({
@@ -165,9 +196,9 @@ export async function POST(req: Request) {
         description,
         imageUrl,
         priceCents: Number(basePrice),
-        pricing: pricing as any,
+        pricing: isPack ? undefined : (pricing as any),
         unit,
-        stock: Number.isFinite(stock) ? stock : 0,
+        stock,
         category,
         badge,
         isActive,
@@ -182,7 +213,6 @@ export async function POST(req: Request) {
       new URL("/admin/products", req.url),
       { status: 303 }
     );
-
   } catch (error: any) {
     console.error("🔥 CREATE PRODUCT ERROR:", error);
 

@@ -117,8 +117,16 @@ export async function POST(req: Request) {
         }
 
         if (product.stock < item.quantity) {
-          console.warn("⚠️ Stock insuffisant:", item.id);
-          continue;
+          console.error("❌ STOCK INSUFFISANT:", {
+            productId: product.id,
+            stock: product.stock,
+            requested: item.quantity,
+          });
+        
+          return NextResponse.json(
+            { error: `Stock insuffisant pour ${product.name}` },
+            { status: 400 }
+          );
         }
 
         if (product.priceCents !== item.priceCents) {

@@ -34,193 +34,13 @@ const errorBox: React.CSSProperties = {
   marginBottom: 16,
 };
 
-/* ================= CONFIG ================= */
-
-const weightFormats = ["10g", "50g", "100g", "250g", "500g", "1kg"];
-const liquidFormats = ["10ml", "50ml", "100ml", "250ml", "500ml", "1L"];
-
-/* ================= COMPONENT ================= */
-
-export default function ProductForm() {
-  const [imageUrl, setImageUrl] = useState("");
-  const [isPack, setIsPack] = useState(false);
-  const [unit, setUnit] = useState<"g" | "ml">("g");
-  const [error, setError] = useState("");
-
-  const formats = unit === "g" ? weightFormats : liquidFormats;
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    setError("");
-
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-
-    const hasImage = String(formData.get("imageUrl") || "").trim().length > 0;
-    if (!hasImage) {
-      e.preventDefault();
-      setError("Une image est requise.");
-      return;
-    }
-
-    if (isPack) {
-      const packPrice = Number(formData.get("price_pack") || 0);
-      if (!Number.isFinite(packPrice) || packPrice <= 0) {
-        e.preventDefault();
-        setError("Un prix unique est requis pour le pack.");
-        return;
-      }
-      return;
-    }
-
-    const hasAtLeastOnePrice = formats.some((f) => {
-      const value = Number(formData.get(`price_${f}`) || 0);
-      return Number.isFinite(value) && value > 0;
-    });
-
-    if (!hasAtLeastOnePrice) {
-      e.preventDefault();
-      setError("Au moins un prix par format est requis.");
-    }
-  }
-
-  return (
-    <form action="/api/admin/products" method="POST" onSubmit={handleSubmit}>
-      {error ? <div style={errorBox}>{error}</div> : null}
-
-      <div style={section}>
-        <h3>📦 Informations produit</h3>
-
-        <input name="name" placeholder="Nom produit" required style={input} />
-        <br />
-        <br />
-
-        <input name="slug" placeholder="Slug SEO" required style={input} />
-        <br />
-        <br />
-
-        <textarea
-          name="description"
-          placeholder="Description"
-          style={{ ...input, minHeight: 100 }}
-        />
-      </div>
-
-      <div style={section}>
-        <h3>🖼 Image produit</h3>
-
-        <ImageUploadField onChange={setImageUrl} />
-        <input type="hidden" name="imageUrl" value={imageUrl} />
-      </div>
-
-      <div style={section}>
-        <h3>📊 Stock</h3>
-        <input type="number" name="stock" required style={input} />
-      </div>
-
-      <div style={section}>
-        <h3>🏷 Catégorie & Badge</h3>
-
-        <select name="category" style={input}>
-          <option value="vanille">Vanille</option>
-          <option value="epices">Épices</option>
-        </select>
-
-        <br />
-        <br />
-
-        <select name="badge" style={input}>
-          <option value="">Aucun badge</option>
-          <option value="Best Seller">🔥 Best Seller</option>
-          <option value="Top Vente">🏆 Top Vente</option>
-          <option value="Promo">💸 Promo</option>
-          <option value="Nouveau">✨ Nouveau</option>
-        </select>
-      </div>
-
-      <div style={section}>
-        <h3>⚖️ Type produit</h3>
-
-        <select
-          name="unit"
-          value={unit}
-          onChange={(e) => setUnit(e.target.value as "g" | "ml")}
-          disabled={isPack}
-          style={{
-            ...input,
-            opacity: isPack ? 0.6 : 1,
-          }}
-        >
-          <option value="g">Grammes (g / kg)</option>
-          <option value="ml">Liquide (ml / L)</option>
-        </select>
-
-        {isPack ? (
-          <p style={{ marginTop: 10, color: "#777", fontSize: 13 }}>
-            Le type g/ml est désactivé pour un pack. Un pack utilise un prix unique.
-          </p>
-        ) : null}
-      </div>
-
-      <div style={section}>
-        <h3>📦 Pack</h3>
-
-        <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <input
-            type="checkbox"
-            name="isPack"
-            onChange={(e) => setIsPack(e.target.checked)}
-          />
-          Produit pack
-        </label>
-
-        {isPack ? (
-          <>
-            <br />
-            <textarea
-              name="packItems"
-              placeholder="ex: vanille 100g + cacao 50g"
-              style={input}
-            />
-
-            <br />
-            <br />
-
-            <input
-              type="number"
-              name="price_pack"
-              placeholder="Prix unique du pack (centimes)"
-              style={input}
-            />
-          </>
-        ) : null}
-      </div>
-
-      {!isPack ? (
-        <div style={section}>
-          <h3>💰 Prix par format (centimes)</h3>
-
-          <div style={grid}>
-            {formats.map((f) => (
-              <div key={f}>
-                <label style={{ fontSize: 12 }}>{f}</label>
-                <input
-                  type="number"
-                  name={`price_${f}`}
-                  placeholder="ex: 1299"
-                  style={input}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <button style={btn}>Ajouter produit</button>
-    </form>
-  );
-}
-
-/* ================= BTN ================= */
+const successBox: React.CSSProperties = {
+  background: "#dcfce7",
+  color: "#166534",
+  padding: 12,
+  borderRadius: 12,
+  marginBottom: 16,
+};
 
 const btn: React.CSSProperties = {
   width: "100%",
@@ -232,3 +52,205 @@ const btn: React.CSSProperties = {
   fontWeight: 800,
   cursor: "pointer",
 };
+
+/* ================= CONFIG ================= */
+
+const weightFormats = ["10g", "50g", "100g", "250g", "500g", "1kg"];
+const liquidFormats = ["10ml", "50ml", "100ml", "250ml", "500ml", "1L"];
+
+/* ================= UTILS ================= */
+
+function generateSlug(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+/* ================= COMPONENT ================= */
+
+export default function ProductForm() {
+  const [imageUrl, setImageUrl] = useState("");
+  const [isPack, setIsPack] = useState(false);
+  const [unit, setUnit] = useState<"g" | "ml">("g");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
+
+  const formats = unit === "g" ? weightFormats : liquidFormats;
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (loading) return;
+
+    setError("");
+    setSuccess("");
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const hasImage =
+      String(formData.get("imageUrl") || "").trim().length > 0;
+
+    if (!hasImage) {
+      setError("Une image est requise.");
+      return;
+    }
+
+    if (isPack) {
+      const price = Number(formData.get("priceCents") || 0);
+
+      if (!Number.isFinite(price) || price <= 0) {
+        setError("Prix pack invalide.");
+        return;
+      }
+    } else {
+      const hasPrice = formats.some((f) => {
+        const value = Number(formData.get(`price_${f}`) || 0);
+        return value > 0;
+      });
+
+      if (!hasPrice) {
+        setError("Ajoute au moins un prix.");
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err?.error || "Erreur");
+      }
+
+      setSuccess("Produit créé avec succès 🎉");
+
+      form.reset();
+      setImageUrl("");
+      setIsPack(false);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      
+      <input type="hidden" name="isActive" value="true" />
+
+      {error && <div style={errorBox}>{error}</div>}
+      {success && <div style={successBox}>{success}</div>}
+
+      {/* INFOS */}
+      <div style={section}>
+        <h3>📦 Informations produit</h3>
+
+        <input
+          name="name"
+          placeholder="Nom produit"
+          required
+          style={input}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <br /><br />
+
+        <input
+          name="slug"
+          value={generateSlug(name)}
+          readOnly
+          style={{ ...input, background: "#f3f4f6" }}
+        />
+
+        <br /><br />
+
+        <textarea
+          name="description"
+          placeholder="Description"
+          style={{ ...input, minHeight: 100 }}
+        />
+      </div>
+
+      {/* IMAGE */}
+      <div style={section}>
+        <h3>🖼 Image</h3>
+
+        <ImageUploadField onChange={setImageUrl} />
+        <input type="hidden" name="imageUrl" value={imageUrl} />
+      </div>
+
+      {/* STOCK */}
+      <div style={section}>
+        <h3>📊 Stock</h3>
+        <input type="number" name="stock" required style={input} />
+      </div>
+
+      {/* TYPE */}
+      <div style={section}>
+        <h3>⚖️ Type</h3>
+
+        <select
+          name="unit"
+          value={unit}
+          onChange={(e) => setUnit(e.target.value as any)}
+          disabled={isPack}
+          style={input}
+        >
+          <option value="g">Grammes</option>
+          <option value="ml">Liquide</option>
+        </select>
+      </div>
+
+      {/* PACK */}
+      <div style={section}>
+        <label>
+          <input
+            type="checkbox"
+            name="isPack"
+            onChange={(e) => setIsPack(e.target.checked)}
+          />
+          Pack
+        </label>
+
+        {isPack && (
+          <>
+            <br /><br />
+            <textarea name="packItems" style={input} />
+            <br /><br />
+            <input name="priceCents" type="number" style={input} />
+          </>
+        )}
+      </div>
+
+      {/* PRICES */}
+      {!isPack && (
+        <div style={section}>
+          <h3>💰 Prix</h3>
+
+          <div style={grid}>
+            {formats.map((f) => (
+              <input key={f} name={`price_${f}`} placeholder={f} style={input} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button style={btn}>
+        {loading ? "Création..." : "Créer produit"}
+      </button>
+    </form>
+  );
+}

@@ -26,18 +26,32 @@ export default function ReclamationPage() {
     setLoading(true);
 
     try {
-      // 👉 tu pourras brancher une API plus tard
-      await new Promise((res) => setTimeout(res, 1000));
+      const res = await fetch("/api/reclamation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur serveur");
+      }
 
       setSuccess(true);
+
       setForm({
         name: "",
         email: "",
         orderId: "",
         message: "",
       });
-    } catch {
-      alert("Erreur lors de l'envoi");
+
+    } catch (err: any) {
+      console.error("❌ RECLAMATION ERROR:", err);
+      alert(err.message || "Erreur lors de l'envoi");
     } finally {
       setLoading(false);
     }
@@ -46,7 +60,6 @@ export default function ReclamationPage() {
   return (
     <div style={page}>
       <div style={container}>
-        
         <h1 style={title}>Support & Réclamation</h1>
 
         <p style={subtitle}>
@@ -61,7 +74,6 @@ export default function ReclamationPage() {
         )}
 
         <form onSubmit={handleSubmit} style={formStyle}>
-          
           <input
             name="name"
             placeholder="Nom"

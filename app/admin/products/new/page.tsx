@@ -24,15 +24,11 @@ export default function NewProductPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  /* ================= SUBMIT ================= */
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
 
     setError("");
-
-    /* ================= VALIDATION ================= */
 
     if (!form.name.trim() || !form.slug.trim()) {
       setError("Nom et slug requis");
@@ -60,8 +56,6 @@ export default function NewProductPage() {
     try {
       const formData = new FormData();
 
-      /* ================= DATA ================= */
-
       formData.append("name", form.name.trim());
       formData.append("slug", form.slug.trim());
       formData.append("priceCents", String(price));
@@ -74,16 +68,15 @@ export default function NewProductPage() {
         formData.append("subCategory", form.subCategory.trim());
       }
 
-      /* ================= FLAGS ================= */
-
-      if (form.isActive) formData.append("isActive", "on");
+      // ✅ ACTIF / INACTIF
+      if (form.isActive) {
+        formData.append("isActive", "on");
+      }
 
       if (form.isPack) {
         formData.append("isPack", "on");
         formData.append("packItems", form.packItems.trim());
       }
-
-      /* ================= API ================= */
 
       const res = await fetch("/api/admin/products", {
         method: "POST",
@@ -119,8 +112,6 @@ export default function NewProductPage() {
       setLoading(false);
     }
   }
-
-  /* ================= UI ================= */
 
   return (
     <div style={container}>
@@ -158,16 +149,9 @@ export default function NewProductPage() {
           style={input}
         />
 
-        {/* PREVIEW IMAGE 🔥 */}
+        {/* ✅ PREVIEW */}
         {form.imageUrl && (
-          <img
-            src={form.imageUrl}
-            alt="preview"
-            style={preview}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
+          <img src={form.imageUrl} style={preview} />
         )}
 
         <input
@@ -185,13 +169,6 @@ export default function NewProductPage() {
           style={input}
         />
 
-        <input
-          placeholder="Sous-catégorie"
-          value={form.subCategory}
-          onChange={(e) => handleChange("subCategory", e.target.value)}
-          style={input}
-        />
-
         <textarea
           placeholder="Description"
           value={form.description}
@@ -199,7 +176,7 @@ export default function NewProductPage() {
           style={textarea}
         />
 
-        {/* ACTIVE */}
+        {/* ✅ ACTIF */}
         <label style={checkboxRow}>
           <input
             type="checkbox"
@@ -234,15 +211,7 @@ export default function NewProductPage() {
           />
         )}
 
-        <button
-          type="submit"
-          style={{
-            ...btn,
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-          disabled={loading}
-        >
+        <button style={btn} disabled={loading}>
           {loading ? "Création..." : "Créer le produit"}
         </button>
       </form>
@@ -250,16 +219,11 @@ export default function NewProductPage() {
   );
 }
 
-/* ================= STYLE ================= */
+/* STYLE */
 
 const container = { padding: 30 };
-
 const title = { marginBottom: 20 };
-
-const errorStyle = {
-  color: "#dc2626",
-  marginBottom: 15,
-};
+const errorStyle = { color: "#dc2626", marginBottom: 15 };
 
 const formStyle = {
   display: "flex",
@@ -268,11 +232,7 @@ const formStyle = {
   maxWidth: 500,
 };
 
-const input = {
-  padding: 10,
-  borderRadius: 8,
-  border: "1px solid #ddd",
-};
+const input = { padding: 10, borderRadius: 8, border: "1px solid #ddd" };
 
 const textarea = {
   padding: 10,
@@ -300,5 +260,4 @@ const btn = {
   padding: 12,
   border: "none",
   borderRadius: 8,
-  fontWeight: 600,
 };

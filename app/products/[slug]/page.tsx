@@ -7,39 +7,20 @@ import { getImageUrl } from "@/lib/image";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-function normalizeSlug(input: string) {
-  return input
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
 type ProductPageProps = {
   params: { slug: string };
 };
 
+/* =========================
+   METADATA
+========================= */
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
   try {
-    const products = await prisma.product.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        imageUrl: true,
-        category: true,
-      },
+    const product = await prisma.product.findUnique({
+      where: { slug: params.slug.toLowerCase() },
     });
-
-    const product = products.find(
-      (p) => normalizeSlug(p.slug || p.name) === params.slug
-    );
 
     if (!product) {
       return {
@@ -83,33 +64,38 @@ export async function generateMetadata({
   }
 }
 
+/* =========================
+   PAGE
+========================= */
 export default async function ProductPage({ params }: ProductPageProps) {
   try {
-    const products = await prisma.product.findMany({
-      where: { isActive: true },
+    const product = await prisma.product.findUnique({
+      where: { slug: params.slug.toLowerCase() },
     });
 
-    const product = products.find(
-      (p) => normalizeSlug(p.slug || p.name) === params.slug
-    );
-
-    if (!product) {
+    if (!product || !product.isActive) {
       return notFound();
     }
 
-    const relatedProducts = products
-      .filter(
-        (p) =>
-          p.id !== product.id &&
-          p.category === product.category &&
-          !p.isPack
-      )
-      .slice(0, 3);
+    const relatedProducts = await prisma.product.findMany({
+      where: {
+        category: product.category,
+        id: { not: product.id },
+        isActive: true,
+      },
+      take: 3,
+    });
+
+    /* =========================
+       🔥 FIX IMPORTANT
+       - Ajout flag stock
+    ========================= */
 
     const safeProduct = JSON.parse(
       JSON.stringify({
         ...product,
         relatedProducts,
+        isOutOfStock: product.stock <= 0,
       })
     );
 

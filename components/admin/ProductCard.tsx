@@ -4,20 +4,52 @@ export default function ProductCard({ product }: any) {
   const isOut = product.stock <= 0;
 
   /* =========================
-     IMAGE SAFE (🔥 FIX)
+     IMAGE SAFE
   ========================= */
   const imageSrc =
     product.imageUrl && product.imageUrl !== ""
       ? product.imageUrl
       : "/products/default.jpg";
 
+  /* =========================
+     BADGE LOGIC (🔥 PRO)
+  ========================= */
+  function getBadge() {
+    if (isOut) {
+      return { label: "Épuisé", color: "#dc2626" };
+    }
+
+    if (product.badge) {
+      return { label: product.badge, color: "#a16207" };
+    }
+
+    if (product.isBestSeller) {
+      return { label: "Best Seller", color: "#16a34a" };
+    }
+
+    if (product.isNew) {
+      return { label: "Nouveau", color: "#2563eb" };
+    }
+
+    if (product.isPromo) {
+      return { label: "Promo", color: "#f59e0b" };
+    }
+
+    return null;
+  }
+
+  const badge = getBadge();
+
   return (
     <div
-      style={card}
+      style={{
+        ...card,
+        opacity: isOut ? 0.85 : 1,
+      }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-6px)";
         e.currentTarget.style.boxShadow =
-          "0 12px 28px rgba(0,0,0,0.15)";
+          "0 16px 32px rgba(0,0,0,0.18)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
@@ -28,7 +60,10 @@ export default function ProductCard({ product }: any) {
       <div style={imageWrapper}>
         <img
           src={imageSrc}
-          style={productImage}
+          style={{
+            ...productImage,
+            filter: isOut ? "grayscale(60%)" : "none",
+          }}
           alt={product.name}
           onError={(e) => {
             const target = e.currentTarget;
@@ -36,8 +71,20 @@ export default function ProductCard({ product }: any) {
           }}
         />
 
-        {product.badge && (
-          <div style={badgeOverlay}>{product.badge}</div>
+        {/* ================= BADGE ================= */}
+        {badge && (
+          <div
+            style={{
+              ...badgeOverlay,
+              background: badge.color,
+              boxShadow:
+                badge.label === "Promo"
+                  ? "0 0 12px rgba(245,158,11,0.6)"
+                  : "none",
+            }}
+          >
+            {badge.label}
+          </div>
         )}
       </div>
 
@@ -50,6 +97,7 @@ export default function ProductCard({ product }: any) {
           {(product.priceCents / 100).toFixed(2)} €
         </p>
 
+        {/* ================= STATUS ================= */}
         <div style={statusRow}>
           <span
             style={{
@@ -60,16 +108,24 @@ export default function ProductCard({ product }: any) {
           {product.isActive ? "Actif" : "Inactif"}
         </div>
 
+        {/* ================= STOCK ================= */}
         <p
           style={{
             color: isOut ? "#dc2626" : "#16a34a",
             fontWeight: "bold",
           }}
         >
-          {isOut ? "Rupture" : `Stock: ${product.stock}`}
+          {isOut ? "Rupture de stock" : `Stock: ${product.stock}`}
         </p>
 
-        <a href={`/admin/products/${product.id}`} style={editBtn}>
+        {/* ================= ACTION ================= */}
+        <a
+          href={`/admin/products/${product.id}`}
+          style={{
+            ...editBtn,
+            opacity: isOut ? 0.7 : 1,
+          }}
+        >
           ✏️ Modifier
         </a>
       </div>
@@ -81,7 +137,7 @@ export default function ProductCard({ product }: any) {
 
 const card = {
   background: "white",
-  borderRadius: 14,
+  borderRadius: 16,
   overflow: "hidden",
   boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
   transition: "all 0.25s ease",
@@ -96,23 +152,16 @@ const productImage = {
   objectFit: "cover" as const,
 };
 
-const noImage = {
-  height: 180,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "#eee",
-};
-
 const badgeOverlay = {
   position: "absolute" as const,
-  top: 10,
-  left: 10,
-  background: "#f59e0b",
+  top: 12,
+  left: 12,
   color: "white",
-  padding: "6px 10px",
+  padding: "6px 12px",
   borderRadius: 999,
   fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: "0.3px",
 };
 
 const content = { padding: 15 };

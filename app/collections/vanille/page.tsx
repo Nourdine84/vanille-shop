@@ -2,10 +2,27 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
 import type { CSSProperties } from "react";
+
 export const dynamic = "force-dynamic";
+
+/* ================= UTILS ================= */
 
 function formatPrice(price: number) {
   return (price / 100).toFixed(2).replace(".", ",") + " €";
+}
+
+/* ================= BADGE LOGIC ================= */
+
+function getProductBadge(p: any) {
+  if ((p.stock ?? 0) <= 0) {
+    return { label: "Épuisé", color: "#dc2626" };
+  }
+
+  if (p.badge) {
+    return { label: p.badge, color: "#a16207" };
+  }
+
+  return null;
 }
 
 function getPackBadge(name: string) {
@@ -15,6 +32,8 @@ function getPackBadge(name: string) {
   if (n.includes("decouverte")) return "Découverte";
   return "Pack";
 }
+
+/* ================= PAGE ================= */
 
 export default async function VanillePage() {
   const allProducts = await prisma.product.findMany({
@@ -33,7 +52,7 @@ export default async function VanillePage() {
 
   return (
     <div style={page}>
-      {/* HERO PREMIUM */}
+      {/* HERO */}
       <section style={hero}>
         <div style={overlay} />
         <div style={heroContent}>
@@ -44,8 +63,7 @@ export default async function VanillePage() {
           </h1>
 
           <p style={heroSubtitle}>
-            Une sélection premium aux arômes intenses,
-            destinée aux passionnés et aux professionnels exigeants.
+            Une sélection premium aux arômes intenses
           </p>
         </div>
       </section>
@@ -61,7 +79,9 @@ export default async function VanillePage() {
                 <Link key={p.id} href={`/products/${p.slug}`} style={card}>
                   <div style={imgWrap}>
                     <img src={getImageUrl(p.imageUrl)} style={img} />
-                    <span style={badge}>{getPackBadge(p.name)}</span>
+                    <span style={badge}>
+                      {getPackBadge(p.name)}
+                    </span>
                   </div>
 
                   <div style={content}>
@@ -79,25 +99,60 @@ export default async function VanillePage() {
           </>
         )}
 
-        {/* PRODUCTS */}
+        {/* PRODUITS */}
         <h2 style={sectionTitle}>Nos Produits</h2>
 
         <div style={grid}>
-          {products.map((p) => (
-            <Link key={p.id} href={`/products/${p.slug}`} style={card}>
-              <img src={getImageUrl(p.imageUrl)} style={img} />
+          {products.map((p) => {
+            const badgeData = getProductBadge(p);
+            const isOut = (p.stock ?? 0) <= 0;
 
-              <div style={content}>
-                <h3>{p.name}</h3>
-                <p style={price}>{formatPrice(p.priceCents)}</p>
+            return (
+              <Link key={p.id} href={`/products/${p.slug}`} style={card}>
+                <div style={imgWrap}>
+                  <img src={getImageUrl(p.imageUrl)} style={img} />
 
-                <div style={actions}>
-                  <span style={link}>Voir</span>
-                  <span style={buyBtn}>Acheter</span>
+                  {/* BADGE */}
+                  {badgeData && (
+                    <span
+                      style={{
+                        ...badge,
+                        background: badgeData.color,
+                      }}
+                    >
+                      {badgeData.label}
+                    </span>
+                  )}
+
+                  {/* OVERLAY RUPTURE */}
+                  {isOut && (
+                    <div style={overlayOut}>
+                      Rupture de stock
+                    </div>
+                  )}
                 </div>
-              </div>
-            </Link>
-          ))}
+
+                <div style={content}>
+                  <h3>{p.name}</h3>
+                  <p style={price}>{formatPrice(p.priceCents)}</p>
+
+                  <div style={actions}>
+                    <span style={link}>Voir</span>
+
+                    <span
+                      style={{
+                        ...buyBtn,
+                        background: isOut ? "#ccc" : "#a16207",
+                        pointerEvents: isOut ? "none" : "auto",
+                      }}
+                    >
+                      {isOut ? "Épuisé" : "Acheter"}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -105,6 +160,18 @@ export default async function VanillePage() {
 }
 
 /* ================= STYLE ================= */
+
+const overlayOut: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "rgba(0,0,0,0.55)",
+  color: "white",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontWeight: 800,
+  fontSize: 16,
+};
 
 const page: CSSProperties = {
   background: "#f8f5ef",
@@ -132,20 +199,14 @@ const heroContent: CSSProperties = {
 const heroTag: CSSProperties = {
   color: "#d4af37",
   fontWeight: 700,
-  letterSpacing: "0.3em",
-  textTransform: "uppercase",
 };
 
 const heroTitle: CSSProperties = {
   fontSize: 34,
-  marginTop: 10,
 };
 
 const heroSubtitle: CSSProperties = {
   color: "#ddd",
-  maxWidth: 700,
-  margin: "10px auto",
-  lineHeight: 1.6,
 };
 
 const container: CSSProperties = {
@@ -156,7 +217,6 @@ const container: CSSProperties = {
 
 const sectionTitle: CSSProperties = {
   fontSize: 22,
-  marginBottom: 15,
 };
 
 const grid: CSSProperties = {
@@ -177,7 +237,6 @@ const card: CSSProperties = {
   textDecoration: "none",
   color: "#111",
   boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
-  transition: "transform 0.2s",
 };
 
 const imgWrap: CSSProperties = {
@@ -194,7 +253,6 @@ const badge: CSSProperties = {
   position: "absolute",
   top: 10,
   left: 10,
-  background: "#a16207",
   color: "white",
   padding: "5px 12px",
   borderRadius: 999,
@@ -213,7 +271,6 @@ const price: CSSProperties = {
 const actions: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
   marginTop: 10,
 };
 

@@ -35,6 +35,8 @@ export default function ClientProduct({ product }: { product: any }) {
 
   const image = getImageUrl(product.imageUrl);
 
+  const isOutOfStock = product.stock <= 0;
+
   /* ================= PRICING CLEAN ================= */
 
   const formats = useMemo(() => {
@@ -56,6 +58,10 @@ export default function ClientProduct({ product }: { product: any }) {
   }, [product]);
 
   const [selected, setSelected] = useState(formats[0]);
+
+  /* ================= MODAL ================= */
+
+  const [showModal, setShowModal] = useState(false);
 
   /* ================= REVIEWS ================= */
 
@@ -121,10 +127,46 @@ export default function ClientProduct({ product }: { product: any }) {
     };
   }, [product.id]);
 
+  /* ================= ADD TO CART ================= */
+
+  function handleAddToCart() {
+    if (isOutOfStock) {
+      setShowModal(true);
+      return;
+    }
+
+    addToCart({
+      id: `${product.id}-${selected.label}`,
+      name: `${product.name} (${selected.label})`,
+      priceCents: selected.value,
+      imageUrl: image || undefined,
+      quantity: 1,
+    });
+  }
+
   /* ================= RENDER ================= */
 
   return (
     <div style={container}>
+      {/* MODAL */}
+      {showModal && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <h3>Produit indisponible</h3>
+            <p style={{ marginTop: 10, color: "#666" }}>
+              Ce produit est actuellement en rupture de stock.
+            </p>
+
+            <button
+              style={modalBtn}
+              onClick={() => setShowModal(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={topGrid}>
         {/* IMAGE */}
         <img src={image} style={mainImage} alt={product.name} />
@@ -135,12 +177,16 @@ export default function ClientProduct({ product }: { product: any }) {
 
           <p style={price}>{formatPrice(selected.value)}</p>
 
+          {isOutOfStock && (
+            <p style={stockWarning}>Rupture de stock</p>
+          )}
+
           <p style={desc}>
             {product.description ||
               "Produit premium VanilleOr, sélectionné pour sa qualité exceptionnelle."}
           </p>
 
-          {/* SELECTEUR PREMIUM */}
+          {/* SELECTEUR */}
           <div style={selectorWrapper}>
             <p style={selectorTitle}>Choisissez votre format</p>
 
@@ -149,8 +195,11 @@ export default function ClientProduct({ product }: { product: any }) {
                 <button
                   key={f.label}
                   onClick={() => setSelected(f)}
+                  disabled={isOutOfStock}
                   style={{
                     ...optionBtn,
+                    opacity: isOutOfStock ? 0.5 : 1,
+                    cursor: isOutOfStock ? "not-allowed" : "pointer",
                     border:
                       selected.label === f.label
                         ? "2px solid #a16207"
@@ -159,8 +208,6 @@ export default function ClientProduct({ product }: { product: any }) {
                       selected.label === f.label
                         ? "#fff7ed"
                         : "white",
-                    fontWeight:
-                      selected.label === f.label ? 700 : 500,
                   }}
                 >
                   {f.label}
@@ -171,18 +218,15 @@ export default function ClientProduct({ product }: { product: any }) {
 
           {/* CTA */}
           <button
-            style={cta}
-            onClick={() =>
-              addToCart({
-                id: `${product.id}-${selected.label}`,
-                name: `${product.name} (${selected.label})`,
-                priceCents: selected.value,
-                imageUrl: image || undefined,
-                quantity: 1,
-              })
-            }
+            style={{
+              ...cta,
+              opacity: isOutOfStock ? 0.6 : 1,
+              cursor: isOutOfStock ? "not-allowed" : "pointer",
+            }}
+            disabled={isOutOfStock}
+            onClick={handleAddToCart}
           >
-            Ajouter au panier
+            {isOutOfStock ? "Rupture de stock" : "Ajouter au panier"}
           </button>
 
           {/* TRUST */}
@@ -194,8 +238,7 @@ export default function ClientProduct({ product }: { product: any }) {
         </div>
       </div>
 
-      {/* ================= CROSS SELL (SAFE) ================= */}
-
+      {/* CROSS SELL */}
       {related.length > 0 && (
         <div style={crossSellWrapper}>
           <h3 style={crossSellTitle}>Complétez votre sélection</h3>
@@ -203,7 +246,7 @@ export default function ClientProduct({ product }: { product: any }) {
           <div style={crossSellGrid}>
             {related.map((p) => (
               <div key={p.id} style={crossSellCard}>
-                <Link href={`/products/${p.slug}`} style={crossSellLink}>
+                <Link href={`/products/${p.slug}`}>
                   <img
                     src={getImageUrl(p.imageUrl)}
                     alt={p.name}
@@ -270,13 +313,17 @@ const price = {
   color: "#a16207",
 };
 
+const stockWarning = {
+  color: "red",
+  fontWeight: 700,
+  marginTop: 10,
+};
+
 const desc = {
   color: "#555",
   marginTop: 10,
   lineHeight: 1.6,
 };
-
-/* SELECTEUR */
 
 const selectorWrapper = {
   marginTop: 25,
@@ -297,10 +344,7 @@ const optionBtn = {
   padding: "14px",
   borderRadius: 12,
   cursor: "pointer",
-  transition: "all 0.2s ease",
 };
-
-/* CTA */
 
 const cta = {
   marginTop: 25,
@@ -312,15 +356,44 @@ const cta = {
   border: "none",
   fontWeight: 800,
   fontSize: 16,
-  cursor: "pointer",
 };
-
-/* TRUST */
 
 const trust = {
   marginTop: 15,
   fontSize: 14,
   color: "#555",
+};
+
+/* MODAL */
+
+const modalOverlay = {
+  position: "fixed" as const,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "rgba(0,0,0,0.6)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 9999,
+};
+
+const modalBox = {
+  background: "white",
+  padding: "25px",
+  borderRadius: 12,
+  textAlign: "center" as const,
+};
+
+const modalBtn = {
+  marginTop: 15,
+  background: "#a16207",
+  color: "white",
+  padding: "10px 20px",
+  borderRadius: 8,
+  border: "none",
+  cursor: "pointer",
 };
 
 /* CROSS SELL */
@@ -345,10 +418,6 @@ const crossSellCard = {
   background: "white",
   borderRadius: 14,
   padding: 12,
-};
-
-const crossSellLink = {
-  display: "block",
 };
 
 const crossSellImg = {
