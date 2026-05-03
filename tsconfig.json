@@ -40,12 +40,17 @@
     "incremental": true,
 
     /* =========================
-        TYPES
+        🔥 FIX CRITIQUE TYPES
      ========================= */
-    "types": ["node"],
+    "types": ["node", "react", "react-dom"],
 
     /* =========================
-        IMPORT ALIAS (CRITICAL FIX)
+        🔥 FIX JSX
+     ========================= */
+    "jsxImportSource": "react",
+
+    /* =========================
+        IMPORT ALIAS
      ========================= */
     "baseUrl": ".",
     "paths": {
@@ -71,9 +76,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "scripts/**/*.js"
+    ".next/types/**/*.ts"
   ],
 
-  "exclude": ["node_modules", ".next"]
+  "exclude": ["node_modules"]
 }

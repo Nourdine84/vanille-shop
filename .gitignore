@@ -1,5 +1,12 @@
-# ENV
-.env.local
+# 1) Ajoute les fichiers sensibles au gitignore
+cat > .gitignore <<'EOF'
+# ENV - NEVER COMMIT
+.env
+.env.*
+!.env.example
+
+# Vercel local config
+.vercel/
 
 # Dependencies
 node_modules/
@@ -18,7 +25,7 @@ build/
 # OS
 .DS_Store
 
-# Archives (🔥 cause de ton bug Vercel)
+# Archives
 *.zip
 *.tar.gz
 
@@ -28,3 +35,16 @@ test-results/
 blob-report/
 playwright/.cache/
 playwright/.auth/
+EOF
+
+# 2) Retire les fichiers sensibles du commit sans les supprimer de ton Mac
+git rm --cached .env
+git rm -r --cached .vercel
+
+# 3) Corrige le dernier commit bloqué
+git add .gitignore
+git commit --amend --no-edit
+
+# 4) Vérifie que .env n’est plus dans le commit
+git status
+git show --name-only --stat --oneline HEAD
