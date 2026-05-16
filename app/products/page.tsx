@@ -36,7 +36,11 @@ export default function ProductsPage() {
       .then((res) => res.json())
       .then((data) => {
         if (!mounted) return;
-        const safe = Array.isArray(data) ? data.filter(Boolean) : [];
+
+        const safe = Array.isArray(data)
+          ? data.filter(Boolean)
+          : [];
+
         setProducts(safe);
       })
       .catch(() => {
@@ -57,6 +61,10 @@ export default function ProductsPage() {
   );
 
   function handleAdd(product: Product) {
+    const isOut = (product.stock ?? 0) <= 0;
+
+    if (isOut) return;
+
     addToCart({
       id: product.id,
       name: product.name,
@@ -65,26 +73,82 @@ export default function ProductsPage() {
       quantity: 1,
     });
 
+    openCart();
+  }
+
+  function getBadgeStyle(badgeName?: string | null) {
+    switch (badgeName) {
+      case "Promo":
+        return {
+          ...badge,
+          background: "#dc2626",
+          boxShadow: "0 4px 12px rgba(220,38,38,0.35)",
+        };
+
+      case "Best Seller":
+        return {
+          ...badge,
+          background: "#16a34a",
+          boxShadow: "0 4px 12px rgba(22,163,74,0.35)",
+        };
+
+      case "Nouveau":
+        return {
+          ...badge,
+          background: "#2563eb",
+          boxShadow: "0 4px 12px rgba(37,99,235,0.35)",
+        };
+
+      case "Premium":
+        return {
+          ...badge,
+          background: "#111",
+          color: "#d4af37",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
+        };
+
+      case "Top Vente":
+      default:
+        return {
+          ...badge,
+          background: "#a16207",
+          boxShadow: "0 4px 12px rgba(161,98,7,0.35)",
+        };
+    }
   }
 
   return (
     <div style={page}>
+      {/* ================= HERO ================= */}
+
       <section style={hero}>
         <div style={overlay} />
+
         <div style={heroContent}>
           <p style={heroTag}>VanilleOr</p>
-          <h1 style={heroTitle}>Nos produits d’exception</h1>
+
+          <h1 style={heroTitle}>
+            Nos produits d’exception
+          </h1>
+
           <p style={heroSubtitle}>
-            Découvrez notre sélection premium de vanille et d’épices.
+            Découvrez notre sélection premium de
+            vanille et d’épices.
           </p>
         </div>
       </section>
 
+      {/* ================= CONTENT ================= */}
+
       <div style={container}>
-        {loading && <p style={center}>Chargement...</p>}
+        {loading && (
+          <p style={center}>Chargement...</p>
+        )}
 
         {!loading && visibleProducts.length === 0 && (
-          <p style={center}>Aucun produit disponible</p>
+          <p style={center}>
+            Aucun produit disponible
+          </p>
         )}
 
         <div style={grid}>
@@ -92,50 +156,108 @@ export default function ProductsPage() {
             if (!p?.id || !p?.slug) return null;
 
             const isOut = (p.stock ?? 0) <= 0;
-            const isLowStock = (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 5;
+
+            const isLowStock =
+              (p.stock ?? 0) > 0 &&
+              (p.stock ?? 0) <= 5;
 
             return (
-              <div key={p.id} style={card} data-testid="product-card">
-                <div style={mediaWrapper}>
-                  {p.badge && !isOut && <span style={badge}>{p.badge}</span>}
-                  {isOut && <span style={out}>ÉPUISÉ</span>}
+              <div
+                key={p.id}
+                style={{
+                  ...card,
+                  opacity: isOut ? 0.92 : 1,
+                }}
+                data-testid="product-card"
+              >
+                {/* ================= IMAGE ================= */}
 
-                  <Link href={`/products/${p.slug}`} style={mediaLink}>
+                <div style={mediaWrapper}>
+                  {/* PRIORITÉ RUPTURE */}
+                  {isOut ? (
+                    <span style={out}>
+                      RUPTURE
+                    </span>
+                  ) : p.badge ? (
+                    <span style={getBadgeStyle(p.badge)}>
+                      {p.badge}
+                    </span>
+                  ) : null}
+
+                  <Link
+                    href={`/products/${p.slug}`}
+                    style={mediaLink}
+                  >
                     <img
                       src={getImageUrl(p.imageUrl)}
                       alt={p.name}
-                      style={img}
+                      style={{
+                        ...img,
+                        filter: isOut
+                          ? "grayscale(40%)"
+                          : "none",
+                      }}
                     />
                   </Link>
                 </div>
 
+                {/* ================= CONTENT ================= */}
+
                 <div style={content}>
-                  <h3 style={name}>{p.name}</h3>
+                  <h3 style={name}>
+                    {p.name}
+                  </h3>
 
                   <p style={desc}>
                     {p.description
                       ? `${p.description.slice(0, 90)}${
-                          p.description.length > 90 ? "..." : ""
+                          p.description.length > 90
+                            ? "..."
+                            : ""
                         }`
                       : "Produit premium sélectionné"}
                   </p>
 
-                  {isLowStock && (
-                    <p style={stockLimited} data-testid="stock-limited">
-                      Stock limité
+                  {/* STOCK LIMITÉ */}
+
+                  {isLowStock && !isOut && (
+                    <p
+                      style={stockLimited}
+                      data-testid="stock-limited"
+                    >
+                      ⚠ Stock limité
                     </p>
                   )}
 
-                  <p style={price}>{formatPrice(p.priceCents)}</p>
+                  {/* RUPTURE */}
+
+                  {isOut && (
+                    <p style={outText}>
+                      Produit actuellement indisponible
+                    </p>
+                  )}
+
+                  <p style={price}>
+                    {formatPrice(p.priceCents)}
+                  </p>
                 </div>
 
+                {/* ================= CTA ================= */}
+
                 <div style={ctaRow}>
-                  <Link href={`/products/${p.slug}`} style={btnView}>
+                  <Link
+                    href={`/products/${p.slug}`}
+                    style={btnView}
+                  >
                     Voir
                   </Link>
 
                   {isOut ? (
-                    <button type="button" disabled style={btnDisabled}>
+                    <button
+                      type="button"
+                      disabled
+                      style={btnDisabled}
+                    >
                       Épuisé
                     </button>
                   ) : (
@@ -157,6 +279,8 @@ export default function ProductsPage() {
   );
 }
 
+/* ================= STYLES ================= */
+
 const page: React.CSSProperties = {
   background: "#f8f5ef",
   minHeight: "100vh",
@@ -165,7 +289,8 @@ const page: React.CSSProperties = {
 const hero: React.CSSProperties = {
   position: "relative",
   height: "300px",
-  backgroundImage: "url('/images/hero-vanille.jpg')",
+  backgroundImage:
+    "url('/images/hero-vanille.jpg')",
   backgroundSize: "cover",
   backgroundPosition: "center",
 };
@@ -173,7 +298,8 @@ const hero: React.CSSProperties = {
 const overlay: React.CSSProperties = {
   position: "absolute",
   inset: 0,
-  background: "linear-gradient(135deg,#000000cc,#2a2117cc)",
+  background:
+    "linear-gradient(135deg,#000000cc,#2a2117cc)",
 };
 
 const heroContent: React.CSSProperties = {
@@ -214,7 +340,8 @@ const center: React.CSSProperties = {
 
 const grid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(260px,1fr))",
   gap: "24px",
 };
 
@@ -225,6 +352,7 @@ const card: React.CSSProperties = {
   boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
   display: "flex",
   flexDirection: "column",
+  transition: "all 0.25s ease",
 };
 
 const mediaWrapper: React.CSSProperties = {
@@ -269,6 +397,13 @@ const stockLimited: React.CSSProperties = {
   margin: "0 0 10px",
 };
 
+const outText: React.CSSProperties = {
+  color: "#dc2626",
+  fontSize: "13px",
+  fontWeight: 700,
+  margin: "0 0 10px",
+};
+
 const price: React.CSSProperties = {
   color: "#a16207",
   fontWeight: 700,
@@ -305,32 +440,37 @@ const btnAdd: React.CSSProperties = {
 
 const btnDisabled: React.CSSProperties = {
   flex: 1,
-  background: "#eee",
+  background: "#e5e5e5",
   border: "none",
   borderRadius: "8px",
   color: "#777",
+  cursor: "not-allowed",
+  fontWeight: 600,
 };
 
 const badge: React.CSSProperties = {
   position: "absolute",
-  top: 10,
-  left: 10,
-  background: "#a16207",
+  top: 12,
+  left: 12,
   color: "white",
-  padding: "5px 10px",
+  padding: "6px 12px",
   borderRadius: "999px",
   fontSize: "12px",
   zIndex: 2,
+  fontWeight: 700,
+  letterSpacing: "0.3px",
 };
 
 const out: React.CSSProperties = {
   position: "absolute",
-  top: 10,
-  right: 10,
+  top: 12,
+  right: 12,
   background: "#dc2626",
   color: "white",
-  padding: "4px 8px",
+  padding: "6px 12px",
   borderRadius: "999px",
   fontSize: "12px",
-  zIndex: 2,
+  zIndex: 3,
+  fontWeight: 800,
+  boxShadow: "0 4px 12px rgba(220,38,38,0.35)",
 };

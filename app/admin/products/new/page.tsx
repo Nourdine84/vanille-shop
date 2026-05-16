@@ -2,11 +2,37 @@
 
 import { useState } from "react";
 
+type ProductFormState = {
+  name: string;
+  slug: string;
+  priceCents: string;
+  imageUrl: string;
+  stock: string;
+  description: string;
+  category: string;
+  subCategory: string;
+  badge: string;
+  isActive: boolean;
+  isPack: boolean;
+  packItems: string;
+};
+
+const BADGES = [
+  "",
+  "Top Vente",
+  "Nouveau",
+  "Best Seller",
+  "Promo",
+  "Premium",
+  "Édition limitée",
+  "Artisan",
+];
+
 export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProductFormState>({
     name: "",
     slug: "",
     priceCents: "",
@@ -15,13 +41,30 @@ export default function NewProductPage() {
     description: "",
     category: "vanille",
     subCategory: "",
+    badge: "",
     isActive: true,
     isPack: false,
     packItems: "",
   });
 
-  function handleChange(key: string, value: any) {
+  const stockNumber = Number(form.stock);
+  const isOutOfStock = Number.isFinite(stockNumber) && stockNumber <= 0;
+
+  function handleChange<K extends keyof ProductFormState>(
+    key: K,
+    value: ProductFormState[K]
+  ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function generateSlug(value: string) {
+    return value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -46,6 +89,12 @@ export default function NewProductPage() {
       return;
     }
 
+    const stock = Number(form.stock);
+    if (!Number.isFinite(stock) || stock < 0) {
+      setError("Stock invalide");
+      return;
+    }
+
     if (form.isPack && !form.packItems.trim()) {
       setError("Ajoute le contenu du pack");
       return;
@@ -60,7 +109,7 @@ export default function NewProductPage() {
       formData.append("slug", form.slug.trim());
       formData.append("priceCents", String(price));
       formData.append("imageUrl", form.imageUrl.trim());
-      formData.append("stock", form.stock || "0");
+      formData.append("stock", String(stock));
       formData.append("description", form.description.trim());
       formData.append("category", form.category.trim());
 
@@ -68,7 +117,10 @@ export default function NewProductPage() {
         formData.append("subCategory", form.subCategory.trim());
       }
 
-      // ✅ ACTIF / INACTIF
+      if (form.badge.trim()) {
+        formData.append("badge", form.badge.trim());
+      }
+
       if (form.isActive) {
         formData.append("isActive", "on");
       }
@@ -95,6 +147,7 @@ export default function NewProductPage() {
           description: "",
           category: "vanille",
           subCategory: "",
+          badge: "",
           isActive: true,
           isPack: false,
           packItems: "",
@@ -123,14 +176,20 @@ export default function NewProductPage() {
         <input
           placeholder="Nom"
           value={form.name}
-          onChange={(e) => handleChange("name", e.target.value)}
+          onChange={(e) =>
+            setForm((prev) => ({
+              ...prev,
+              name: e.target.value,
+              slug: generateSlug(e.target.value),
+            }))
+          }
           style={input}
         />
 
         <input
           placeholder="Slug"
           value={form.slug}
-          onChange={(e) => handleChange("slug", e.target.value)}
+          onChange={(e) => handleChange("slug", generateSlug(e.target.value))}
           style={input}
         />
 
@@ -149,9 +208,15 @@ export default function NewProductPage() {
           style={input}
         />
 
-        {/* ✅ PREVIEW */}
         {form.imageUrl && (
-          <img src={form.imageUrl} style={preview} />
+          <img
+            src={form.imageUrl}
+            alt="Aperçu produit"
+            style={preview}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
         )}
 
         <input
@@ -162,12 +227,41 @@ export default function NewProductPage() {
           style={input}
         />
 
-        <input
-          placeholder="Catégorie"
+        {isOutOfStock && (
+          <div style={outOfStockBox}>
+            ⚠️ Stock à 0 : le produit sera marqué en rupture côté boutique.
+          </div>
+        )}
+
+        <select
           value={form.category}
           onChange={(e) => handleChange("category", e.target.value)}
           style={input}
+        >
+          <option value="vanille">Vanille</option>
+          <option value="epices">Épices</option>
+          <option value="pack">Pack</option>
+        </select>
+
+        <input
+          placeholder="Sous-catégorie (optionnel)"
+          value={form.subCategory}
+          onChange={(e) => handleChange("subCategory", e.target.value)}
+          style={input}
         />
+
+        <select
+          value={form.badge}
+          onChange={(e) => handleChange("badge", e.target.value)}
+          style={input}
+        >
+          <option value="">Aucun badge marketing</option>
+          {BADGES.filter(Boolean).map((badge) => (
+            <option key={badge} value={badge}>
+              {badge}
+            </option>
+          ))}
+        </select>
 
         <textarea
           placeholder="Description"
@@ -176,26 +270,20 @@ export default function NewProductPage() {
           style={textarea}
         />
 
-        {/* ✅ ACTIF */}
         <label style={checkboxRow}>
           <input
             type="checkbox"
             checked={form.isActive}
-            onChange={(e) =>
-              handleChange("isActive", e.target.checked)
-            }
+            onChange={(e) => handleChange("isActive", e.target.checked)}
           />
-          Produit actif
+          {form.isActive ? "Produit actif" : "Produit inactif"}
         </label>
 
-        {/* PACK */}
         <label style={checkboxRow}>
           <input
             type="checkbox"
             checked={form.isPack}
-            onChange={(e) =>
-              handleChange("isPack", e.target.checked)
-            }
+            onChange={(e) => handleChange("isPack", e.target.checked)}
           />
           Produit pack
         </label>
@@ -204,9 +292,7 @@ export default function NewProductPage() {
           <textarea
             placeholder="Contenu du pack"
             value={form.packItems}
-            onChange={(e) =>
-              handleChange("packItems", e.target.value)
-            }
+            onChange={(e) => handleChange("packItems", e.target.value)}
             style={textarea}
           />
         )}
@@ -221,43 +307,73 @@ export default function NewProductPage() {
 
 /* STYLE */
 
-const container = { padding: 30 };
-const title = { marginBottom: 20 };
-const errorStyle = { color: "#dc2626", marginBottom: 15 };
+const container: React.CSSProperties = {
+  padding: 30,
+};
 
-const formStyle = {
+const title: React.CSSProperties = {
+  marginBottom: 20,
+};
+
+const errorStyle: React.CSSProperties = {
+  color: "#dc2626",
+  marginBottom: 15,
+};
+
+const formStyle: React.CSSProperties = {
   display: "flex",
-  flexDirection: "column" as const,
+  flexDirection: "column",
   gap: 12,
-  maxWidth: 500,
+  maxWidth: 560,
 };
 
-const input = { padding: 10, borderRadius: 8, border: "1px solid #ddd" };
-
-const textarea = {
-  padding: 10,
-  borderRadius: 8,
-  border: "1px solid #ddd",
-  minHeight: 80,
-};
-
-const preview = {
-  width: "100%",
-  maxHeight: 200,
-  objectFit: "cover" as const,
+const input: React.CSSProperties = {
+  padding: 12,
   borderRadius: 10,
+  border: "1px solid #ddd",
+  fontSize: 14,
 };
 
-const checkboxRow = {
+const textarea: React.CSSProperties = {
+  padding: 12,
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  minHeight: 90,
+  fontSize: 14,
+};
+
+const preview: React.CSSProperties = {
+  width: "100%",
+  maxHeight: 220,
+  objectFit: "cover",
+  borderRadius: 12,
+  border: "1px solid #eee",
+};
+
+const checkboxRow: React.CSSProperties = {
   display: "flex",
   gap: 10,
   alignItems: "center",
+  fontSize: 14,
+  fontWeight: 600,
 };
 
-const btn = {
-  background: "#a16207",
-  color: "white",
+const outOfStockBox: React.CSSProperties = {
+  background: "#fff7ed",
+  color: "#9a3412",
+  border: "1px solid #fed7aa",
   padding: 12,
+  borderRadius: 10,
+  fontSize: 13,
+  fontWeight: 600,
+};
+
+const btn: React.CSSProperties = {
+  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
+  color: "white",
+  padding: 14,
   border: "none",
-  borderRadius: 8,
+  borderRadius: 10,
+  fontWeight: 800,
+  cursor: "pointer",
 };
