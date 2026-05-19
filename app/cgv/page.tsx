@@ -1,3 +1,5 @@
+import BackButton from "@/components/ui/BackButton";
+
 export const metadata = {
   title: "Conditions Générales de Vente | Vanille’Or",
   description:
@@ -7,6 +9,10 @@ export const metadata = {
 export default function CGVPage() {
   return (
     <div style={container}>
+      <BackButton
+          label="Retour accueil"
+          fallback="/"
+      />
       <h1 style={title}>
         Conditions Générales de Vente
       </h1>

@@ -1,8 +1,15 @@
+import BackButton from "@/components/ui/BackButton";
+
 export default function ContactPage() {
     return (
       <div style={container}>
         <div style={card}>
           <p style={tag}>CONTACT</p>
+
+          <BackButton
+            label="Retour accueil"
+            fallback="/"
+            />
   
           <h1 style={title}>
             Une question ?

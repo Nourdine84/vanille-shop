@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
+import BackButton from "@/components/ui/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -221,6 +222,11 @@ export default async function BlogDetail({
           <div style={categoryBadge}>
             {category}
           </div>
+
+          <BackButton
+            label="Retour au blog"
+            fallback="/blog"
+          />
 
           <h1 style={titleStyle}>
             {title}

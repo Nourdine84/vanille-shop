@@ -1,6 +1,11 @@
+import BackButton from "@/components/ui/BackButton";
 export default function MentionsLegalesPage() {
     return (
       <div style={container}>
+        <BackButton
+        label="Retour accueil"
+        fallback="/"
+        />
         <h1 style={title}>Mentions légales</h1>
   
         <div style={content}>

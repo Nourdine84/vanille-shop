@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  sendB2BAdminEmail,
-  sendB2BCustomerAckEmail,
+  sendSupportAdminEmail,
+  sendSupportCustomerEmail,
 } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -17,6 +17,7 @@ export async function POST(req: Request) {
     const name = body.name?.trim();
     const email = body.email?.trim();
     const orderId = body.orderId?.trim() || "";
+    const subject = "Demande SAV / Réclamation";
     const message = body.message?.trim();
 
     /* ================= VALIDATION ================= */
@@ -37,20 +38,21 @@ export async function POST(req: Request) {
 
     /* ================= EMAIL ADMIN ================= */
 
-    await sendB2BAdminEmail({
+    await sendSupportAdminEmail({
       name,
       email,
-      company: "Client VanilleOr",
-      quantity: orderId ? `Commande: ${orderId}` : "-",
+      orderId,
+      subject,
       message,
     });
 
     /* ================= EMAIL CLIENT ================= */
 
-    await sendB2BCustomerAckEmail({
+    await sendSupportCustomerEmail({
+      to: email,
       name,
-      email,
-      message,
+      subject,
+      orderId,
     });
 
     return NextResponse.json({ success: true });

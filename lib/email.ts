@@ -633,3 +633,135 @@ export async function sendB2BRelanceV2Email(payload: RelancePayload) {
     html,
   });
 }
+/* ================= SAV ADMIN ================= */
+
+export async function sendSupportAdminEmail(payload: {
+  name?: string;
+  email?: string;
+  orderId?: string;
+  subject?: string;
+  message?: string;
+}) {
+  const html = layout({
+    eyebrow: "Support",
+    title: "Nouvelle demande SAV",
+    subtitle:
+      "Un client a soumis une nouvelle demande depuis le formulaire support.",
+    content: `
+      ${sectionCard(
+        statRow("Client", payload.name || "-") +
+          statRow("Email", payload.email || "-") +
+          statRow(
+            "Commande",
+            payload.orderId || "Non renseignée"
+          ) +
+          statRow(
+            "Sujet",
+            payload.subject || "Demande SAV"
+          )
+      )}
+
+      ${
+        payload.message
+          ? sectionCard(`
+            <div style="
+              font-size:15px;
+              font-weight:800;
+              margin-bottom:10px;
+              color:#1a1a1a;
+            ">
+              Message client
+            </div>
+
+            <div style="
+              font-size:14px;
+              line-height:1.8;
+              color:#666;
+              white-space:pre-line;
+            ">
+              ${escapeHtml(payload.message)}
+            </div>
+          `)
+          : ""
+      }
+    `,
+  });
+
+  return sendMail({
+    to:
+      process.env.EMAIL_ADMIN_TO ||
+      process.env.ADMIN_EMAIL,
+    subject: `SAV • ${payload.subject || "Nouvelle demande"}`,
+    html,
+  });
+}
+
+/* ================= SAV CLIENT ================= */
+
+export async function sendSupportCustomerEmail(payload: {
+  to: string;
+  name?: string;
+  subject?: string;
+  orderId?: string;
+}) {
+  const html = layout({
+    eyebrow: "Support",
+    title: "Demande bien reçue",
+    subtitle:
+      "Notre équipe reviendra vers vous dans les meilleurs délais.",
+    content: `
+      <p style="
+        margin:0 0 12px;
+        font-size:15px;
+        line-height:1.8;
+        color:#444;
+      ">
+        Bonjour ${escapeHtml(payload.name || "")},
+      </p>
+
+      <p style="
+        margin:0;
+        font-size:15px;
+        line-height:1.8;
+        color:#666;
+      ">
+        Nous avons bien reçu votre demande concernant :
+        <strong>
+          ${escapeHtml(payload.subject || "Support")}
+        </strong>.
+      </p>
+
+      ${
+        payload.orderId
+          ? sectionCard(
+              statRow(
+                "Commande concernée",
+                payload.orderId
+              )
+            )
+          : ""
+      }
+
+      <p style="
+        margin-top:18px;
+        font-size:14px;
+        line-height:1.8;
+        color:#666;
+      ">
+        Notre équipe reviendra vers vous rapidement
+        afin de vous apporter une solution adaptée.
+      </p>
+
+      ${ctaButton(
+        "Découvrir nos produits",
+        `${SITE_URL}/products`
+      )}
+    `,
+  });
+
+  return sendMail({
+    to: payload.to,
+    subject: "Votre demande SAV a bien été reçue",
+    html,
+  });
+}

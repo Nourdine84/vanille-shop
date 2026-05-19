@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import BackButton from "@/components/ui/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,11 @@ export default async function BlogPage() {
           <p style={heroTag}>
             BLOG VANILLE’OR
           </p>
+
+          <BackButton
+            label="Retour accueil"
+            fallback="/"
+          />
 
           <h1 style={heroTitle}>
             Conseils, recettes <br />

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useToast } from "../../components/ui/toast";
+import BackButton from "@/components/ui/BackButton";
 
 export default function RegisterPage() {
   // ✅ FIX SSR SAFE
@@ -55,6 +56,11 @@ export default function RegisterPage() {
   return (
     <div className="container py-10">
       <div style={{ maxWidth: "500px", margin: "0 auto" }}>
+        
+        <BackButton
+            label="Retour accueil"
+            fallback="/"
+          />
         <h1 className="text-3xl font-bold mb-6">Créer un compte</h1>
 
         <form onSubmit={handleRegister} style={{ display: "grid", gap: "16px" }}>

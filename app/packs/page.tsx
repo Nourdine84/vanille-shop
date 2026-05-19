@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
+import BackButton from "@/components/ui/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,11 @@ export default async function PacksPage() {
 
         <div style={heroContent}>
           <p style={tag}>Vanille’Or</p>
+
+          <BackButton
+            label="Retour boutique"
+            fallback="/products"
+            />
 
           <h1 style={heroTitle}>
             Coffrets & Packs Premium

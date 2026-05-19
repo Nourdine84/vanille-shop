@@ -6,235 +6,401 @@ import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 import { usePathname } from "next/navigation";
-import type { CSSProperties } from "react"; // ✅ FIX IMPORTANT
+import type { CSSProperties } from "react";
 
 export default function Header() {
   const { cart } = useCart();
   const { openCart } = useUIStore();
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
   const pathname = usePathname();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  const totalItems = cart.reduce(
+    (acc, item) => acc + item.quantity,
+    0
+  );
+
+  /* =========================
+     CLOSE MENU ON ROUTE
+  ========================= */
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
+  /* =========================
+     SCROLL EFFECT
+  ========================= */
+
   useEffect(() => {
-    const handler = (e: any) => {
-      if (!e?.detail?.name) return;
-
-      setToast(`${e.detail.name} ajouté au panier`);
-
-      const timeout = setTimeout(() => setToast(null), 2500);
-      return () => clearTimeout(timeout);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 8);
     };
 
-    window.addEventListener("cart:add", handler);
-    return () => window.removeEventListener("cart:add", handler);
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
-  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+  /* =========================
+     MOBILE DETECTION
+  ========================= */
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 980);
+    };
+
+    checkMobile();
+
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
 
   return (
     <>
-      <header style={header}>
+      {/* =========================
+         HEADER
+      ========================= */}
+
+      <header
+        style={{
+          ...header,
+          ...(scrolled ? headerScrolled : {}),
+        }}
+      >
+        {/* LOGO */}
         <Link href="/" style={logo}>
           <Image
             src="/images/logo-vanilleor.png"
             alt="Vanille'Or"
             width={220}
             height={70}
-            style={{ width: "220px", height: "auto" }}
             priority
+            style={{
+              width: "180px",
+              height: "auto",
+              objectFit: "contain",
+            }}
           />
         </Link>
 
-        <nav style={navDesktop}>
-          <NavLink href="/products" label="Produits" />
-          <NavLink href="/collections/vanille" label="Vanille" />
-          <NavLink href="/collections/epices" label="Épices" />
-          <NavLink href="/b2b" label="Professionnels" />
-          <NavLink href="/about" label="À propos" />
-          <NavLink href="/blog" label="Blog" />
-        </nav>
+        {/* NAV DESKTOP */}
+        {!isMobile && (
+          <nav style={desktopNav}>
+            <NavLink href="/products" label="Produits" />
+            <NavLink href="/collections/vanille" label="Vanille" />
+            <NavLink href="/collections/epices" label="Épices" />
+            <NavLink href="/packs" label="Packs" />
+            <NavLink href="/b2b" label="Professionnels" />
+            <NavLink href="/blog" label="Blog" />
+          </nav>
+        )}
 
+        {/* ACTIONS */}
         <div style={actions}>
-          <Link href="/products" style={cta}>
-            Acheter
-          </Link>
+          {!isMobile && (
+            <Link href="/account" style={accountBtn}>
+              Mon compte
+            </Link>
+          )}
 
-          <button style={cartBtn} onClick={openCart}>
+          <button
+            onClick={openCart}
+            style={cartBtn}
+            aria-label="Ouvrir le panier"
+          >
             🛒
-            {totalItems > 0 && <span style={badge}>{totalItems}</span>}
+
+            {totalItems > 0 && (
+              <span style={badge}>
+                {totalItems}
+              </span>
+            )}
           </button>
 
-          <button style={burger} onClick={() => setMenuOpen(true)}>
-            ☰
-          </button>
+          {!isMobile && (
+            <Link href="/products" style={cta}>
+              Acheter
+            </Link>
+          )}
+
+          {/* BURGER */}
+          {isMobile && (
+            <button
+              style={burger}
+              onClick={() => setMenuOpen(true)}
+              aria-label="Ouvrir le menu"
+            >
+              ☰
+            </button>
+          )}
         </div>
       </header>
+
+      {/* =========================
+         OVERLAY
+      ========================= */}
 
       <div
         onClick={() => setMenuOpen(false)}
         style={{
           ...overlay,
-          display: menuOpen ? "block" : "none",
+          opacity: menuOpen ? 1 : 0,
+          pointerEvents: menuOpen ? "auto" : "none",
         }}
       />
 
-      <div
+      {/* =========================
+         MOBILE MENU
+      ========================= */}
+
+      <aside
         style={{
           ...mobileMenu,
-          transform: menuOpen ? "translateX(0)" : "translateX(100%)",
+          transform: menuOpen
+            ? "translateX(0)"
+            : "translateX(100%)",
         }}
       >
-        <button style={closeBtn} onClick={() => setMenuOpen(false)}>
-          ✕
-        </button>
+        <div style={mobileTop}>
+          <Image
+            src="/images/logo-vanilleor.png"
+            alt="Vanille'Or"
+            width={160}
+            height={50}
+            style={{
+              width: "140px",
+              height: "auto",
+            }}
+          />
 
-        <NavLink href="/products" label="Produits" mobile />
-        <NavLink href="/collections/vanille" label="Vanille" mobile />
-        <NavLink href="/collections/epices" label="Épices" mobile />
-        <NavLink href="/b2b" label="Professionnels" mobile />
-        <NavLink href="/about" label="À propos" mobile />
-        <NavLink href="/blog" label="Blog" mobile />
-      </div>
+          <button
+            onClick={() => setMenuOpen(false)}
+            style={closeBtn}
+          >
+            ✕
+          </button>
+        </div>
 
-      {toast && <div style={toastStyle}>✅ {toast}</div>}
+        <div style={mobileLinks}>
+          <MobileLink href="/products" label="Produits" />
+          <MobileLink href="/collections/vanille" label="Vanille" />
+          <MobileLink href="/collections/epices" label="Épices" />
+          <MobileLink href="/packs" label="Packs cadeaux" />
+          <MobileLink href="/b2b" label="Professionnels" />
+          <MobileLink href="/blog" label="Blog" />
+          <MobileLink href="/account" label="Mon compte" />
+          <MobileLink href="/reclamation" label="Support / SAV" />
+        </div>
+
+        <Link
+          href="/products"
+          style={mobileCTA}
+        >
+          Découvrir Vanille’Or
+        </Link>
+      </aside>
     </>
   );
 }
 
-/* ================= NAV LINK ================= */
+/* =========================
+   LINKS
+========================= */
 
-function NavLink({ href, label, mobile = false }: any) {
+function NavLink({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
   return (
-    <Link
-      href={href}
-      style={{
-        ...link,
-        ...(mobile ? mobileLink : {}),
-      }}
-    >
+    <Link href={href} style={navLink}>
       {label}
     </Link>
   );
 }
 
-/* ================= STYLES ================= */
+function MobileLink({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <Link href={href} style={mobileLink}>
+      {label}
+    </Link>
+  );
+}
+
+/* =========================
+   STYLES
+========================= */
 
 const header: CSSProperties = {
   position: "sticky",
   top: 0,
-  zIndex: 100,
-  background: "rgba(255,255,255,0.9)",
-  backdropFilter: "blur(8px)",
+  zIndex: 999,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "16px 24px",
+  padding: "18px 28px",
+  background: "rgba(248,245,239,0.92)",
+  backdropFilter: "blur(10px)",
+  transition: "all 0.25s ease",
+};
+
+const headerScrolled: CSSProperties = {
+  boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
 };
 
 const logo: CSSProperties = {
   display: "flex",
   alignItems: "center",
+  textDecoration: "none",
 };
 
-const navDesktop: CSSProperties = {
+const desktopNav: CSSProperties = {
   display: "flex",
-  gap: "20px",
-  flex: 1,
-  justifyContent: "center",
+  gap: "26px",
+  alignItems: "center",
 };
 
-const link: CSSProperties = {
+const navLink: CSSProperties = {
   textDecoration: "none",
   color: "#111",
-};
-
-const mobileLink: CSSProperties = {
-  padding: "18px",
-  borderBottom: "1px solid #eee",
+  fontSize: "14px",
+  fontWeight: 600,
 };
 
 const actions: CSSProperties = {
   display: "flex",
+  alignItems: "center",
   gap: "10px",
 };
 
-const cta: CSSProperties = {
-  background: "#a16207",
-  color: "white",
-  padding: "10px 16px",
-  borderRadius: "10px",
+const accountBtn: CSSProperties = {
+  textDecoration: "none",
+  color: "#111",
+  fontSize: "14px",
+  fontWeight: 600,
 };
 
 const cartBtn: CSSProperties = {
   position: "relative",
-  background: "transparent",
   border: "none",
-  fontSize: "20px",
+  background: "white",
+  width: "42px",
+  height: "42px",
+  borderRadius: "50%",
   cursor: "pointer",
+  fontSize: "18px",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
 };
 
 const badge: CSSProperties = {
   position: "absolute",
-  top: "-4px",
-  right: "-4px",
-  background: "red",
+  top: "-5px",
+  right: "-5px",
+  background: "#dc2626",
   color: "white",
-  borderRadius: "999px",
   fontSize: "10px",
-  padding: "4px 6px",
+  fontWeight: 700,
+  borderRadius: "999px",
+  minWidth: "18px",
+  height: "18px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const cta: CSSProperties = {
+  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
+  color: "white",
+  textDecoration: "none",
+  padding: "12px 18px",
+  borderRadius: "12px",
+  fontWeight: 700,
+  fontSize: "14px",
 };
 
 const burger: CSSProperties = {
-  fontSize: "22px",
-  background: "transparent",
   border: "none",
+  background: "transparent",
+  fontSize: "24px",
   cursor: "pointer",
 };
 
 const overlay: CSSProperties = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.4)",
-  zIndex: 90,
+  background: "rgba(0,0,0,0.45)",
+  zIndex: 998,
+  transition: "0.25s ease",
 };
 
 const mobileMenu: CSSProperties = {
   position: "fixed",
   top: 0,
   right: 0,
-  width: "80%",
-  maxWidth: "320px",
+  width: "85%",
+  maxWidth: "360px",
   height: "100vh",
   background: "white",
-  zIndex: 100,
+  zIndex: 9999,
+  padding: "24px",
   transition: "transform 0.3s ease",
   display: "flex",
   flexDirection: "column",
+  boxShadow: "-10px 0 30px rgba(0,0,0,0.12)",
+};
+
+const mobileTop: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: "30px",
 };
 
 const closeBtn: CSSProperties = {
-  alignSelf: "flex-end",
-  fontSize: "22px",
   border: "none",
   background: "transparent",
+  fontSize: "24px",
   cursor: "pointer",
-  padding: "10px",
 };
 
-const toastStyle: CSSProperties = {
-  position: "fixed",
-  bottom: "20px",
-  right: "20px",
-  background: "#111",
-  color: "white",
-  padding: "14px 18px",
-  borderRadius: "12px",
-  zIndex: 99999,
+const mobileLinks: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "18px",
+};
+
+const mobileLink: CSSProperties = {
+  textDecoration: "none",
+  color: "#111",
+  fontSize: "16px",
   fontWeight: 600,
+};
+
+const mobileCTA: CSSProperties = {
+  marginTop: "auto",
+  textAlign: "center",
+  background: "#a16207",
+  color: "white",
+  textDecoration: "none",
+  padding: "16px",
+  borderRadius: "14px",
+  fontWeight: 700,
 };

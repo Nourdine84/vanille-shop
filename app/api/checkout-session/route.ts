@@ -157,13 +157,30 @@ export async function POST(req: Request) {
     const shippingCost = subtotal >= 5000 ? 0 : 490;
     const total = subtotal + shippingCost;
 
+    /* ================= USER SESSION ================= */
+
+    const cookieHeader = req.headers.get("cookie") || "";
+
+    const sessionCookie = cookieHeader
+      .split(";")
+      .find((c) => c.trim().startsWith("vanille_or_user="));
+
+    const userId = sessionCookie
+      ? sessionCookie.split("=")[1]
+      : null;
+
+    console.log("👤 USER SESSION:", userId);
+
     /* ================= ORDER ================= */
 
     const order = await prisma.order.create({
       data: {
+        userId: userId || undefined,
+
         status: "PENDING",
         totalCents: total,
         currency: "EUR",
+
         items: validatedItems,
       },
     });
