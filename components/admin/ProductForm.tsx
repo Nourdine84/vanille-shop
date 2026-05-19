@@ -10,6 +10,7 @@ const input: React.CSSProperties = {
   borderRadius: 10,
   border: "1px solid #ddd",
   width: "100%",
+  background: "white",
 };
 
 const section: React.CSSProperties = {
@@ -22,7 +23,8 @@ const section: React.CSSProperties = {
 
 const grid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(120px,1fr))",
   gap: 10,
 };
 
@@ -32,6 +34,7 @@ const errorBox: React.CSSProperties = {
   padding: 12,
   borderRadius: 12,
   marginBottom: 16,
+  fontWeight: 700,
 };
 
 const successBox: React.CSSProperties = {
@@ -40,17 +43,37 @@ const successBox: React.CSSProperties = {
   padding: 12,
   borderRadius: 12,
   marginBottom: 16,
+  fontWeight: 700,
 };
 
 const btn: React.CSSProperties = {
   width: "100%",
   padding: 16,
-  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
+  background:
+    "linear-gradient(135deg,#b7791f,#8b5e14)",
   color: "white",
   borderRadius: 12,
   border: "none",
   fontWeight: 800,
   cursor: "pointer",
+  fontSize: 15,
+};
+
+const label: React.CSSProperties = {
+  display: "block",
+  marginBottom: 10,
+  fontWeight: 700,
+};
+
+const helper: React.CSSProperties = {
+  color: "#666",
+  fontSize: 13,
+  marginTop: 8,
+};
+
+const title: React.CSSProperties = {
+  marginTop: 0,
+  marginBottom: 18,
 };
 
 /* ================= CONFIG ================= */
@@ -99,13 +122,29 @@ function generateSlug(name: string) {
 /* ================= COMPONENT ================= */
 
 export default function ProductForm() {
-  const [imageUrl, setImageUrl] = useState("");
-  const [isPack, setIsPack] = useState(false);
-  const [unit, setUnit] = useState<"g" | "ml">("g");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
+  const [imageUrl, setImageUrl] =
+    useState("");
+
+  const [isPack, setIsPack] =
+    useState(false);
+
+  const [unit, setUnit] =
+    useState<"g" | "ml">("g");
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [name, setName] =
+    useState("");
+
+  const [category, setCategory] =
+    useState("vanille");
 
   const formats =
     unit === "g"
@@ -132,7 +171,23 @@ export default function ProductForm() {
       ).trim().length > 0;
 
     if (!hasImage) {
-      setError("Une image est requise.");
+      setError(
+        "Une image produit est requise."
+      );
+
+      return;
+    }
+
+    const stock = Number(
+      formData.get("stock") || 0
+    );
+
+    if (
+      !Number.isFinite(stock) ||
+      stock < 0
+    ) {
+      setError("Stock invalide.");
+
       return;
     }
 
@@ -145,22 +200,30 @@ export default function ProductForm() {
         !Number.isFinite(price) ||
         price <= 0
       ) {
-        setError("Prix pack invalide.");
+        setError(
+          "Prix pack invalide."
+        );
+
         return;
       }
     } else {
-      const hasPrice = formats.some((f) => {
-        const value = Number(
-          formData.get(`price_${f}`) || 0
-        );
+      const hasPrice = formats.some(
+        (f) => {
+          const value = Number(
+            formData.get(
+              `price_${f}`
+            ) || 0
+          );
 
-        return value > 0;
-      });
+          return value > 0;
+        }
+      );
 
       if (!hasPrice) {
         setError(
           "Ajoute au moins un prix."
         );
+
         return;
       }
     }
@@ -176,11 +239,12 @@ export default function ProductForm() {
         }
       );
 
-      if (!res.ok) {
-        const err = await res.json();
+      const data = await res.json();
 
+      if (!res.ok) {
         throw new Error(
-          err?.error || "Erreur"
+          data?.error ||
+            "Erreur serveur"
         );
       }
 
@@ -194,9 +258,13 @@ export default function ProductForm() {
       setIsPack(false);
       setUnit("g");
       setName("");
+      setCategory("vanille");
 
     } catch (err: any) {
-      setError(err.message);
+      setError(
+        err?.message ||
+          "Erreur inconnue"
+      );
     } finally {
       setLoading(false);
     }
@@ -223,16 +291,22 @@ export default function ProductForm() {
       )}
 
       {/* INFOS */}
+
       <div style={section}>
-        <h3>
+        <h3 style={title}>
           📦 Informations produit
         </h3>
 
+        <label style={label}>
+          Nom produit
+        </label>
+
         <input
           name="name"
-          placeholder="Nom produit"
+          placeholder="Ex : Vanille Gourmet"
           required
           style={input}
+          value={name}
           onChange={(e) =>
             setName(e.target.value)
           }
@@ -240,6 +314,10 @@ export default function ProductForm() {
 
         <br />
         <br />
+
+        <label style={label}>
+          Slug auto généré
+        </label>
 
         <input
           name="slug"
@@ -254,19 +332,64 @@ export default function ProductForm() {
         <br />
         <br />
 
+        <label style={label}>
+          Description
+        </label>
+
         <textarea
           name="description"
-          placeholder="Description"
+          placeholder="Description produit..."
           style={{
             ...input,
-            minHeight: 100,
+            minHeight: 120,
+            resize: "vertical",
           }}
         />
       </div>
 
-      {/* IMAGE */}
+      {/* CATEGORY */}
+
       <div style={section}>
-        <h3>🖼 Image</h3>
+        <h3 style={title}>
+          🗂 Catégorie produit
+        </h3>
+
+        <select
+          name="category"
+          value={category}
+          onChange={(e) =>
+            setCategory(
+              e.target.value
+            )
+          }
+          style={input}
+        >
+          <option value="vanille">
+            🌿 Vanille
+          </option>
+
+          <option value="epices">
+            🌶 Épices
+          </option>
+
+          <option value="pack">
+            🎁 Pack
+          </option>
+        </select>
+
+        <p style={helper}>
+          Cette catégorie permettra
+          le tri et l’affichage
+          automatique sur le site.
+        </p>
+      </div>
+
+      {/* IMAGE */}
+
+      <div style={section}>
+        <h3 style={title}>
+          🖼 Image produit
+        </h3>
 
         <ImageUploadField
           onChange={setImageUrl}
@@ -277,11 +400,17 @@ export default function ProductForm() {
           name="imageUrl"
           value={imageUrl}
         />
+
+        <p style={helper}>
+          Utilise une image premium
+          optimisée pour le catalogue.
+        </p>
       </div>
 
       {/* BADGE */}
+
       <div style={section}>
-        <h3>
+        <h3 style={title}>
           🏷 Badge marketing
         </h3>
 
@@ -308,27 +437,37 @@ export default function ProductForm() {
       </div>
 
       {/* STOCK */}
+
       <div style={section}>
-        <h3>📊 Stock</h3>
+        <h3 style={title}>
+          📊 Stock
+        </h3>
 
         <input
           type="number"
           name="stock"
           required
+          min="0"
+          placeholder="Ex : 25"
           style={input}
         />
       </div>
 
       {/* TYPE */}
+
       <div style={section}>
-        <h3>⚖️ Type</h3>
+        <h3 style={title}>
+          ⚖️ Type produit
+        </h3>
 
         <select
           name="unit"
           value={unit}
           onChange={(e) =>
             setUnit(
-              e.target.value as "g" | "ml"
+              e.target.value as
+                | "g"
+                | "ml"
             )
           }
           disabled={isPack}
@@ -345,29 +484,50 @@ export default function ProductForm() {
       </div>
 
       {/* PACK */}
+
       <div style={section}>
-        <label>
+        <h3 style={title}>
+          🎁 Produit pack
+        </h3>
+
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontWeight: 700,
+          }}
+        >
           <input
             type="checkbox"
             name="isPack"
-            onChange={(e) =>
-              setIsPack(
-                e.target.checked
-              )
-            }
-          />{" "}
-          Pack
+            checked={isPack}
+            onChange={(e) => {
+              const checked =
+                e.target.checked;
+
+              setIsPack(checked);
+
+              if (checked) {
+                setCategory("pack");
+              }
+            }}
+          />
+
+          Ce produit est un pack
         </label>
 
         {isPack && (
           <>
             <br />
-            <br />
 
             <textarea
               name="packItems"
-              placeholder="Contenu du pack"
-              style={input}
+              placeholder="Contenu du pack..."
+              style={{
+                ...input,
+                minHeight: 100,
+              }}
             />
 
             <br />
@@ -384,9 +544,12 @@ export default function ProductForm() {
       </div>
 
       {/* PRICES */}
+
       {!isPack && (
         <div style={section}>
-          <h3>💰 Prix</h3>
+          <h3 style={title}>
+            💰 Prix par format
+          </h3>
 
           <div style={grid}>
             {formats.map((f) => (
@@ -401,7 +564,12 @@ export default function ProductForm() {
         </div>
       )}
 
-      <button style={btn}>
+      {/* SUBMIT */}
+
+      <button
+        style={btn}
+        disabled={loading}
+      >
         {loading
           ? "Création..."
           : "Créer produit"}

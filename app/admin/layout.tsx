@@ -29,6 +29,15 @@ export default function AdminLayout({
       icon: "🧾",
     },
 
+    /* ================= NEW SAV ================= */
+
+    {
+      name: "SAV",
+      href: "/admin/reclamations",
+      icon: "🎧",
+      badge: "NEW",
+    },
+
     {
       name: "Blog",
       href: "/admin/blog",
@@ -101,13 +110,23 @@ export default function AdminLayout({
                         : "none",
                     }}
                   >
-                    <span style={menuIcon}>
-                      {item.icon}
-                    </span>
+                    <div style={menuLeft}>
+                      <span style={menuIcon}>
+                        {item.icon}
+                      </span>
 
-                    <span>
-                      {item.name}
-                    </span>
+                      <span>
+                        {item.name}
+                      </span>
+                    </div>
+
+                    {/* BADGE */}
+
+                    {item.badge && (
+                      <div style={badge}>
+                        {item.badge}
+                      </div>
+                    )}
                   </div>
                 </Link>
               );
@@ -116,6 +135,7 @@ export default function AdminLayout({
         </div>
 
         {/* FOOTER */}
+
         <div style={footer}>
           <div style={footerCard}>
             <p style={footerTitle}>
@@ -157,7 +177,8 @@ const sidebar: React.CSSProperties = {
   position: "sticky",
   top: 0,
   height: "100vh",
-  borderRight: "1px solid rgba(255,255,255,0.05)",
+  borderRight:
+    "1px solid rgba(255,255,255,0.05)",
 };
 
 const logoBox: React.CSSProperties = {
@@ -189,6 +210,7 @@ const link: React.CSSProperties = {
 const menuItem: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
+  justifyContent: "space-between",
   gap: 12,
   padding: "14px 16px",
   borderRadius: 14,
@@ -196,8 +218,24 @@ const menuItem: React.CSSProperties = {
   fontWeight: 700,
 };
 
+const menuLeft: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+};
+
 const menuIcon: React.CSSProperties = {
   fontSize: 18,
+};
+
+const badge: React.CSSProperties = {
+  background: "#dc2626",
+  color: "white",
+  padding: "4px 8px",
+  borderRadius: 999,
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.05em",
 };
 
 const footer: React.CSSProperties = {
@@ -206,7 +244,8 @@ const footer: React.CSSProperties = {
 
 const footerCard: React.CSSProperties = {
   background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.06)",
+  border:
+    "1px solid rgba(255,255,255,0.06)",
   borderRadius: 18,
   padding: 16,
 };

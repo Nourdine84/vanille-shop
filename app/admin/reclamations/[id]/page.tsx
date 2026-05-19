@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+
 import AdminBackButton from "@/components/admin/AdminBackButton";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 type Props = {
   params: {
@@ -9,11 +13,106 @@ type Props = {
   };
 };
 
+/* =========================
+   HELPERS
+========================= */
+
+function formatDate(
+  date: Date
+) {
+  return new Intl.DateTimeFormat(
+    "fr-FR",
+    {
+      dateStyle: "full",
+      timeStyle: "short",
+    }
+  ).format(date);
+}
+
+function getPriorityColor(
+  priority: string
+) {
+  switch (priority) {
+    case "URGENT":
+      return "#dc2626";
+
+    case "HIGH":
+      return "#f59e0b";
+
+    case "MEDIUM":
+      return "#2563eb";
+
+    default:
+      return "#9ca3af";
+  }
+}
+
+function getStatusColor(
+  status: string
+) {
+  switch (status) {
+    case "NEW":
+      return "#f59e0b";
+
+    case "IN_PROGRESS":
+      return "#2563eb";
+
+    case "RESOLVED":
+      return "#16a34a";
+
+    case "CLOSED":
+      return "#6b7280";
+
+    default:
+      return "#111";
+  }
+}
+
+function getTimeline(
+  status: string
+) {
+  return [
+    {
+      label: "Ticket créé",
+      done: true,
+    },
+
+    {
+      label:
+        "Support pris en charge",
+      done: [
+        "IN_PROGRESS",
+        "RESOLVED",
+        "CLOSED",
+      ].includes(status),
+    },
+
+    {
+      label: "Résolution SAV",
+      done: [
+        "RESOLVED",
+        "CLOSED",
+      ].includes(status),
+    },
+
+    {
+      label: "Ticket fermé",
+      done:
+        status === "CLOSED",
+    },
+  ];
+}
+
+/* =========================
+   PAGE
+========================= */
+
 export default async function ReclamationDetailPage({
   params,
 }: Props) {
   const isAdmin =
-    cookies().get("admin");
+    cookies().get("admin")?.value ===
+    "true";
 
   if (!isAdmin) {
     redirect("/admin/login");
@@ -27,170 +126,357 @@ export default async function ReclamationDetailPage({
     });
 
   if (!reclamation) {
-    return (
-      <div style={container}>
-        Réclamation introuvable.
-      </div>
-    );
+    return notFound();
   }
 
+  const timeline =
+    getTimeline(
+      reclamation.status
+    );
+
   return (
-    <div style={container}>
-      <AdminBackButton
-        label="Retour réclamations"
-        fallback="/admin/reclamations"
-      />
+    <div style={page}>
+      <div style={container}>
+        <AdminBackButton
+          label="Retour réclamations"
+          fallback="/admin/reclamations"
+        />
 
-      <br />
-      <br />
+        {/* HERO */}
 
-      <div style={hero}>
-        <div>
-          <p style={tag}>
-            SUPPORT TICKET
-          </p>
-
-          <h1 style={title}>
-            {reclamation.subject}
-          </h1>
-
-          <p style={subtitle}>
-            Ticket SAV premium
-          </p>
-        </div>
-
-        <div
-          style={priorityBadge(
-            reclamation.priority
-          )}
-        >
-          {reclamation.priority}
-        </div>
-      </div>
-
-      <div style={layout}>
-        {/* LEFT */}
-
-        <div style={left}>
-          <div style={card}>
-            <h2 style={sectionTitle}>
-              👤 Client
-            </h2>
-
-            <p>
-              <strong>Nom :</strong>{" "}
-              {reclamation.name}
+        <div style={hero}>
+          <div>
+            <p style={heroTag}>
+              SUPPORT TICKET
             </p>
 
-            <p>
-              <strong>Email :</strong>{" "}
-              {reclamation.email}
-            </p>
+            <h1 style={title}>
+              {reclamation.subject}
+            </h1>
 
-            {reclamation.orderId && (
-              <p>
-                <strong>
-                  Commande :
-                </strong>{" "}
-                {
-                  reclamation.orderId
-                }
-              </p>
+            <p style={subtitle}>
+              Ticket SAV premium
+              Vanille’Or
+            </p>
+          </div>
+
+          <div
+            style={{
+              ...priorityBadge,
+              background:
+                getPriorityColor(
+                  reclamation.priority
+                ),
+            }}
+          >
+            {
+              reclamation.priority
+            }
+          </div>
+        </div>
+
+        {/* KPI */}
+
+        <div style={kpiGrid}>
+          <KPI
+            title="🎫 Ticket"
+            value={reclamation.id.slice(
+              0,
+              8
             )}
+          />
 
-            <p>
-              <strong>Date :</strong>{" "}
-              {new Date(
-                reclamation.createdAt
-              ).toLocaleString(
-                "fr-FR"
-              )}
-            </p>
-          </div>
+          <KPI
+            title="📌 Status"
+            value={
+              reclamation.status
+            }
+            color={getStatusColor(
+              reclamation.status
+            )}
+          />
 
-          <div style={card}>
-            <h2 style={sectionTitle}>
-              💬 Message client
-            </h2>
+          <KPI
+            title="⚡ Priorité"
+            value={
+              reclamation.priority
+            }
+            color={getPriorityColor(
+              reclamation.priority
+            )}
+          />
 
-            <div style={messageBox}>
-              {reclamation.message}
-            </div>
+          <KPI
+            title="📅 Création"
+            value={new Date(
+              reclamation.createdAt
+            ).toLocaleDateString(
+              "fr-FR"
+            )}
+          />
+        </div>
+
+        {/* TIMELINE */}
+
+        <div style={section}>
+          <h2 style={sectionTitle}>
+            🚀 Timeline ticket
+          </h2>
+
+          <div style={timelineWrapper}>
+            {timeline.map(
+              (
+                step,
+                index
+              ) => (
+                <div
+                  key={index}
+                  style={
+                    timelineItem
+                  }
+                >
+                  <div
+                    style={{
+                      ...timelineDot,
+                      background:
+                        step.done
+                          ? "#16a34a"
+                          : "#d1d5db",
+                    }}
+                  />
+
+                  <span
+                    style={{
+                      color:
+                        step.done
+                          ? "#111"
+                          : "#777",
+                    }}
+                  >
+                    {
+                      step.label
+                    }
+                  </span>
+                </div>
+              )
+            )}
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* MAIN GRID */}
 
-        <div style={right}>
-          <div style={card}>
-            <h2 style={sectionTitle}>
-              ⚙️ Gestion ticket
-            </h2>
+        <div style={layout}>
+          {/* LEFT */}
 
-            <div
-              style={statusBadge(
-                reclamation.status
-              )}
-            >
-              {
-                reclamation.status
-              }
+          <div style={left}>
+            {/* CLIENT */}
+
+            <div style={card}>
+              <h2
+                style={
+                  sectionTitle
+                }
+              >
+                👤 Client
+              </h2>
+
+              <div style={infoGrid}>
+                <Info
+                  label="Nom"
+                  value={
+                    reclamation.name
+                  }
+                />
+
+                <Info
+                  label="Email"
+                  value={
+                    reclamation.email
+                  }
+                />
+
+                <Info
+                  label="Commande"
+                  value={
+                    reclamation.orderId ||
+                    "Non renseignée"
+                  }
+                />
+
+                <Info
+                  label="Date"
+                  value={formatDate(
+                    reclamation.createdAt
+                  )}
+                />
+              </div>
             </div>
 
-            <br />
-            <br />
+            {/* MESSAGE */}
 
-            <form
-              action="/api/admin/reclamations/update-status"
-              method="POST"
-            >
-              <input
-                type="hidden"
-                name="id"
-                value={reclamation.id}
-              />
+            <div style={card}>
+              <h2
+                style={
+                  sectionTitle
+                }
+              >
+                💬 Message client
+              </h2>
 
-              <select
-                name="status"
-                defaultValue={
+              <div
+                style={
+                  messageBox
+                }
+              >
+                {
+                  reclamation.message
+                }
+              </div>
+            </div>
+
+            {/* NOTE ADMIN */}
+
+            <div style={card}>
+              <h2
+                style={
+                  sectionTitle
+                }
+              >
+                📝 Note interne
+              </h2>
+
+              <div
+                style={
+                  adminNoteBox
+                }
+              >
+                {reclamation.adminNote ||
+                  "Aucune note interne pour le moment."}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT */}
+
+          <div style={right}>
+            {/* STATUS */}
+
+            <div style={card}>
+              <h2
+                style={
+                  sectionTitle
+                }
+              >
+                ⚙️ Gestion
+              </h2>
+
+              <div
+                style={{
+                  ...statusBadge,
+                  background:
+                    getStatusColor(
+                      reclamation.status
+                    ),
+                }}
+              >
+                {
                   reclamation.status
                 }
-                style={select}
+              </div>
+
+              <form
+                action="/api/admin/reclamations/update-status"
+                method="POST"
+                style={form}
               >
-                <option value="NEW">
-                  NEW
-                </option>
+                <input
+                  type="hidden"
+                  name="id"
+                  value={
+                    reclamation.id
+                  }
+                />
 
-                <option value="IN_PROGRESS">
-                  IN_PROGRESS
-                </option>
+                <select
+                  name="status"
+                  defaultValue={
+                    reclamation.status
+                  }
+                  style={input}
+                >
+                  <option value="NEW">
+                    NEW
+                  </option>
 
-                <option value="RESOLVED">
-                  RESOLVED
-                </option>
+                  <option value="IN_PROGRESS">
+                    IN_PROGRESS
+                  </option>
 
-                <option value="CLOSED">
-                  CLOSED
-                </option>
-              </select>
+                  <option value="RESOLVED">
+                    RESOLVED
+                  </option>
 
-              <button style={btn}>
-                Sauvegarder
-              </button>
-            </form>
-          </div>
+                  <option value="CLOSED">
+                    CLOSED
+                  </option>
+                </select>
 
-          <div style={card}>
-            <h2 style={sectionTitle}>
-              📩 Actions
-            </h2>
+                <textarea
+                  name="adminNote"
+                  placeholder="Ajouter une note interne..."
+                  defaultValue={
+                    reclamation.adminNote ||
+                    ""
+                  }
+                  style={
+                    textarea
+                  }
+                />
 
-            <a
-              href={`mailto:${reclamation.email}`}
-              style={actionBtn}
-            >
-              Répondre au client
-            </a>
+                <button
+                  type="submit"
+                  style={
+                    saveBtn
+                  }
+                >
+                  💾 Sauvegarder
+                </button>
+              </form>
+            </div>
+
+            {/* ACTIONS */}
+
+            <div style={card}>
+              <h2
+                style={
+                  sectionTitle
+                }
+              >
+                📩 Actions
+              </h2>
+
+              <div style={actions}>
+                <a
+                  href={`mailto:${reclamation.email}`}
+                  style={
+                    primaryBtn
+                  }
+                >
+                  Répondre
+                </a>
+
+                {reclamation.orderId && (
+                  <a
+                    href={`/admin/orders/${reclamation.orderId}`}
+                    style={
+                      secondaryBtn
+                    }
+                  >
+                    Voir commande
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -198,12 +484,65 @@ export default async function ReclamationDetailPage({
   );
 }
 
-/* STYLES */
+/* =========================
+   COMPONENTS
+========================= */
 
-const container = {
-  padding: "40px",
+function KPI({
+  title,
+  value,
+  color,
+}: any) {
+  return (
+    <div
+      style={{
+        ...kpiCard,
+        borderLeft: `4px solid ${
+          color || "#a16207"
+        }`,
+      }}
+    >
+      <div style={kpiTitle}>
+        {title}
+      </div>
+
+      <div style={kpiValue}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function Info({
+  label,
+  value,
+}: any) {
+  return (
+    <div>
+      <p style={infoLabel}>
+        {label}
+      </p>
+
+      <p style={infoValue}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* =========================
+   STYLES
+========================= */
+
+const page = {
   background: "#f8f5ef",
   minHeight: "100vh",
+  padding: "40px 20px",
+};
+
+const container = {
+  maxWidth: 1450,
+  margin: "0 auto",
 };
 
 const hero = {
@@ -211,127 +550,210 @@ const hero = {
   justifyContent:
     "space-between",
   alignItems: "center",
-  marginBottom: "30px",
+  marginTop: 20,
+  marginBottom: 30,
+  gap: 20,
+  flexWrap: "wrap" as const,
 };
 
-const tag = {
+const heroTag = {
   color: "#a16207",
   fontWeight: 800,
+  fontSize: 12,
   letterSpacing: "0.1em",
 };
 
 const title = {
-  fontSize: "38px",
-  margin: 0,
+  fontSize: 42,
+  marginTop: 10,
+  marginBottom: 10,
+  fontWeight: 800,
 };
 
 const subtitle = {
   color: "#666",
 };
 
+const priorityBadge = {
+  color: "white",
+  padding: "12px 18px",
+  borderRadius: 999,
+  fontWeight: 800,
+};
+
+const kpiGrid = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(220px,1fr))",
+  gap: 18,
+  marginBottom: 26,
+};
+
+const kpiCard = {
+  background: "white",
+  padding: 22,
+  borderRadius: 20,
+};
+
+const kpiTitle = {
+  color: "#777",
+  fontSize: 13,
+};
+
+const kpiValue = {
+  marginTop: 10,
+  fontSize: 26,
+  fontWeight: 800,
+};
+
+const section = {
+  background: "white",
+  padding: 24,
+  borderRadius: 24,
+  marginBottom: 24,
+};
+
+const sectionTitle = {
+  marginBottom: 20,
+};
+
+const timelineWrapper = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: 16,
+};
+
+const timelineItem = {
+  display: "flex",
+  alignItems: "center",
+  gap: 14,
+};
+
+const timelineDot = {
+  width: 14,
+  height: 14,
+  borderRadius: 999,
+};
+
 const layout = {
   display: "grid",
   gridTemplateColumns:
     "2fr 1fr",
-  gap: "25px",
+  gap: 24,
 };
 
 const left = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "20px",
+  gap: 24,
 };
 
 const right = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "20px",
+  gap: 24,
 };
 
 const card = {
   background: "white",
-  borderRadius: "24px",
-  padding: "24px",
-  boxShadow:
-    "0 10px 30px rgba(0,0,0,0.05)",
+  padding: 24,
+  borderRadius: 24,
 };
 
-const sectionTitle = {
-  marginTop: 0,
+const infoGrid = {
+  display: "grid",
+  gap: 18,
+};
+
+const infoLabel = {
+  color: "#777",
+  fontSize: 12,
+  marginBottom: 6,
+};
+
+const infoValue = {
+  margin: 0,
+  fontWeight: 600,
 };
 
 const messageBox = {
-  background: "#f3f4f6",
-  padding: "18px",
-  borderRadius: "16px",
+  background: "#f9fafb",
+  padding: 20,
+  borderRadius: 18,
   lineHeight: 1.8,
+  color: "#555",
 };
 
-const select = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: "12px",
+const adminNoteBox = {
+  background: "#faf7f2",
+  padding: 20,
+  borderRadius: 18,
+  lineHeight: 1.8,
+  color: "#555",
+};
+
+const statusBadge = {
+  color: "white",
+  padding: "10px 14px",
+  borderRadius: 999,
+  display: "inline-block",
+  fontWeight: 800,
+  marginBottom: 20,
+};
+
+const form = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: 14,
+};
+
+const input = {
+  padding: 14,
+  borderRadius: 14,
   border: "1px solid #ddd",
-  marginBottom: "15px",
 };
 
-const btn = {
-  width: "100%",
+const textarea = {
+  minHeight: 140,
+  padding: 16,
+  borderRadius: 16,
+  border: "1px solid #ddd",
+  resize: "vertical" as const,
+};
+
+const saveBtn = {
   background:
     "linear-gradient(135deg,#b7791f,#8b5e14)",
   color: "white",
   border: "none",
-  borderRadius: "12px",
-  padding: "14px",
+  borderRadius: 14,
+  padding: 16,
   fontWeight: 800,
+  cursor: "pointer",
 };
 
-const actionBtn = {
-  display: "block",
+const actions = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: 14,
+};
+
+const primaryBtn = {
   background: "#111",
   color: "white",
-  textAlign: "center" as const,
-  padding: "14px",
-  borderRadius: "12px",
+  padding: "14px 18px",
+  borderRadius: 14,
   textDecoration: "none",
+  textAlign: "center" as const,
   fontWeight: 700,
 };
 
-const priorityBadge = (
-  priority: string
-) => ({
-  background:
-    priority === "URGENT"
-      ? "#dc2626"
-      : priority === "HIGH"
-      ? "#f59e0b"
-      : priority === "MEDIUM"
-      ? "#2563eb"
-      : "#9ca3af",
-
+const secondaryBtn = {
+  background: "#a16207",
   color: "white",
-  padding: "10px 14px",
-  borderRadius: "999px",
-  fontWeight: 800,
-});
-
-const statusBadge = (
-  status: string
-) => ({
-  display: "inline-block",
-  background:
-    status === "NEW"
-      ? "#f59e0b"
-      : status ===
-        "IN_PROGRESS"
-      ? "#2563eb"
-      : status ===
-        "RESOLVED"
-      ? "#16a34a"
-      : "#111",
-
-  color: "white",
-  padding: "8px 12px",
-  borderRadius: "999px",
+  padding: "14px 18px",
+  borderRadius: 14,
+  textDecoration: "none",
+  textAlign: "center" as const,
   fontWeight: 700,
-});
+};

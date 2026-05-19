@@ -255,7 +255,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const slug = normalizeSlug(slugRaw);
+    /* ================= SLUG UNIQUE ================= */
+
+    const baseSlug = normalizeSlug(slugRaw);
+
+    let slug = baseSlug;
+
+    let counter = 1;
+
+    while (true) {
+      const existingProduct =
+        await prisma.product.findUnique({
+          where: { slug },
+          select: { id: true },
+        });
+
+      if (!existingProduct) {
+        break;
+      }
+
+      counter++;
+
+      slug = `${baseSlug}-${counter}`;
+    }
 
     /* ================= PRICING ================= */
 

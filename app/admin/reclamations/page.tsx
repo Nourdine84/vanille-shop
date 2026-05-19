@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
 import AdminBackButton from "@/components/admin/AdminBackButton";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 type Status =
   | "NEW"
@@ -15,6 +19,65 @@ type Priority =
   | "HIGH"
   | "URGENT";
 
+/* =========================
+   HELPERS
+========================= */
+
+function getPriorityColor(
+  priority: string
+) {
+  switch (priority) {
+    case "URGENT":
+      return "#dc2626";
+
+    case "HIGH":
+      return "#f59e0b";
+
+    case "MEDIUM":
+      return "#2563eb";
+
+    default:
+      return "#9ca3af";
+  }
+}
+
+function getStatusColor(
+  status: string
+) {
+  switch (status) {
+    case "NEW":
+      return "#f59e0b";
+
+    case "IN_PROGRESS":
+      return "#2563eb";
+
+    case "RESOLVED":
+      return "#16a34a";
+
+    case "CLOSED":
+      return "#6b7280";
+
+    default:
+      return "#111";
+  }
+}
+
+function formatDate(
+  date: Date
+) {
+  return new Intl.DateTimeFormat(
+    "fr-FR",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }
+  ).format(date);
+}
+
+/* =========================
+   PAGE
+========================= */
+
 export default async function AdminReclamationsPage({
   searchParams,
 }: {
@@ -24,7 +87,9 @@ export default async function AdminReclamationsPage({
     q?: string;
   };
 }) {
-  const isAdmin = cookies().get("admin");
+  const isAdmin =
+    cookies().get("admin")?.value ===
+    "true";
 
   if (!isAdmin) {
     redirect("/admin/login");
@@ -62,14 +127,24 @@ export default async function AdminReclamationsPage({
                 {
                   email: {
                     contains: query,
-                    mode: "insensitive",
+                    mode:
+                      "insensitive",
                   },
                 },
 
                 {
                   name: {
                     contains: query,
-                    mode: "insensitive",
+                    mode:
+                      "insensitive",
+                  },
+                },
+
+                {
+                  subject: {
+                    contains: query,
+                    mode:
+                      "insensitive",
                   },
                 },
               ],
@@ -77,12 +152,21 @@ export default async function AdminReclamationsPage({
           : {}),
       },
 
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [
+        {
+          priority: "desc",
+        },
+
+        {
+          createdAt: "desc",
+        },
+      ],
     });
 
-  const total = reclamations.length;
+  /* ================= KPI ================= */
+
+  const total =
+    reclamations.length;
 
   const newCount =
     reclamations.filter(
@@ -92,256 +176,308 @@ export default async function AdminReclamationsPage({
   const progressCount =
     reclamations.filter(
       (r) =>
-        r.status === "IN_PROGRESS"
+        r.status ===
+        "IN_PROGRESS"
     ).length;
 
   const resolvedCount =
     reclamations.filter(
       (r) =>
-        r.status === "RESOLVED"
+        r.status ===
+        "RESOLVED"
     ).length;
 
   const urgentCount =
     reclamations.filter(
       (r) =>
-        r.priority === "URGENT"
+        r.priority ===
+        "URGENT"
     ).length;
 
   return (
-    <div style={container}>
-      <AdminBackButton
-        label="Retour dashboard"
-        fallback="/admin"
-      />
+    <div style={page}>
+      <div style={container}>
+        <AdminBackButton
+          label="Retour dashboard"
+          fallback="/admin"
+        />
 
-      <br />
-      <br />
+        {/* HERO */}
 
-      <div style={hero}>
-        <div>
-          <p style={tag}>
-            SUPPORT CENTER
-          </p>
+        <div style={hero}>
+          <div>
+            <p style={heroTag}>
+              SUPPORT CENTER
+            </p>
 
-          <h1 style={title}>
-            SAV & Réclamations
-          </h1>
+            <h1 style={title}>
+              SAV & Réclamations
+            </h1>
 
-          <p style={subtitle}>
-            Gestion du support client
-            premium Vanille’Or
-          </p>
+            <p style={subtitle}>
+              Gestion premium du
+              support Vanille’Or
+            </p>
+          </div>
+
+          <div style={heroBadge}>
+            {total} ticket
+            {total > 1 ? "s" : ""}
+          </div>
         </div>
 
-        <div style={heroBadge}>
-          {total} tickets
+        {/* KPI */}
+
+        <div style={kpiGrid}>
+          <KPI
+            title="📨 Total"
+            value={total}
+          />
+
+          <KPI
+            title="🆕 Nouveaux"
+            value={newCount}
+            color="#f59e0b"
+          />
+
+          <KPI
+            title="⚡ En cours"
+            value={progressCount}
+            color="#2563eb"
+          />
+
+          <KPI
+            title="✅ Résolus"
+            value={resolvedCount}
+            color="#16a34a"
+          />
+
+          <KPI
+            title="🚨 Urgents"
+            value={urgentCount}
+            color="#dc2626"
+          />
         </div>
-      </div>
 
-      {/* KPI */}
+        {/* FILTERS */}
 
-      <div style={kpiGrid}>
-        <KPI
-          title="Total"
-          value={total}
-        />
+        <div style={filterCard}>
+          <form
+            method="GET"
+            style={filterBar}
+          >
+            <input
+              name="q"
+              placeholder="Recherche email, client, sujet..."
+              defaultValue={query}
+              style={searchInput}
+            />
 
-        <KPI
-          title="Nouveaux"
-          value={newCount}
-          color="#f59e0b"
-        />
-
-        <KPI
-          title="En cours"
-          value={progressCount}
-          color="#2563eb"
-        />
-
-        <KPI
-          title="Résolus"
-          value={resolvedCount}
-          color="#16a34a"
-        />
-
-        <KPI
-          title="Urgents"
-          value={urgentCount}
-          color="#dc2626"
-        />
-      </div>
-
-      {/* FILTER */}
-
-      <form
-        method="GET"
-        style={filterBar}
-      >
-        <input
-          name="q"
-          placeholder="Recherche client..."
-          defaultValue={query}
-          style={input}
-        />
-
-        <select
-          name="status"
-          defaultValue={statusFilter}
-          style={select}
-        >
-          <option value="">
-            Tous statuts
-          </option>
-
-          <option value="NEW">
-            NEW
-          </option>
-
-          <option value="IN_PROGRESS">
-            IN_PROGRESS
-          </option>
-
-          <option value="RESOLVED">
-            RESOLVED
-          </option>
-
-          <option value="CLOSED">
-            CLOSED
-          </option>
-        </select>
-
-        <select
-          name="priority"
-          defaultValue={
-            priorityFilter
-          }
-          style={select}
-        >
-          <option value="">
-            Toutes priorités
-          </option>
-
-          <option value="LOW">
-            LOW
-          </option>
-
-          <option value="MEDIUM">
-            MEDIUM
-          </option>
-
-          <option value="HIGH">
-            HIGH
-          </option>
-
-          <option value="URGENT">
-            URGENT
-          </option>
-        </select>
-
-        <button style={filterBtn}>
-          Filtrer
-        </button>
-      </form>
-
-      {/* LIST */}
-
-      {reclamations.length === 0 ? (
-        <div style={empty}>
-          Aucun ticket SAV
-        </div>
-      ) : (
-        <div style={grid}>
-          {reclamations.map((r) => (
-            <div
-              key={r.id}
-              style={{
-                ...card,
-
-                borderLeft: `5px solid ${
-                  r.priority === "URGENT"
-                    ? "#dc2626"
-                    : r.priority ===
-                      "HIGH"
-                    ? "#f59e0b"
-                    : r.priority ===
-                      "MEDIUM"
-                    ? "#2563eb"
-                    : "#9ca3af"
-                }`,
-              }}
+            <select
+              name="status"
+              defaultValue={
+                statusFilter
+              }
+              style={select}
             >
-              <div style={topRow}>
-                <div>
-                  <h3 style={name}>
-                    {r.name}
-                  </h3>
+              <option value="">
+                Tous statuts
+              </option>
 
-                  <p style={email}>
-                    {r.email}
-                  </p>
-                </div>
+              <option value="NEW">
+                NEW
+              </option>
 
-                <div
-                  style={priorityBadge(
-                    r.priority
-                  )}
-                >
-                  {r.priority}
-                </div>
-              </div>
+              <option value="IN_PROGRESS">
+                IN_PROGRESS
+              </option>
 
-              <div style={statusBadge(
-                r.status
-              )}>
-                {r.status}
-              </div>
+              <option value="RESOLVED">
+                RESOLVED
+              </option>
 
-              {r.orderId && (
-                <p style={order}>
-                  🧾 {r.orderId}
-                </p>
-              )}
+              <option value="CLOSED">
+                CLOSED
+              </option>
+            </select>
 
-              <h4 style={subject}>
-                {r.subject}
-              </h4>
+            <select
+              name="priority"
+              defaultValue={
+                priorityFilter
+              }
+              style={select}
+            >
+              <option value="">
+                Toutes priorités
+              </option>
 
-              <div style={messageBox}>
-                {r.message}
-              </div>
+              <option value="LOW">
+                LOW
+              </option>
 
-              <p style={date}>
-                {new Date(
-                  r.createdAt
-                ).toLocaleString(
-                  "fr-FR"
-                )}
-              </p>
+              <option value="MEDIUM">
+                MEDIUM
+              </option>
 
-              <div style={actions}>
-                <a
-                  href={`mailto:${r.email}`}
-                  style={btnPrimary}
-                >
-                  Répondre
-                </a>
+              <option value="HIGH">
+                HIGH
+              </option>
 
-                <a
-                  href={`/admin/reclamations/${r.id}`}
-                  style={btnSecondary}
-                >
-                  Ouvrir
-                </a>
-              </div>
-            </div>
-          ))}
+              <option value="URGENT">
+                URGENT
+              </option>
+            </select>
+
+            <button
+              type="submit"
+              style={filterBtn}
+            >
+              Filtrer
+            </button>
+          </form>
         </div>
-      )}
+
+        {/* LIST */}
+
+        {reclamations.length ===
+        0 ? (
+          <div style={emptyBox}>
+            Aucun ticket SAV
+            trouvé.
+          </div>
+        ) : (
+          <div style={ticketsGrid}>
+            {reclamations.map(
+              (r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    ...ticketCard,
+
+                    borderLeft: `5px solid ${getPriorityColor(
+                      r.priority
+                    )}`,
+                  }}
+                >
+                  {/* TOP */}
+
+                  <div style={topRow}>
+                    <div>
+                      <h3 style={name}>
+                        {r.name}
+                      </h3>
+
+                      <p style={email}>
+                        {r.email}
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        ...priorityBadge,
+                        background:
+                          getPriorityColor(
+                            r.priority
+                          ),
+                      }}
+                    >
+                      {
+                        r.priority
+                      }
+                    </div>
+                  </div>
+
+                  {/* STATUS */}
+
+                  <div
+                    style={{
+                      ...statusBadge,
+                      background:
+                        getStatusColor(
+                          r.status
+                        ),
+                    }}
+                  >
+                    {r.status}
+                  </div>
+
+                  {/* ORDER */}
+
+                  {r.orderId && (
+                    <div style={orderBox}>
+                      🧾 Commande :
+                      {" "}
+                      {
+                        r.orderId
+                      }
+                    </div>
+                  )}
+
+                  {/* SUBJECT */}
+
+                  <h4 style={subject}>
+                    {r.subject}
+                  </h4>
+
+                  {/* MESSAGE */}
+
+                  <div
+                    style={messageBox}
+                  >
+                    {r.message}
+                  </div>
+
+                  {/* DATE */}
+
+                  <div style={footer}>
+                    <span
+                      style={
+                        date
+                      }
+                    >
+                      {formatDate(
+                        r.createdAt
+                      )}
+                    </span>
+
+                    <div
+                      style={
+                        actions
+                      }
+                    >
+                      <a
+                        href={`mailto:${r.email}`}
+                        style={
+                          btnPrimary
+                        }
+                      >
+                        Répondre
+                      </a>
+
+                      <a
+                        href={`/admin/reclamations/${r.id}`}
+                        style={
+                          btnSecondary
+                        }
+                      >
+                        Ouvrir
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-/* COMPONENTS */
+/* =========================
+   COMPONENTS
+========================= */
 
 function KPI({
   title,
@@ -368,12 +504,19 @@ function KPI({
   );
 }
 
-/* STYLES */
+/* =========================
+   STYLES
+========================= */
 
-const container = {
-  padding: "40px",
+const page = {
   background: "#f8f5ef",
   minHeight: "100vh",
+  padding: "40px 20px",
+};
+
+const container = {
+  maxWidth: 1450,
+  margin: "0 auto",
 };
 
 const hero = {
@@ -381,18 +524,24 @@ const hero = {
   justifyContent:
     "space-between",
   alignItems: "center",
-  marginBottom: "30px",
+  marginTop: 20,
+  marginBottom: 30,
+  gap: 20,
+  flexWrap: "wrap" as const,
 };
 
-const tag = {
+const heroTag = {
   color: "#a16207",
   fontWeight: 800,
-  letterSpacing: "0.1em",
+  fontSize: 12,
+  letterSpacing: "0.12em",
 };
 
 const title = {
-  fontSize: "40px",
-  margin: 0,
+  fontSize: 42,
+  marginTop: 10,
+  marginBottom: 10,
+  fontWeight: 800,
 };
 
 const subtitle = {
@@ -402,52 +551,61 @@ const subtitle = {
 const heroBadge = {
   background: "#111",
   color: "white",
-  padding: "14px 18px",
-  borderRadius: "999px",
+  padding: "14px 20px",
+  borderRadius: 999,
   fontWeight: 800,
 };
 
 const kpiGrid = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(5,1fr)",
-  gap: "15px",
-  marginBottom: "25px",
+    "repeat(auto-fit,minmax(220px,1fr))",
+  gap: 18,
+  marginBottom: 24,
 };
 
 const kpiCard = {
   background: "white",
-  padding: "20px",
-  borderRadius: "16px",
+  padding: 22,
+  borderRadius: 20,
+  boxShadow:
+    "0 10px 30px rgba(0,0,0,0.04)",
 };
 
 const kpiTitle = {
-  fontSize: "12px",
   color: "#777",
+  fontSize: 13,
 };
 
 const kpiValue = {
-  fontSize: "26px",
+  marginTop: 10,
+  fontSize: 30,
   fontWeight: 800,
+};
+
+const filterCard = {
+  background: "white",
+  padding: 20,
+  borderRadius: 22,
+  marginBottom: 26,
 };
 
 const filterBar = {
   display: "flex",
-  gap: "10px",
-  marginBottom: "25px",
+  gap: 12,
   flexWrap: "wrap" as const,
 };
 
-const input = {
-  padding: "12px",
-  borderRadius: "12px",
+const searchInput = {
+  padding: 14,
+  borderRadius: 14,
   border: "1px solid #ddd",
-  minWidth: "240px",
+  minWidth: 300,
 };
 
 const select = {
-  padding: "12px",
-  borderRadius: "12px",
+  padding: 14,
+  borderRadius: 14,
   border: "1px solid #ddd",
 };
 
@@ -456,125 +614,130 @@ const filterBtn = {
     "linear-gradient(135deg,#b7791f,#8b5e14)",
   color: "white",
   border: "none",
-  borderRadius: "12px",
-  padding: "12px 18px",
+  borderRadius: 14,
+  padding: "14px 22px",
   fontWeight: 800,
+  cursor: "pointer",
 };
 
-const grid = {
+const ticketsGrid = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fill,minmax(340px,1fr))",
-  gap: "20px",
+    "repeat(auto-fill,minmax(380px,1fr))",
+  gap: 22,
 };
 
-const card = {
+const ticketCard = {
   background: "white",
-  padding: "24px",
-  borderRadius: "20px",
+  padding: 24,
+  borderRadius: 24,
   boxShadow:
-    "0 10px 30px rgba(0,0,0,0.05)",
+    "0 12px 35px rgba(0,0,0,0.05)",
 };
 
 const topRow = {
   display: "flex",
   justifyContent:
     "space-between",
-  gap: "15px",
+  gap: 14,
 };
 
 const name = {
   margin: 0,
+  fontSize: 20,
+  fontWeight: 800,
 };
 
 const email = {
   color: "#666",
-  fontSize: "14px",
+  marginTop: 6,
+  fontSize: 14,
 };
 
-const order = {
-  fontSize: "13px",
-  color: "#666",
+const priorityBadge = {
+  color: "white",
+  padding: "8px 12px",
+  borderRadius: 999,
+  fontWeight: 800,
+  fontSize: 12,
+  height: "fit-content",
+};
+
+const statusBadge = {
+  display: "inline-block",
+  marginTop: 18,
+  color: "white",
+  padding: "7px 12px",
+  borderRadius: 999,
+  fontWeight: 700,
+  fontSize: 12,
+};
+
+const orderBox = {
+  marginTop: 18,
+  background: "#faf7f2",
+  padding: 12,
+  borderRadius: 14,
+  fontSize: 13,
+  color: "#555",
 };
 
 const subject = {
-  marginTop: "15px",
+  marginTop: 20,
+  marginBottom: 12,
+  fontSize: 18,
 };
 
 const messageBox = {
-  background: "#f3f4f6",
-  padding: "14px",
-  borderRadius: "14px",
-  marginTop: "12px",
-  lineHeight: 1.6,
+  background: "#f9fafb",
+  borderRadius: 18,
+  padding: 16,
+  lineHeight: 1.7,
+  color: "#555",
+  minHeight: 120,
+};
+
+const footer = {
+  display: "flex",
+  justifyContent:
+    "space-between",
+  alignItems: "center",
+  marginTop: 22,
+  gap: 14,
+  flexWrap: "wrap" as const,
 };
 
 const date = {
-  color: "#999",
-  fontSize: "12px",
-  marginTop: "16px",
+  color: "#888",
+  fontSize: 12,
 };
 
 const actions = {
   display: "flex",
-  gap: "10px",
-  marginTop: "20px",
+  gap: 10,
 };
 
 const btnPrimary = {
-  flex: 1,
   background: "#a16207",
   color: "white",
-  padding: "12px",
-  borderRadius: "12px",
-  textAlign: "center" as const,
+  padding: "12px 16px",
+  borderRadius: 12,
   textDecoration: "none",
+  fontWeight: 700,
 };
 
 const btnSecondary = {
-  flex: 1,
   background: "#111",
   color: "white",
-  padding: "12px",
-  borderRadius: "12px",
-  textAlign: "center" as const,
+  padding: "12px 16px",
+  borderRadius: 12,
   textDecoration: "none",
+  fontWeight: 700,
 };
 
-const empty = {
+const emptyBox = {
   background: "white",
-  padding: "40px",
-  borderRadius: "20px",
+  padding: 40,
+  borderRadius: 24,
   textAlign: "center" as const,
 };
-
-const priorityBadge = (
-  priority: string
-) => ({
-  background:
-    priority === "URGENT"
-      ? "#dc2626"
-      : priority === "HIGH"
-      ? "#f59e0b"
-      : priority === "MEDIUM"
-      ? "#2563eb"
-      : "#9ca3af",
-
-  color: "white",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: 700,
-});
-
-const statusBadge = (
-  status: string
-) => ({
-  display: "inline-block",
-  marginTop: "14px",
-  background: "#111",
-  color: "white",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-});

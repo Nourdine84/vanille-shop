@@ -151,6 +151,16 @@ export default async function AdminProductsPage({
     (p) => p.stock > 0 && p.stock <= 5
   ).length;
 
+  const packsCount = products.filter(
+    (p) => p.isPack
+  ).length;
+
+  const estimatedValue = products.reduce(
+    (acc, p) =>
+      acc + p.priceCents * p.stock,
+    0
+  );
+
   return (
     <div
       style={container}
@@ -163,7 +173,9 @@ export default async function AdminProductsPage({
 
       <br />
       <br />
+
       {/* HERO */}
+
       <div style={hero}>
         <div>
           <p style={heroTag}>
@@ -180,12 +192,22 @@ export default async function AdminProductsPage({
           </p>
         </div>
 
-        <div style={heroBadge}>
-          {total} produits
+        <div style={heroActions}>
+          <a
+            href="/admin/reclamations"
+            style={savBtn}
+          >
+            🛟 SAV
+          </a>
+
+          <div style={heroBadge}>
+            {total} produits
+          </div>
         </div>
       </div>
 
       {/* KPI */}
+
       <div style={kpiGrid}>
         <Kpi
           label="Produits"
@@ -203,6 +225,11 @@ export default async function AdminProductsPage({
         />
 
         <Kpi
+          label="Packs"
+          value={packsCount}
+        />
+
+        <Kpi
           label="Rupture"
           value={out}
           danger
@@ -213,9 +240,33 @@ export default async function AdminProductsPage({
           value={lowStock}
           warning
         />
+
+        <Kpi
+          label="Valeur stock"
+          value={formatPrice(
+            estimatedValue
+          )}
+        />
       </div>
 
+      {/* ALERT */}
+
+      {(out > 0 || lowStock > 0) && (
+        <div style={warningBanner}>
+          ⚠️ Attention :
+          {" "}
+          {out > 0 &&
+            `${out} produit(s) en rupture`}
+          {out > 0 && lowStock > 0
+            ? " • "
+            : ""}
+          {lowStock > 0 &&
+            `${lowStock} produit(s) avec stock faible`}
+        </div>
+      )}
+
       {/* FILTERS */}
+
       <div style={filterCard}>
         <form
           method="GET"
@@ -283,6 +334,7 @@ export default async function AdminProductsPage({
       </div>
 
       {/* CREATE */}
+
       <div
         style={createCard}
         data-testid="admin-products-create"
@@ -304,6 +356,7 @@ export default async function AdminProductsPage({
       </div>
 
       {/* PRODUCTS */}
+
       <div
         style={grid}
         data-testid="admin-products-list"
@@ -327,6 +380,7 @@ export default async function AdminProductsPage({
               data-testid="admin-product-card"
             >
               {/* IMAGE */}
+
               <div style={imageWrapper}>
                 <img
                   src={img}
@@ -354,6 +408,7 @@ export default async function AdminProductsPage({
               </div>
 
               {/* CONTENT */}
+
               <div style={content}>
                 <div style={topRow}>
                   <h3 style={name}>
@@ -379,6 +434,7 @@ export default async function AdminProductsPage({
                 </p>
 
                 {/* STOCK */}
+
                 <div
                   style={{
                     ...stockBox,
@@ -404,6 +460,7 @@ export default async function AdminProductsPage({
                 </div>
 
                 {/* TOGGLE */}
+
                 <div style={toggleRow}>
                   <ProductToggle
                     productId={p.id}
@@ -414,6 +471,7 @@ export default async function AdminProductsPage({
                 </div>
 
                 {/* ACTIONS */}
+
                 <div style={actions}>
                   <a
                     href={`/admin/products/${p.id}`}
@@ -446,7 +504,7 @@ function Kpi({
   warning,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   danger?: boolean;
   warning?: boolean;
 }) {
@@ -513,6 +571,21 @@ const heroText: CSSProperties = {
   marginTop: 10,
 };
 
+const heroActions: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 14,
+};
+
+const savBtn: CSSProperties = {
+  background: "#111",
+  color: "white",
+  padding: "12px 18px",
+  borderRadius: 999,
+  textDecoration: "none",
+  fontWeight: 800,
+};
+
 const heroBadge: CSSProperties = {
   background: "#111",
   color: "white",
@@ -529,7 +602,7 @@ const title: CSSProperties = {
 const kpiGrid: CSSProperties = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit,minmax(180px,1fr))",
+    "repeat(auto-fit,minmax(190px,1fr))",
   gap: 20,
   marginBottom: 24,
 };
@@ -545,6 +618,17 @@ const kpiLabel: CSSProperties = {
   fontSize: 13,
   marginBottom: 12,
 };
+
+const warningBanner: CSSProperties =
+  {
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
+    color: "#9a3412",
+    padding: 18,
+    borderRadius: 18,
+    marginBottom: 24,
+    fontWeight: 700,
+  };
 
 const filterCard: CSSProperties = {
   background: "white",

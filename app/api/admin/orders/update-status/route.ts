@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+import {
+  sendShippingEmail,
+} from "@/lib/email";
+
 import { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +18,23 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
 
-    const orderId = formData.get("orderId") as string;
-    const statusRaw = formData.get("status") as string;
-    const trackingNumberRaw = formData.get("trackingNumber") as string;
-    const carrierRaw = formData.get("carrier") as string;
+    const orderId = String(
+      formData.get("orderId") || ""
+    ).trim();
 
-    /* =========================
-       VALIDATION
-    ========================= */
+    const statusRaw = String(
+      formData.get("status") || ""
+    ).trim();
+
+    const trackingNumberRaw = String(
+      formData.get("trackingNumber") || ""
+    ).trim();
+
+    const carrierRaw = String(
+      formData.get("carrier") || ""
+    ).trim();
+
+    /* ================= VALIDATION ================= */
 
     if (!orderId) {
       return NextResponse.json(
@@ -29,63 +43,112 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!statusRaw) {
+    if (
+      !Object.values(OrderStatus).includes(
+        statusRaw as OrderStatus
+      )
+    ) {
       return NextResponse.json(
-        { error: "status manquant" },
-        { status: 400 }
-      );
-    }
-
-    if (!Object.values(OrderStatus).includes(statusRaw as OrderStatus)) {
-      return NextResponse.json(
-        { error: "status invalide" },
+        { error: "Status invalide" },
         { status: 400 }
       );
     }
 
     const status = statusRaw as OrderStatus;
 
-    /* =========================
-       CLEAN DATA
-    ========================= */
-
     const trackingNumber =
-      trackingNumberRaw && trackingNumberRaw.trim() !== ""
-        ? trackingNumberRaw.trim()
+      trackingNumberRaw.length > 0
+        ? trackingNumberRaw
         : null;
 
     const carrier =
-      carrierRaw && carrierRaw.trim() !== ""
-        ? carrierRaw.trim()
+      carrierRaw.length > 0
+        ? carrierRaw
         : null;
 
-    /* =========================
-       UPDATE
-    ========================= */
+    /* ================= FIND ORDER ================= */
 
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status,
-        trackingNumber,
-        carrier,
-      },
-    });
+    const existingOrder =
+      await prisma.order.findUnique({
+        where: {
+          id: orderId,
+        },
+      });
 
-    console.log("✅ ORDER UPDATED:", updatedOrder.id);
+    if (!existingOrder) {
+      return NextResponse.json(
+        { error: "Commande introuvable" },
+        { status: 404 }
+      );
+    }
 
-    /* =========================
-       REDIRECT BACK (UX CLEAN)
-    ========================= */
+    /* ================= UPDATE ================= */
 
-    return NextResponse.redirect(new URL("/admin/orders", req.url));
+    const updatedOrder =
+      await prisma.order.update({
+        where: {
+          id: orderId,
+        },
+
+        data: {
+          status,
+          trackingNumber,
+          carrier,
+        },
+      });
+
+    console.log("\n📦 ORDER UPDATED");
+    console.log("🆔 ORDER:", updatedOrder.id);
+    console.log("📌 STATUS:", updatedOrder.status);
+
+    /* ================= EMAIL SHIPPING ================= */
+
+    try {
+      if (
+        updatedOrder.email &&
+        (
+          updatedOrder.status === "SHIPPED" ||
+          updatedOrder.status === "DELIVERED"
+        )
+      ) {
+        await sendShippingEmail({
+          to: updatedOrder.email,
+          orderId: updatedOrder.id,
+          trackingNumber:
+            updatedOrder.trackingNumber || undefined,
+          carrier:
+            updatedOrder.carrier || undefined,
+        });
+
+        console.log(
+          "📧 SHIPPING EMAIL SENT"
+        );
+      }
+    } catch (mailError) {
+      console.error(
+        "❌ SHIPPING EMAIL ERROR:",
+        mailError
+      );
+    }
+
+    return NextResponse.redirect(
+      new URL("/admin/orders", req.url),
+      303
+    );
 
   } catch (error) {
-    console.error("🔥 UPDATE ORDER ERROR:", error);
+    console.error(
+      "🔥 UPDATE ORDER ERROR:",
+      error
+    );
 
     return NextResponse.json(
-      { error: "Erreur update order" },
-      { status: 500 }
+      {
+        error: "Erreur update order",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

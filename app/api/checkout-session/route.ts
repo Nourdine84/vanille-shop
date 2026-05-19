@@ -181,7 +181,7 @@ export async function POST(req: Request) {
         totalCents: total,
         currency: "EUR",
 
-        items: validatedItems,
+        items: JSON.stringify(validatedItems),
       },
     });
 
