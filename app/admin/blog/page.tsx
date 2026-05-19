@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import AdminBackButton from "@/components/admin/AdminBackButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -60,6 +61,14 @@ export default async function BlogAdminPage() {
       {/* HEADER */}
       <div style={topBar}>
         <div>
+        <AdminBackButton
+            label="Retour dashboard"
+            fallback="/admin"
+          />
+
+          <br />
+          <br />
+          
           <h1 style={title}>📝 Blog Admin</h1>
           <p style={subtitle}>
             Gérez les articles, les visuels et la stratégie éditoriale de

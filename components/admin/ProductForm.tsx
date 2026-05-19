@@ -55,8 +55,34 @@ const btn: React.CSSProperties = {
 
 /* ================= CONFIG ================= */
 
-const weightFormats = ["10g", "50g", "100g", "250g", "500g", "1kg"];
-const liquidFormats = ["10ml", "50ml", "100ml", "250ml", "500ml", "1L"];
+const weightFormats = [
+  "10g",
+  "50g",
+  "100g",
+  "250g",
+  "500g",
+  "1kg",
+];
+
+const liquidFormats = [
+  "10ml",
+  "50ml",
+  "100ml",
+  "250ml",
+  "500ml",
+  "1L",
+];
+
+const BADGES = [
+  "",
+  "Top Vente",
+  "Nouveau",
+  "Best Seller",
+  "Promo",
+  "Premium",
+  "Édition limitée",
+  "Artisan",
+];
 
 /* ================= UTILS ================= */
 
@@ -81,20 +107,29 @@ export default function ProductForm() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
 
-  const formats = unit === "g" ? weightFormats : liquidFormats;
+  const formats =
+    unit === "g"
+      ? weightFormats
+      : liquidFormats;
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault();
+
     if (loading) return;
 
     setError("");
     setSuccess("");
 
     const form = e.currentTarget;
+
     const formData = new FormData(form);
 
     const hasImage =
-      String(formData.get("imageUrl") || "").trim().length > 0;
+      String(
+        formData.get("imageUrl") || ""
+      ).trim().length > 0;
 
     if (!hasImage) {
       setError("Une image est requise.");
@@ -102,20 +137,30 @@ export default function ProductForm() {
     }
 
     if (isPack) {
-      const price = Number(formData.get("priceCents") || 0);
+      const price = Number(
+        formData.get("priceCents") || 0
+      );
 
-      if (!Number.isFinite(price) || price <= 0) {
+      if (
+        !Number.isFinite(price) ||
+        price <= 0
+      ) {
         setError("Prix pack invalide.");
         return;
       }
     } else {
       const hasPrice = formats.some((f) => {
-        const value = Number(formData.get(`price_${f}`) || 0);
+        const value = Number(
+          formData.get(`price_${f}`) || 0
+        );
+
         return value > 0;
       });
 
       if (!hasPrice) {
-        setError("Ajoute au moins un prix.");
+        setError(
+          "Ajoute au moins un prix."
+        );
         return;
       }
     }
@@ -123,21 +168,32 @@ export default function ProductForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        "/api/admin/products",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err?.error || "Erreur");
+
+        throw new Error(
+          err?.error || "Erreur"
+        );
       }
 
-      setSuccess("Produit créé avec succès 🎉");
+      setSuccess(
+        "Produit créé avec succès 🎉"
+      );
 
       form.reset();
+
       setImageUrl("");
       setIsPack(false);
+      setUnit("g");
+      setName("");
 
     } catch (err: any) {
       setError(err.message);
@@ -148,39 +204,63 @@ export default function ProductForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      
-      <input type="hidden" name="isActive" value="true" />
+      <input
+        type="hidden"
+        name="isActive"
+        value="true"
+      />
 
-      {error && <div style={errorBox}>{error}</div>}
-      {success && <div style={successBox}>{success}</div>}
+      {error && (
+        <div style={errorBox}>
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div style={successBox}>
+          {success}
+        </div>
+      )}
 
       {/* INFOS */}
       <div style={section}>
-        <h3>📦 Informations produit</h3>
+        <h3>
+          📦 Informations produit
+        </h3>
 
         <input
           name="name"
           placeholder="Nom produit"
           required
           style={input}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
         />
 
-        <br /><br />
+        <br />
+        <br />
 
         <input
           name="slug"
           value={generateSlug(name)}
           readOnly
-          style={{ ...input, background: "#f3f4f6" }}
+          style={{
+            ...input,
+            background: "#f3f4f6",
+          }}
         />
 
-        <br /><br />
+        <br />
+        <br />
 
         <textarea
           name="description"
           placeholder="Description"
-          style={{ ...input, minHeight: 100 }}
+          style={{
+            ...input,
+            minHeight: 100,
+          }}
         />
       </div>
 
@@ -188,14 +268,55 @@ export default function ProductForm() {
       <div style={section}>
         <h3>🖼 Image</h3>
 
-        <ImageUploadField onChange={setImageUrl} />
-        <input type="hidden" name="imageUrl" value={imageUrl} />
+        <ImageUploadField
+          onChange={setImageUrl}
+        />
+
+        <input
+          type="hidden"
+          name="imageUrl"
+          value={imageUrl}
+        />
+      </div>
+
+      {/* BADGE */}
+      <div style={section}>
+        <h3>
+          🏷 Badge marketing
+        </h3>
+
+        <select
+          name="badge"
+          style={input}
+          defaultValue=""
+        >
+          <option value="">
+            Aucun badge
+          </option>
+
+          {BADGES.filter(Boolean).map(
+            (badge) => (
+              <option
+                key={badge}
+                value={badge}
+              >
+                {badge}
+              </option>
+            )
+          )}
+        </select>
       </div>
 
       {/* STOCK */}
       <div style={section}>
         <h3>📊 Stock</h3>
-        <input type="number" name="stock" required style={input} />
+
+        <input
+          type="number"
+          name="stock"
+          required
+          style={input}
+        />
       </div>
 
       {/* TYPE */}
@@ -205,12 +326,21 @@ export default function ProductForm() {
         <select
           name="unit"
           value={unit}
-          onChange={(e) => setUnit(e.target.value as any)}
+          onChange={(e) =>
+            setUnit(
+              e.target.value as "g" | "ml"
+            )
+          }
           disabled={isPack}
           style={input}
         >
-          <option value="g">Grammes</option>
-          <option value="ml">Liquide</option>
+          <option value="g">
+            Grammes
+          </option>
+
+          <option value="ml">
+            Liquide
+          </option>
         </select>
       </div>
 
@@ -220,17 +350,35 @@ export default function ProductForm() {
           <input
             type="checkbox"
             name="isPack"
-            onChange={(e) => setIsPack(e.target.checked)}
-          />
+            onChange={(e) =>
+              setIsPack(
+                e.target.checked
+              )
+            }
+          />{" "}
           Pack
         </label>
 
         {isPack && (
           <>
-            <br /><br />
-            <textarea name="packItems" style={input} />
-            <br /><br />
-            <input name="priceCents" type="number" style={input} />
+            <br />
+            <br />
+
+            <textarea
+              name="packItems"
+              placeholder="Contenu du pack"
+              style={input}
+            />
+
+            <br />
+            <br />
+
+            <input
+              name="priceCents"
+              type="number"
+              placeholder="Prix pack (centimes)"
+              style={input}
+            />
           </>
         )}
       </div>
@@ -242,14 +390,21 @@ export default function ProductForm() {
 
           <div style={grid}>
             {formats.map((f) => (
-              <input key={f} name={`price_${f}`} placeholder={f} style={input} />
+              <input
+                key={f}
+                name={`price_${f}`}
+                placeholder={f}
+                style={input}
+              />
             ))}
           </div>
         </div>
       )}
 
       <button style={btn}>
-        {loading ? "Création..." : "Créer produit"}
+        {loading
+          ? "Création..."
+          : "Créer produit"}
       </button>
     </form>
   );

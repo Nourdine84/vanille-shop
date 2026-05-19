@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type ProductFormState = {
@@ -28,33 +29,76 @@ const BADGES = [
   "Artisan",
 ];
 
+function getBadgeStyle(badge: string): React.CSSProperties {
+  switch (badge) {
+    case "Promo":
+      return {
+        background: "#dc2626",
+        color: "white",
+      };
+
+    case "Premium":
+      return {
+        background: "#a16207",
+        color: "white",
+      };
+
+    case "Best Seller":
+      return {
+        background: "#111827",
+        color: "white",
+      };
+
+    case "Nouveau":
+      return {
+        background: "#16a34a",
+        color: "white",
+      };
+
+    default:
+      return {
+        background: "#f3f4f6",
+        color: "#111",
+      };
+  }
+}
+
 export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState<ProductFormState>({
-    name: "",
-    slug: "",
-    priceCents: "",
-    imageUrl: "",
-    stock: "0",
-    description: "",
-    category: "vanille",
-    subCategory: "",
-    badge: "",
-    isActive: true,
-    isPack: false,
-    packItems: "",
-  });
+  const [form, setForm] =
+    useState<ProductFormState>({
+      name: "",
+      slug: "",
+      priceCents: "",
+      imageUrl: "",
+      stock: "0",
+      description: "",
+      category: "vanille",
+      subCategory: "",
+      badge: "",
+      isActive: true,
+      isPack: false,
+      packItems: "",
+    });
 
   const stockNumber = Number(form.stock);
-  const isOutOfStock = Number.isFinite(stockNumber) && stockNumber <= 0;
 
-  function handleChange<K extends keyof ProductFormState>(
+  const isOutOfStock =
+    Number.isFinite(stockNumber) &&
+    stockNumber <= 0;
+
+  function handleChange<
+    K extends keyof ProductFormState
+  >(
     key: K,
     value: ProductFormState[K]
   ) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   }
 
   function generateSlug(value: string) {
@@ -67,19 +111,29 @@ export default function NewProductPage() {
       .replace(/(^-|-$)/g, "");
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(
+    e: React.FormEvent
+  ) {
     e.preventDefault();
+
     if (loading) return;
 
     setError("");
 
-    if (!form.name.trim() || !form.slug.trim()) {
+    if (
+      !form.name.trim() ||
+      !form.slug.trim()
+    ) {
       setError("Nom et slug requis");
       return;
     }
 
     const price = Number(form.priceCents);
-    if (!Number.isFinite(price) || price <= 0) {
+
+    if (
+      !Number.isFinite(price) ||
+      price <= 0
+    ) {
       setError("Prix invalide");
       return;
     }
@@ -90,13 +144,12 @@ export default function NewProductPage() {
     }
 
     const stock = Number(form.stock);
-    if (!Number.isFinite(stock) || stock < 0) {
-      setError("Stock invalide");
-      return;
-    }
 
-    if (form.isPack && !form.packItems.trim()) {
-      setError("Ajoute le contenu du pack");
+    if (
+      !Number.isFinite(stock) ||
+      stock < 0
+    ) {
+      setError("Stock invalide");
       return;
     }
 
@@ -105,58 +158,94 @@ export default function NewProductPage() {
     try {
       const formData = new FormData();
 
-      formData.append("name", form.name.trim());
-      formData.append("slug", form.slug.trim());
-      formData.append("priceCents", String(price));
-      formData.append("imageUrl", form.imageUrl.trim());
-      formData.append("stock", String(stock));
-      formData.append("description", form.description.trim());
-      formData.append("category", form.category.trim());
+      formData.append(
+        "name",
+        form.name.trim()
+      );
 
-      if (form.subCategory.trim()) {
-        formData.append("subCategory", form.subCategory.trim());
-      }
+      formData.append(
+        "slug",
+        form.slug.trim()
+      );
+
+      formData.append(
+        "priceCents",
+        String(price)
+      );
+
+      formData.append(
+        "imageUrl",
+        form.imageUrl.trim()
+      );
+
+      formData.append(
+        "stock",
+        String(stock)
+      );
+
+      formData.append(
+        "description",
+        form.description.trim()
+      );
+
+      formData.append(
+        "category",
+        form.category.trim()
+      );
 
       if (form.badge.trim()) {
-        formData.append("badge", form.badge.trim());
+        formData.append(
+          "badge",
+          form.badge.trim()
+        );
+      }
+
+      if (form.subCategory.trim()) {
+        formData.append(
+          "subCategory",
+          form.subCategory.trim()
+        );
       }
 
       if (form.isActive) {
-        formData.append("isActive", "on");
+        formData.append(
+          "isActive",
+          "on"
+        );
       }
 
       if (form.isPack) {
-        formData.append("isPack", "on");
-        formData.append("packItems", form.packItems.trim());
+        formData.append(
+          "isPack",
+          "on"
+        );
+
+        formData.append(
+          "packItems",
+          form.packItems.trim()
+        );
       }
 
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        "/api/admin/products",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (res.ok) {
-        alert("✅ Produit créé avec succès");
-
-        setForm({
-          name: "",
-          slug: "",
-          priceCents: "",
-          imageUrl: "",
-          stock: "0",
-          description: "",
-          category: "vanille",
-          subCategory: "",
-          badge: "",
-          isActive: true,
-          isPack: false,
-          packItems: "",
-        });
-
-        window.location.href = "/admin/products";
+        window.location.href =
+          "/admin/products";
       } else {
-        const err = await res.json().catch(() => null);
-        setError(err?.error || "Erreur serveur");
+        const err = await res
+          .json()
+          .catch(() => null);
+
+        setError(
+          err?.error ||
+            "Erreur serveur"
+        );
       }
     } catch (err) {
       console.error(err);
@@ -168,212 +257,348 @@ export default function NewProductPage() {
 
   return (
     <div style={container}>
-      <h1 style={title}>Créer un produit</h1>
+      <Link
+        href="/admin/products"
+        style={backBtn}
+      >
+        ← Retour catalogue
+      </Link>
 
-      {error && <p style={errorStyle}>❌ {error}</p>}
+      <div style={hero}>
+        <div>
+          <p style={heroTag}>
+            VANILLE’OR ADMIN
+          </p>
 
-      <form onSubmit={handleSubmit} style={formStyle}>
-        <input
-          placeholder="Nom"
-          value={form.name}
-          onChange={(e) =>
-            setForm((prev) => ({
-              ...prev,
-              name: e.target.value,
-              slug: generateSlug(e.target.value),
-            }))
-          }
-          style={input}
-        />
+          <h1 style={title}>
+            Créer un produit
+          </h1>
 
-        <input
-          placeholder="Slug"
-          value={form.slug}
-          onChange={(e) => handleChange("slug", generateSlug(e.target.value))}
-          style={input}
-        />
+          <p style={heroText}>
+            Ajoutez un produit premium
+            à votre catalogue.
+          </p>
+        </div>
+      </div>
 
-        <input
-          placeholder="Prix (centimes)"
-          type="number"
-          value={form.priceCents}
-          onChange={(e) => handleChange("priceCents", e.target.value)}
-          style={input}
-        />
+      {error && (
+        <div style={errorStyle}>
+          ❌ {error}
+        </div>
+      )}
 
-        <input
-          placeholder="Image URL"
-          value={form.imageUrl}
-          onChange={(e) => handleChange("imageUrl", e.target.value)}
-          style={input}
-        />
+      <form
+        onSubmit={handleSubmit}
+        style={formStyle}
+      >
+        <div style={section}>
+          <h3 style={sectionTitle}>
+            📦 Informations
+          </h3>
 
-        {form.imageUrl && (
-          <img
-            src={form.imageUrl}
-            alt="Aperçu produit"
-            style={preview}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
-        )}
-
-        <input
-          placeholder="Stock"
-          type="number"
-          value={form.stock}
-          onChange={(e) => handleChange("stock", e.target.value)}
-          style={input}
-        />
-
-        {isOutOfStock && (
-          <div style={outOfStockBox}>
-            ⚠️ Stock à 0 : le produit sera marqué en rupture côté boutique.
-          </div>
-        )}
-
-        <select
-          value={form.category}
-          onChange={(e) => handleChange("category", e.target.value)}
-          style={input}
-        >
-          <option value="vanille">Vanille</option>
-          <option value="epices">Épices</option>
-          <option value="pack">Pack</option>
-        </select>
-
-        <input
-          placeholder="Sous-catégorie (optionnel)"
-          value={form.subCategory}
-          onChange={(e) => handleChange("subCategory", e.target.value)}
-          style={input}
-        />
-
-        <select
-          value={form.badge}
-          onChange={(e) => handleChange("badge", e.target.value)}
-          style={input}
-        >
-          <option value="">Aucun badge marketing</option>
-          {BADGES.filter(Boolean).map((badge) => (
-            <option key={badge} value={badge}>
-              {badge}
-            </option>
-          ))}
-        </select>
-
-        <textarea
-          placeholder="Description"
-          value={form.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-          style={textarea}
-        />
-
-        <label style={checkboxRow}>
           <input
-            type="checkbox"
-            checked={form.isActive}
-            onChange={(e) => handleChange("isActive", e.target.checked)}
+            placeholder="Nom"
+            value={form.name}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                name: e.target.value,
+                slug: generateSlug(
+                  e.target.value
+                ),
+              }))
+            }
+            style={input}
           />
-          {form.isActive ? "Produit actif" : "Produit inactif"}
-        </label>
 
-        <label style={checkboxRow}>
           <input
-            type="checkbox"
-            checked={form.isPack}
-            onChange={(e) => handleChange("isPack", e.target.checked)}
+            placeholder="Slug"
+            value={form.slug}
+            onChange={(e) =>
+              handleChange(
+                "slug",
+                generateSlug(
+                  e.target.value
+                )
+              )
+            }
+            style={input}
           />
-          Produit pack
-        </label>
 
-        {form.isPack && (
           <textarea
-            placeholder="Contenu du pack"
-            value={form.packItems}
-            onChange={(e) => handleChange("packItems", e.target.value)}
+            placeholder="Description"
+            value={form.description}
+            onChange={(e) =>
+              handleChange(
+                "description",
+                e.target.value
+              )
+            }
             style={textarea}
           />
-        )}
+        </div>
 
-        <button style={btn} disabled={loading}>
-          {loading ? "Création..." : "Créer le produit"}
+        <div style={section}>
+          <h3 style={sectionTitle}>
+            🖼 Média
+          </h3>
+
+          <input
+            placeholder="Image URL"
+            value={form.imageUrl}
+            onChange={(e) =>
+              handleChange(
+                "imageUrl",
+                e.target.value
+              )
+            }
+            style={input}
+          />
+
+          {form.imageUrl && (
+            <img
+              src={form.imageUrl}
+              alt="preview"
+              style={preview}
+            />
+          )}
+        </div>
+
+        <div style={section}>
+          <h3 style={sectionTitle}>
+            🏷 Marketing
+          </h3>
+
+          <select
+            value={form.badge}
+            onChange={(e) =>
+              handleChange(
+                "badge",
+                e.target.value
+              )
+            }
+            style={input}
+          >
+            <option value="">
+              Aucun badge
+            </option>
+
+            {BADGES.filter(Boolean).map(
+              (badge) => (
+                <option
+                  key={badge}
+                  value={badge}
+                >
+                  {badge}
+                </option>
+              )
+            )}
+          </select>
+
+          {form.badge && (
+            <div
+              style={{
+                ...badgePreview,
+                ...getBadgeStyle(
+                  form.badge
+                ),
+              }}
+            >
+              {form.badge}
+            </div>
+          )}
+        </div>
+
+        <div style={section}>
+          <h3 style={sectionTitle}>
+            📊 Stock & catégorie
+          </h3>
+
+          <input
+            type="number"
+            placeholder="Stock"
+            value={form.stock}
+            onChange={(e) =>
+              handleChange(
+                "stock",
+                e.target.value
+              )
+            }
+            style={input}
+          />
+
+          {isOutOfStock && (
+            <div style={warningBox}>
+              ⚠️ Produit en rupture
+            </div>
+          )}
+
+          <select
+            value={form.category}
+            onChange={(e) =>
+              handleChange(
+                "category",
+                e.target.value
+              )
+            }
+            style={input}
+          >
+            <option value="vanille">
+              Vanille
+            </option>
+
+            <option value="epices">
+              Épices
+            </option>
+
+            <option value="pack">
+              Pack
+            </option>
+          </select>
+        </div>
+
+        <div style={section}>
+          <h3 style={sectionTitle}>
+            💰 Prix
+          </h3>
+
+          <input
+            type="number"
+            placeholder="Prix centimes"
+            value={form.priceCents}
+            onChange={(e) =>
+              handleChange(
+                "priceCents",
+                e.target.value
+              )
+            }
+            style={input}
+          />
+        </div>
+
+        <button
+          style={btn}
+          disabled={loading}
+        >
+          {loading
+            ? "Création..."
+            : "Créer le produit"}
         </button>
       </form>
     </div>
   );
 }
 
-/* STYLE */
+/* ================= STYLES ================= */
 
 const container: React.CSSProperties = {
   padding: 30,
+  background: "#f8f5ef",
+  minHeight: "100vh",
+};
+
+const backBtn: React.CSSProperties = {
+  display: "inline-block",
+  marginBottom: 20,
+  textDecoration: "none",
+  color: "#111",
+  fontWeight: 700,
+};
+
+const hero: React.CSSProperties = {
+  marginBottom: 30,
+};
+
+const heroTag: React.CSSProperties = {
+  color: "#a16207",
+  fontWeight: 800,
+  fontSize: 12,
+  letterSpacing: "0.08em",
+};
+
+const heroText: React.CSSProperties = {
+  color: "#666",
 };
 
 const title: React.CSSProperties = {
-  marginBottom: 20,
-};
-
-const errorStyle: React.CSSProperties = {
-  color: "#dc2626",
-  marginBottom: 15,
+  fontSize: 38,
+  margin: "10px 0",
 };
 
 const formStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 12,
-  maxWidth: 560,
+  gap: 20,
+  maxWidth: 720,
+};
+
+const section: React.CSSProperties = {
+  background: "white",
+  padding: 24,
+  borderRadius: 24,
+};
+
+const sectionTitle: React.CSSProperties = {
+  marginTop: 0,
+  marginBottom: 20,
 };
 
 const input: React.CSSProperties = {
-  padding: 12,
-  borderRadius: 10,
+  width: "100%",
+  padding: 14,
+  borderRadius: 12,
   border: "1px solid #ddd",
-  fontSize: 14,
+  marginBottom: 14,
 };
 
 const textarea: React.CSSProperties = {
-  padding: 12,
-  borderRadius: 10,
+  width: "100%",
+  padding: 14,
+  borderRadius: 12,
   border: "1px solid #ddd",
-  minHeight: 90,
-  fontSize: 14,
+  minHeight: 120,
 };
 
 const preview: React.CSSProperties = {
   width: "100%",
-  maxHeight: 220,
+  borderRadius: 18,
+  marginTop: 10,
+  maxHeight: 280,
   objectFit: "cover",
-  borderRadius: 12,
-  border: "1px solid #eee",
 };
 
-const checkboxRow: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  alignItems: "center",
-  fontSize: 14,
-  fontWeight: 600,
+const badgePreview: React.CSSProperties = {
+  display: "inline-block",
+  padding: "10px 16px",
+  borderRadius: 999,
+  fontWeight: 800,
+  fontSize: 13,
 };
 
-const outOfStockBox: React.CSSProperties = {
+const warningBox: React.CSSProperties = {
   background: "#fff7ed",
   color: "#9a3412",
-  border: "1px solid #fed7aa",
   padding: 12,
-  borderRadius: 10,
-  fontSize: 13,
-  fontWeight: 600,
+  borderRadius: 12,
+  marginBottom: 14,
+  fontWeight: 700,
+};
+
+const errorStyle: React.CSSProperties = {
+  background: "#fee2e2",
+  color: "#991b1b",
+  padding: 14,
+  borderRadius: 12,
+  marginBottom: 20,
 };
 
 const btn: React.CSSProperties = {
-  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
+  background:
+    "linear-gradient(135deg,#b7791f,#8b5e14)",
   color: "white",
-  padding: 14,
+  padding: 16,
+  borderRadius: 14,
   border: "none",
-  borderRadius: 10,
   fontWeight: 800,
   cursor: "pointer",
 };

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import AdminBackButton from "@/components/admin/AdminBackButton";
 
 type Status = "NEW" | "CONTACTED" | "CLOSED";
 
@@ -54,6 +55,14 @@ export default async function AdminB2BPage({
 
   return (
     <div style={container}>
+      <AdminBackButton
+        label="Retour dashboard"
+        fallback="/admin"
+      />
+
+      <br />
+      <br />
+      
       <h1 style={title}>📦 CRM B2B</h1>
 
       {/* FILTRES */}

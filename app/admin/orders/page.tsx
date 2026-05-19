@@ -1,13 +1,17 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { OrderStatus } from "@prisma/client";
+import AdminBackButton from "@/components/admin/AdminBackButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type SearchParams = {
   status?: string;
+  search?: string;
+  page?: string;
 };
 
 type OrderItem = {
@@ -16,6 +20,8 @@ type OrderItem = {
   quantity: number;
   priceCents: number;
 };
+
+const PAGE_SIZE = 12;
 
 function formatPrice(priceCents: number) {
   return (priceCents / 100).toFixed(2).replace(".", ",") + " €";
@@ -39,33 +45,124 @@ export default async function AdminOrdersPage({
     redirect("/admin/login");
   }
 
-  const statusRaw = (searchParams?.status || "").trim();
+  const statusRaw = (searchParams?.status || "ACTIVE").trim();
+  const search = (searchParams?.search || "").trim();
+  const page = Number(searchParams?.page || "1");
 
-  const status = Object.values(OrderStatus).includes(
-    statusRaw as OrderStatus
-  )
-    ? (statusRaw as OrderStatus)
-    : undefined;
+  const activeStatuses: OrderStatus[] = [
+    "PENDING",
+    "PAID",
+    "SHIPPED",
+  ];
 
-  let orders: any[] = [];
+  let where: any = {};
 
-  try {
-    orders = await prisma.order.findMany({
-      where: status ? { status } : undefined,
-      orderBy: { createdAt: "desc" },
-    });
-  } catch (error) {
-    console.error("❌ ADMIN ORDERS ERROR:", error);
-    orders = [];
+  if (statusRaw === "ACTIVE") {
+    where.status = {
+      in: activeStatuses,
+    };
+  } else if (
+    Object.values(OrderStatus).includes(
+      statusRaw as OrderStatus
+    )
+  ) {
+    where.status = statusRaw as OrderStatus;
   }
 
-  const pendingCount = orders.filter((o) => o.status === "PENDING").length;
-  const paidCount = orders.filter((o) => o.status === "PAID").length;
-  const shippedCount = orders.filter((o) => o.status === "SHIPPED").length;
+  if (search) {
+    where.OR = [
+      {
+        id: {
+          contains: search,
+        },
+      },
+      {
+        email: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        trackingNumber: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+    ];
+  }
+
+  const skip = (page - 1) * PAGE_SIZE;
+
+  let orders: any[] = [];
+  let total = 0;
+
+  try {
+    const result = await Promise.all([
+      prisma.order.findMany({
+        where,
+
+        include: {
+          user: true,
+        },
+
+        orderBy: [
+          {
+            createdAt: "desc",
+          },
+        ],
+
+        skip,
+        take: PAGE_SIZE,
+      }),
+
+      prisma.order.count({
+        where,
+      }),
+    ]);
+
+    orders = result[0];
+    total = result[1];
+
+    console.log("📦 ADMIN ORDERS:", total);
+
+  } catch (error) {
+    console.error("❌ ADMIN ORDERS ERROR:", error);
+  }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const pendingCount = orders.filter(
+    (o) => o.status === "PENDING"
+  ).length;
+  
+  const paidCount = orders.filter(
+    (o) => o.status === "PAID"
+  ).length;
+  
+  const shippedCount = orders.filter(
+    (o) => o.status === "SHIPPED"
+  ).length;
 
   return (
-    <div style={container} data-testid="admin-orders-page">
-      <h1 style={title}>🧾 Commandes</h1>
+    <div style={container}>
+      <div style={topBar}>
+        <div>
+          
+        <AdminBackButton
+            label="Retour dashboard"
+            fallback="/admin"
+          />
+
+          <br />
+          <br />
+
+          <h1 style={title}>🧾 Commandes</h1>
+
+          <p style={subtitle}>
+            Gestion des commandes Vanille’Or
+          </p>
+        </div>
+      </div>
 
       <div style={grid3}>
         <Card title="En attente" value={pendingCount} />
@@ -74,14 +171,28 @@ export default async function AdminOrdersPage({
       </div>
 
       <div style={card}>
-        <form method="GET" style={filterRow} data-testid="orders-filter-form">
+        <form method="GET" style={filterRow}>
+          <input
+            type="text"
+            name="search"
+            placeholder="Recherche email, ID, tracking..."
+            defaultValue={search}
+            style={searchInput}
+          />
+
           <select
             name="status"
-            defaultValue={status ?? ""}
+            defaultValue={statusRaw}
             style={input}
-            data-testid="orders-filter-status"
           >
-            <option value="">Tous les statuts</option>
+            <option value="ACTIVE">
+              Actives uniquement
+            </option>
+
+            <option value="">
+              Tous les statuts
+            </option>
+
             {Object.values(OrderStatus).map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -96,144 +207,230 @@ export default async function AdminOrdersPage({
       </div>
 
       {orders.length === 0 ? (
-        <div style={card}>Aucune commande trouvée.</div>
+        <div style={card}>
+          Aucune commande trouvée.
+        </div>
       ) : (
-        <div style={listWrapper}>
-          {orders.map((order) => {
-            let items: OrderItem[] = [];
+        <>
+          <div style={listWrapper}>
+            {orders.map((order) => {
+              let items: OrderItem[] = [];
 
-            try {
-              if (Array.isArray(order.items)) {
-                items = order.items as OrderItem[];
-              }
-            } catch (e) {
-              console.warn("⚠️ items parsing error", e);
-            }
+              try {
+                if (Array.isArray(order.items)) {
+                  items = order.items as OrderItem[];
+                }
+              } catch {}
 
-            return (
-              <div key={order.id} style={orderCard} data-testid="admin-order-card">
-                <div style={orderHeader}>
-                  <div>
-                    <h3 style={{ margin: 0 }}>
-                      Commande {order.id.slice(0, 8)}
-                    </h3>
-                    <p style={mutedText}>{formatDate(order.createdAt)}</p>
+              return (
+                <div
+                  key={order.id}
+                  style={orderCard}
+                >
+                  <div style={orderHeader}>
+                    <div>
+                      <h3 style={{ margin: 0 }}>
+                        #{order.id.slice(0, 8)}
+                      </h3>
+
+                      <p style={mutedText}>
+                        {formatDate(order.createdAt)}
+                      </p>
+                    </div>
+
+                    <div style={headerRight}>
+                      <StatusBadge status={order.status} />
+
+                      <strong>
+                        {formatPrice(order.totalCents)}
+                      </strong>
+                    </div>
                   </div>
 
-                  <div style={headerRight}>
-                    <StatusBadge status={order.status} />
-                    <strong>{formatPrice(order.totalCents)}</strong>
+                  <div style={metaGrid}>
+                    <div>
+                      <span style={metaLabel}>
+                        Client
+                      </span>
+
+                      <p style={metaValue}>
+                        {order.email ||
+                          order.user?.email ||
+                          "Non renseigné"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span style={metaLabel}>
+                        Tracking
+                      </span>
+
+                      <p style={metaValue}>
+                        {order.trackingNumber ||
+                          "Non renseigné"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span style={metaLabel}>
+                        Stripe
+                      </span>
+
+                      <p style={metaValue}>
+                        {order.stripePaymentId
+                          ? "Payé"
+                          : "En attente"}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {order.trackingNumber && (
-                  <div style={trackingBox}>
-                    📦 Tracking : <strong>{order.trackingNumber}</strong>
-                    {order.carrier && <> — {order.carrier.toUpperCase()}</>}
-                  </div>
-                )}
+                  <div style={itemsBox}>
+                    <h4 style={itemsTitle}>
+                      Articles
+                    </h4>
 
-                <div style={metaGrid}>
-                  <div>
-                    <span style={metaLabel}>Email</span>
-                    <p style={metaValue}>
-                      {order.email || "Non renseigné"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span style={metaLabel}>Paiement Stripe</span>
-                    <p style={metaValue}>
-                      {order.stripePaymentId || "En attente"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span style={metaLabel}>Tracking</span>
-                    <p style={metaValue}>
-                      {order.trackingNumber || "Non renseigné"}
-                    </p>
-                  </div>
-                </div>
-
-                <div style={itemsBox}>
-                  <h4 style={itemsTitle}>Articles</h4>
-
-                  {items.length === 0 ? (
-                    <p style={mutedText}>Aucun article enregistré.</p>
-                  ) : (
-                    items.map((item, index) => (
-                      <div key={`${item.id}-${index}`} style={itemRow}>
-                        <span>{item.name}</span>
+                    {items.map((item, index) => (
+                      <div
+                        key={`${item.id}-${index}`}
+                        style={itemRow}
+                      >
                         <span>
-                          {item.quantity} × {formatPrice(item.priceCents)}
+                          {item.name}
+                        </span>
+
+                        <span>
+                          {item.quantity} ×{" "}
+                          {formatPrice(item.priceCents)}
                         </span>
                       </div>
-                    ))
-                  )}
-                </div>
-
-                <form
-                  action="/api/admin/update-status"
-                  method="POST"
-                  style={statusForm}
-                  data-testid="admin-order-status-form"
-                >
-                  <input type="hidden" name="orderId" value={order.id} />
-
-                  <select
-                    name="status"
-                    defaultValue={order.status}
-                    style={input}
-                  >
-                    {Object.values(OrderStatus).map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
                     ))}
-                  </select>
+                  </div>
 
-                  <input
-                    name="trackingNumber"
-                    placeholder="Tracking"
-                    defaultValue={order.trackingNumber || ""}
-                    style={input}
-                  />
-
-                  <select
-                    name="carrier"
-                    defaultValue={order.carrier || ""}
-                    style={input}
+                  <form
+                    action="/api/admin/update-status"
+                    method="POST"
+                    style={statusForm}
                   >
-                    <option value="">Transporteur</option>
-                    <option value="colissimo">Colissimo</option>
-                    <option value="chronopost">Chronopost</option>
-                    <option value="dhl">DHL</option>
-                  </select>
+                    <input
+                      type="hidden"
+                      name="orderId"
+                      value={order.id}
+                    />
 
-                  <button type="submit" style={secondaryBtn}>
-                    Mettre à jour
-                  </button>
-                </form>
-              </div>
-            );
-          })}
-        </div>
+                    <select
+                      name="status"
+                      defaultValue={order.status}
+                      style={input}
+                    >
+                      {Object.values(OrderStatus).map(
+                        (s) => (
+                          <option
+                            key={s}
+                            value={s}
+                          >
+                            {s}
+                          </option>
+                        )
+                      )}
+                    </select>
+
+                    <input
+                      name="trackingNumber"
+                      placeholder="Tracking"
+                      defaultValue={
+                        order.trackingNumber || ""
+                      }
+                      style={input}
+                    />
+
+                    <select
+                      name="carrier"
+                      defaultValue={
+                        order.carrier || ""
+                      }
+                      style={input}
+                    >
+                      <option value="">
+                        Transporteur
+                      </option>
+
+                      <option value="colissimo">
+                        Colissimo
+                      </option>
+
+                      <option value="chronopost">
+                        Chronopost
+                      </option>
+
+                      <option value="dhl">
+                        DHL
+                      </option>
+                    </select>
+
+                    <button
+                      type="submit"
+                      style={secondaryBtn}
+                    >
+                      Mettre à jour
+                    </button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* PAGINATION */}
+
+          <div style={pagination}>
+            {page > 1 && (
+              <Link
+                href={`/admin/orders?page=${page - 1}&status=${statusRaw}&search=${search}`}
+                style={pageBtn}
+              >
+                ← Précédent
+              </Link>
+            )}
+
+            <span style={pageInfo}>
+              Page {page} / {totalPages || 1}
+            </span>
+
+            {page < totalPages && (
+              <Link
+                href={`/admin/orders?page=${page + 1}&status=${statusRaw}&search=${search}`}
+                style={pageBtn}
+              >
+                Suivant →
+              </Link>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-function Card({ title, value }: { title: string; value: number }) {
+function Card({
+  title,
+  value,
+}: {
+  title: string;
+  value: number;
+}) {
   return (
     <div style={card}>
       <h3 style={cardTitle}>{title}</h3>
+
       <p style={valueStyle}>{value}</p>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: OrderStatus }) {
+function StatusBadge({
+  status,
+}: {
+  status: OrderStatus;
+}) {
   const colors: Record<OrderStatus, string> = {
     PENDING: "#f59e0b",
     PAID: "#16a34a",
@@ -244,14 +441,33 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   };
 
   return (
-    <span style={{ ...statusBadge, background: colors[status] }}>
+    <span
+      style={{
+        ...statusBadge,
+        background: colors[status],
+      }}
+    >
       {status}
     </span>
   );
 }
 
-const container = { padding: "30px" };
-const title = { fontSize: "28px", marginBottom: "20px" };
+const container = {
+  padding: "30px",
+};
+
+const topBar = {
+  marginBottom: "20px",
+};
+
+const title = {
+  fontSize: "32px",
+  margin: 0,
+};
+
+const subtitle = {
+  color: "#666",
+};
 
 const grid3 = {
   display: "grid",
@@ -263,44 +479,57 @@ const grid3 = {
 const card = {
   background: "white",
   padding: "20px",
-  borderRadius: "12px",
+  borderRadius: "14px",
 };
 
-const cardTitle = { margin: 0 };
+const cardTitle = {
+  margin: 0,
+};
 
 const valueStyle = {
-  fontSize: "24px",
-  fontWeight: 700,
+  fontSize: "26px",
+  fontWeight: 800,
 };
 
-const filterRow = { display: "flex", gap: "10px" };
+const filterRow = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+};
 
 const input = {
-  padding: "10px",
-  borderRadius: "8px",
+  padding: "12px",
+  borderRadius: "10px",
   border: "1px solid #ddd",
+};
+
+const searchInput = {
+  ...input,
+  minWidth: "320px",
 };
 
 const primaryBtn = {
   background: "#a16207",
   color: "white",
-  padding: "10px 14px",
-  borderRadius: "8px",
   border: "none",
+  borderRadius: "10px",
+  padding: "12px 18px",
+  cursor: "pointer",
 };
 
 const secondaryBtn = {
   background: "#2563eb",
   color: "white",
-  padding: "10px 14px",
-  borderRadius: "8px",
   border: "none",
+  borderRadius: "10px",
+  padding: "12px 18px",
+  cursor: "pointer",
 };
 
 const listWrapper = {
-  marginTop: "20px",
   display: "grid",
-  gap: "16px",
+  gap: "18px",
+  marginTop: "20px",
 };
 
 const orderCard = {
@@ -335,14 +564,6 @@ const statusBadge = {
   borderRadius: "999px",
 };
 
-const trackingBox = {
-  background: "#eef2ff",
-  padding: "10px",
-  borderRadius: "8px",
-  marginBottom: "10px",
-  fontSize: "14px",
-};
-
 const metaGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(3,1fr)",
@@ -357,7 +578,9 @@ const metaLabel = {
   marginBottom: "4px",
 };
 
-const metaValue = { margin: 0 };
+const metaValue = {
+  margin: 0,
+};
 
 const itemsBox = {
   background: "#faf7f2",
@@ -366,7 +589,9 @@ const itemsBox = {
   marginBottom: "16px",
 };
 
-const itemsTitle = { margin: "0 0 10px 0" };
+const itemsTitle = {
+  margin: "0 0 10px 0",
+};
 
 const itemRow = {
   display: "flex",
@@ -380,4 +605,24 @@ const statusForm = {
   gap: "10px",
   flexWrap: "wrap" as const,
   alignItems: "center",
+};
+
+const pagination = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "16px",
+  marginTop: "30px",
+};
+
+const pageBtn = {
+  background: "#111",
+  color: "white",
+  padding: "10px 16px",
+  borderRadius: "10px",
+  textDecoration: "none",
+};
+
+const pageInfo = {
+  fontWeight: 700,
 };

@@ -147,3 +147,41 @@ enum B2BStatus {
   CONTACTED
   CLOSED
 }
+
+model Reclamation {
+  id          String               @id @default(cuid())
+
+  name        String
+  email       String
+
+  orderId     String?
+  subject     String
+  message     String
+
+  priority    ReclamationPriority  @default(MEDIUM)
+  status      ReclamationStatus    @default(NEW)
+
+  adminNote   String?
+
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([email])
+  @@index([createdAt])
+}
+
+enum ReclamationStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ReclamationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}

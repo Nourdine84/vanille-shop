@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ImageUploadField from "@/components/admin/ImageUploadField";
+import AdminBackButton from "@/components/admin/AdminBackButton";
 
 /* =========================
    STYLES
@@ -60,8 +61,34 @@ const successBox: React.CSSProperties = {
    CONFIG
 ========================= */
 
-const weightFormats = ["10g", "50g", "100g", "250g", "500g", "1kg"];
-const liquidFormats = ["10ml", "50ml", "100ml", "250ml", "500ml", "1L"];
+const weightFormats = [
+  "10g",
+  "50g",
+  "100g",
+  "250g",
+  "500g",
+  "1kg",
+];
+
+const liquidFormats = [
+  "10ml",
+  "50ml",
+  "100ml",
+  "250ml",
+  "500ml",
+  "1L",
+];
+
+const BADGES = [
+  "",
+  "Top Vente",
+  "Best Seller",
+  "Promo",
+  "Nouveau",
+  "Premium",
+  "Édition limitée",
+  "Artisan",
+];
 
 type PricingMap = Record<string, number>;
 
@@ -101,18 +128,36 @@ function normalizeImage(input: string) {
   return input.trim();
 }
 
-function toNumber(value: unknown, fallback = 0) {
+function toNumber(
+  value: unknown,
+  fallback = 0
+) {
   const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
+  return Number.isFinite(n)
+    ? n
+    : fallback;
 }
 
-function normalizePricing(raw: unknown): PricingMap {
-  if (!raw || typeof raw !== "object") return {};
+function normalizePricing(
+  raw: unknown
+): PricingMap {
+  if (
+    !raw ||
+    typeof raw !== "object"
+  )
+    return {};
+
   const result: PricingMap = {};
 
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(
+    raw as Record<string, unknown>
+  )) {
     const n = Number(value);
-    if (Number.isFinite(n) && n > 0) {
+
+    if (
+      Number.isFinite(n) &&
+      n > 0
+    ) {
       result[key] = n;
     }
   }
@@ -127,17 +172,35 @@ function normalizePricing(raw: unknown): PricingMap {
 export default function EditProductPage() {
   const params = useParams();
   const router = useRouter();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  const [product, setProduct] = useState<ProductState | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [screenLoading, setScreenLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const id = Array.isArray(params.id)
+    ? params.id[0]
+    : params.id;
+
+  const [product, setProduct] =
+    useState<ProductState | null>(
+      null
+    );
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [screenLoading, setScreenLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
 
   const formats = useMemo(() => {
-    if (!product) return weightFormats;
-    return product.unit === "g" ? weightFormats : liquidFormats;
+    if (!product)
+      return weightFormats;
+
+    return product.unit === "g"
+      ? weightFormats
+      : liquidFormats;
   }, [product]);
 
   useEffect(() => {
@@ -146,56 +209,102 @@ export default function EditProductPage() {
         setScreenLoading(true);
         setError("");
 
-        const res = await fetch(`/api/admin/products/${id}`);
-        const data = await res.json();
+        const res = await fetch(
+          `/api/admin/products/${id}`
+        );
+
+        const data =
+          await res.json();
 
         if (!res.ok) {
-          throw new Error(data?.error || "Erreur chargement produit");
+          throw new Error(
+            data?.error ||
+              "Erreur chargement produit"
+          );
         }
 
         const unit =
-          data?.unit === "ml" || data?.unit === "g" ? data.unit : "g";
+          data?.unit === "ml" ||
+          data?.unit === "g"
+            ? data.unit
+            : "g";
 
-        const pricing = normalizePricing(data?.pricing);
+        const pricing =
+          normalizePricing(
+            data?.pricing
+          );
 
         setProduct({
           id: data.id,
           name: data.name || "",
           slug: data.slug || "",
-          description: data.description || "",
-          imageUrl: data.imageUrl || "",
-          stock: toNumber(data.stock),
-          category: data.category || "vanille",
-          badge: data.badge || null,
-          isActive: Boolean(data.isActive),
-          isPack: Boolean(data.isPack),
-          packItems: data.packItems || null,
+          description:
+            data.description || "",
+          imageUrl:
+            data.imageUrl || "",
+          stock: toNumber(
+            data.stock
+          ),
+          category:
+            data.category ||
+            "vanille",
+          badge:
+            data.badge || null,
+          isActive: Boolean(
+            data.isActive
+          ),
+          isPack: Boolean(
+            data.isPack
+          ),
+          packItems:
+            data.packItems || null,
           unit,
-          priceCents: toNumber(data.priceCents),
+          priceCents: toNumber(
+            data.priceCents
+          ),
           pricing,
         });
       } catch (err: any) {
-        setError(err?.message || "Erreur chargement produit");
+        setError(
+          err?.message ||
+            "Erreur chargement produit"
+        );
       } finally {
         setScreenLoading(false);
       }
     }
 
-    if (id) fetchProduct();
+    if (id) {
+      fetchProduct();
+    }
   }, [id]);
 
-  function setPricingValue(key: string, value: string) {
+  function setPricingValue(
+    key: string,
+    value: string
+  ) {
     if (!product) return;
-    const next = { ...product.pricing };
+
+    const next = {
+      ...product.pricing,
+    };
+
     const n = Number(value);
 
-    if (!value || !Number.isFinite(n) || n <= 0) {
+    if (
+      !value ||
+      !Number.isFinite(n) ||
+      n <= 0
+    ) {
       delete next[key];
     } else {
       next[key] = n;
     }
 
-    setProduct({ ...product, pricing: next });
+    setProduct({
+      ...product,
+      pricing: next,
+    });
   }
 
   async function handleSave() {
@@ -206,109 +315,263 @@ export default function EditProductPage() {
     setSuccess("");
 
     try {
-      const res = await fetch(`/api/admin/products/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...product,
-          slug: generateSlug(product.slug || product.name),
-          imageUrl: normalizeImage(product.imageUrl),
-        }),
-      });
+      const res = await fetch(
+        `/api/admin/products/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
 
-      const data = await res.json();
+          body: JSON.stringify({
+            ...product,
 
-      if (!res.ok) throw new Error(data?.error);
+            slug: generateSlug(
+              product.slug ||
+                product.name
+            ),
 
-      setSuccess("Produit mis à jour avec succès.");
+            imageUrl:
+              normalizeImage(
+                product.imageUrl
+              ),
+          }),
+        }
+      );
+
+      const data =
+        await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data?.error
+        );
+      }
+
+      setSuccess(
+        "Produit mis à jour avec succès."
+      );
 
       setTimeout(() => {
-        router.push("/admin/products");
+        router.push(
+          "/admin/products"
+        );
       }, 800);
 
     } catch (err: any) {
-      setError(err?.message || "Erreur sauvegarde");
+      setError(
+        err?.message ||
+          "Erreur sauvegarde"
+      );
     } finally {
       setLoading(false);
     }
   }
 
   if (screenLoading) {
-    return <div style={{ padding: 40 }}>Chargement...</div>;
+    return (
+      <div style={{ padding: 40 }}>
+        Chargement...
+      </div>
+    );
   }
 
   if (!product) {
-    return <div style={{ padding: 40 }}>Produit introuvable.</div>;
+    return (
+      <div style={{ padding: 40 }}>
+        Produit introuvable.
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: 40, maxWidth: 960 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 20 }}>
+    <div
+      style={{
+        padding: 40,
+        maxWidth: 960,
+      }}
+    >
+      <AdminBackButton
+        label="Retour produits"
+        fallback="/admin/products"
+      />
+
+      <br />
+      <br />
+      
+      <h1
+        style={{
+          fontSize: 28,
+          marginBottom: 20,
+        }}
+      >
         ✏️ Modifier produit
       </h1>
 
-      {error && <div style={errorBox}>{error}</div>}
-      {success && <div style={successBox}>{success}</div>}
+      {error && (
+        <div style={errorBox}>
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div style={successBox}>
+          {success}
+        </div>
+      )}
 
       {/* ================= INFOS ================= */}
+
       <div style={section}>
-        <h3>📦 Informations produit</h3>
+        <h3>
+          📦 Informations produit
+        </h3>
 
         <input
           value={product.name}
           onChange={(e) =>
             setProduct({
               ...product,
-              name: e.target.value,
-              slug: generateSlug(e.target.value),
+              name:
+                e.target.value,
+              slug: generateSlug(
+                e.target.value
+              ),
             })
           }
           style={input}
         />
 
-        <br /><br />
+        <br />
+        <br />
 
         <input
           value={product.slug}
           onChange={(e) =>
             setProduct({
               ...product,
-              slug: generateSlug(e.target.value),
+              slug:
+                generateSlug(
+                  e.target.value
+                ),
             })
           }
           style={input}
         />
 
-        <br /><br />
+        <br />
+        <br />
 
         <textarea
-          value={product.description}
-          onChange={(e) =>
-            setProduct({ ...product, description: e.target.value })
+          value={
+            product.description
           }
-          style={{ ...input, minHeight: 100 }}
+          onChange={(e) =>
+            setProduct({
+              ...product,
+              description:
+                e.target.value,
+            })
+          }
+          style={{
+            ...input,
+            minHeight: 100,
+          }}
         />
+
+        <br />
+        <br />
+
+        {/* CATEGORY */}
+
+        <select
+          value={product.category}
+          onChange={(e) =>
+            setProduct({
+              ...product,
+              category:
+                e.target.value,
+            })
+          }
+          style={input}
+        >
+          <option value="vanille">
+            Vanille
+          </option>
+
+          <option value="epices">
+            Épices
+          </option>
+
+          <option value="pack">
+            Pack
+          </option>
+        </select>
+
+        <br />
+        <br />
+
+        {/* BADGES */}
+
+        <select
+          value={
+            product.badge || ""
+          }
+          onChange={(e) =>
+            setProduct({
+              ...product,
+              badge:
+                e.target.value ||
+                null,
+            })
+          }
+          style={input}
+        >
+          <option value="">
+            Aucun badge
+          </option>
+
+          {BADGES.filter(Boolean).map(
+            (badge) => (
+              <option
+                key={badge}
+                value={badge}
+              >
+                {badge}
+              </option>
+            )
+          )}
+        </select>
       </div>
 
       {/* ================= IMAGE ================= */}
+
       <div style={section}>
         <h3>🖼 Image produit</h3>
 
         <ImageUploadField
-          initialUrl={product.imageUrl}
+          initialUrl={
+            product.imageUrl
+          }
           onChange={(url) =>
-            setProduct({ ...product, imageUrl: url })
+            setProduct({
+              ...product,
+              imageUrl: url,
+            })
           }
         />
 
-        {/* 🔥 PREVIEW */}
         {product.imageUrl && (
           <img
-            src={product.imageUrl}
+            src={
+              product.imageUrl
+            }
             style={{
               width: "100%",
               maxHeight: 200,
-              objectFit: "cover",
+              objectFit:
+                "cover",
               borderRadius: 12,
               marginTop: 12,
             }}
@@ -317,6 +580,7 @@ export default function EditProductPage() {
       </div>
 
       {/* ================= STOCK ================= */}
+
       <div style={section}>
         <h3>📊 Stock</h3>
 
@@ -326,25 +590,131 @@ export default function EditProductPage() {
           onChange={(e) =>
             setProduct({
               ...product,
-              stock: Number(e.target.value),
+              stock: Number(
+                e.target.value
+              ),
             })
           }
           style={input}
         />
       </div>
 
-      {/* ================= STATUS ================= */}
-      <div style={section}>
-        <h3>🔄 Statut produit</h3>
+      {/* ================= PRICING ================= */}
 
-        <label style={{ display: "flex", gap: 12, alignItems: "center" }}>
+      {!product.isPack && (
+        <div style={section}>
+          <h3>
+            💰 Prix par format
+          </h3>
+
+          <div style={grid}>
+            {formats.map(
+              (format) => (
+                <input
+                  key={format}
+                  type="number"
+                  placeholder={`${format} (€ centimes)`}
+                  value={
+                    product.pricing[
+                      format
+                    ] || ""
+                  }
+                  onChange={(e) =>
+                    setPricingValue(
+                      format,
+                      e.target
+                        .value
+                    )
+                  }
+                  style={input}
+                />
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= PACK ================= */}
+
+      <div style={section}>
+        <h3>🎁 Pack</h3>
+
+        <label
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems:
+              "center",
+            marginBottom: 16,
+          }}
+        >
           <input
             type="checkbox"
-            checked={product.isActive}
+            checked={
+              product.isPack
+            }
             onChange={(e) =>
               setProduct({
                 ...product,
-                isActive: e.target.checked,
+                isPack:
+                  e.target
+                    .checked,
+              })
+            }
+          />
+
+          Produit pack
+        </label>
+
+        {product.isPack && (
+          <textarea
+            value={
+              product.packItems ||
+              ""
+            }
+            onChange={(e) =>
+              setProduct({
+                ...product,
+                packItems:
+                  e.target
+                    .value,
+              })
+            }
+            placeholder="Contenu du pack"
+            style={{
+              ...input,
+              minHeight: 100,
+            }}
+          />
+        )}
+      </div>
+
+      {/* ================= STATUS ================= */}
+
+      <div style={section}>
+        <h3>
+          🔄 Statut produit
+        </h3>
+
+        <label
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems:
+              "center",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={
+              product.isActive
+            }
+            onChange={(e) =>
+              setProduct({
+                ...product,
+                isActive:
+                  e.target
+                    .checked,
               })
             }
           />
@@ -352,16 +722,27 @@ export default function EditProductPage() {
           <span
             style={{
               fontWeight: 600,
-              color: product.isActive ? "#16a34a" : "#dc2626",
+
+              color:
+                product.isActive
+                  ? "#16a34a"
+                  : "#dc2626",
             }}
           >
-            {product.isActive ? "Produit ACTIF" : "Produit INACTIF"}
+            {product.isActive
+              ? "Produit ACTIF"
+              : "Produit INACTIF"}
           </span>
         </label>
       </div>
 
-      <button onClick={handleSave} style={btn}>
-        {loading ? "Enregistrement..." : "💾 Sauvegarder"}
+      <button
+        onClick={handleSave}
+        style={btn}
+      >
+        {loading
+          ? "Enregistrement..."
+          : "💾 Sauvegarder"}
       </button>
     </div>
   );

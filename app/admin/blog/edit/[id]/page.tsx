@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import BlogForm from "@/components/admin/BlogForm";
+import AdminBackButton from "@/components/admin/AdminBackButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,6 +26,14 @@ export default async function EditBlogPage({
 
   return (
     <div style={container}>
+      <AdminBackButton
+        label="Retour dashboard"
+        fallback="/admin"
+      />
+
+      <br />
+      <br />
+      
       <h1 style={title}>✏️ Modifier article</h1>
       <BlogForm initialData={post} />
     </div>
