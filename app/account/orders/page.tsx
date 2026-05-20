@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+
 import BackButton from "@/components/ui/BackButton";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
@@ -9,10 +11,15 @@ type OrderItem = {
   name: string;
   quantity: number;
   priceCents: number;
+  imageUrl?: string;
 };
 
+/* ================= HELPERS ================= */
+
 function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " €";
+  return (cents / 100)
+    .toFixed(2)
+    .replace(".", ",") + " €";
 }
 
 function formatStatus(status: string) {
@@ -27,13 +34,13 @@ function formatStatus(status: string) {
       return "Livrée";
 
     case "FAILED":
-      return "Échec";
+      return "Échec paiement";
 
     case "CANCELED":
-      return "Annulée";
+      return "Commande annulée";
 
     default:
-      return "En attente";
+      return "En préparation";
   }
 }
 
@@ -83,7 +90,9 @@ function getTrackingUrl(
   carrier?: string | null,
   tracking?: string | null
 ) {
-  if (!carrier || !tracking) return null;
+  if (!carrier || !tracking) {
+    return null;
+  }
 
   const cleanCarrier =
     carrier.toLowerCase();
@@ -98,10 +107,39 @@ function getTrackingUrl(
     case "dhl":
       return `https://www.dhl.com/fr-fr/home/tracking/tracking-express.html?submit=1&tracking-id=${tracking}`;
 
+    case "ups":
+      return `https://www.ups.com/track?tracknum=${tracking}`;
+
     default:
       return null;
   }
 }
+
+function getTimelineProgress(
+  status: string
+) {
+  switch (status) {
+    case "PAID":
+      return 35;
+
+    case "SHIPPED":
+      return 75;
+
+    case "DELIVERED":
+      return 100;
+
+    case "FAILED":
+      return 0;
+
+    case "CANCELED":
+      return 0;
+
+    default:
+      return 15;
+  }
+}
+
+/* ================= PAGE ================= */
 
 export default async function OrdersPage() {
   const user =
@@ -122,6 +160,18 @@ export default async function OrdersPage() {
       },
     });
 
+  const totalSpent = orders.reduce(
+    (acc, order) =>
+      acc + order.totalCents,
+    0
+  );
+
+  const deliveredOrders =
+    orders.filter(
+      (o) =>
+        o.status === "DELIVERED"
+    ).length;
+
   return (
     <div style={page}>
       <div style={container}>
@@ -129,6 +179,8 @@ export default async function OrdersPage() {
           label="Retour au compte"
           fallback="/account"
         />
+
+        {/* HERO */}
 
         <div style={hero}>
           <div>
@@ -139,28 +191,72 @@ export default async function OrdersPage() {
             <h1 style={title}>
               Mes commandes
             </h1>
+
+            <p style={heroText}>
+              Retrouvez l’historique,
+              le suivi et les factures
+              de vos commandes premium.
+            </p>
           </div>
 
-          <div style={heroBadge}>
-            {orders.length} commande
-            {orders.length > 1
-              ? "s"
-              : ""}
+          <div style={heroStats}>
+            <div style={heroStatCard}>
+              <span style={heroStatLabel}>
+                Commandes
+              </span>
+
+              <strong style={heroStatValue}>
+                {orders.length}
+              </strong>
+            </div>
+
+            <div style={heroStatCard}>
+              <span style={heroStatLabel}>
+                Livrées
+              </span>
+
+              <strong style={heroStatValue}>
+                {deliveredOrders}
+              </strong>
+            </div>
+
+            <div style={heroStatCard}>
+              <span style={heroStatLabel}>
+                Total dépensé
+              </span>
+
+              <strong style={heroStatValue}>
+                {formatPrice(totalSpent)}
+              </strong>
+            </div>
           </div>
         </div>
 
+        {/* EMPTY */}
+
         {orders.length === 0 ? (
           <div style={emptyBox}>
+            <div style={emptyIcon}>
+              📦
+            </div>
+
             <h3 style={emptyTitle}>
               Aucune commande pour le
               moment
             </h3>
 
             <p style={emptyText}>
-              Vos futures commandes
-              Vanille’Or apparaîtront
-              ici.
+              Découvrez nos vanilles et
+              épices premium de
+              Madagascar.
             </p>
+
+            <Link
+              href="/products"
+              style={emptyBtn}
+            >
+              Découvrir la boutique
+            </Link>
           </div>
         ) : (
           <div style={ordersGrid}>
@@ -203,6 +299,7 @@ export default async function OrdersPage() {
                   style={card}
                 >
                   {/* HEADER */}
+
                   <div style={top}>
                     <div>
                       <div
@@ -241,6 +338,7 @@ export default async function OrdersPage() {
                   </div>
 
                   {/* ITEMS */}
+
                   <div
                     style={itemsBox}
                   >
@@ -257,26 +355,40 @@ export default async function OrdersPage() {
                             itemRow
                           }
                         >
-                          <div>
+                          <div
+                            style={
+                              itemLeft
+                            }
+                          >
                             <div
                               style={
-                                itemName
+                                itemImagePlaceholder
                               }
                             >
-                              {
-                                item.name
-                              }
+                              🌿
                             </div>
 
-                            <div
-                              style={
-                                itemQty
-                              }
-                            >
-                              Quantité :{" "}
-                              {
-                                item.quantity
-                              }
+                            <div>
+                              <div
+                                style={
+                                  itemName
+                                }
+                              >
+                                {
+                                  item.name
+                                }
+                              </div>
+
+                              <div
+                                style={
+                                  itemQty
+                                }
+                              >
+                                Quantité :{" "}
+                                {
+                                  item.quantity
+                                }
+                              </div>
                             </div>
                           </div>
 
@@ -291,7 +403,49 @@ export default async function OrdersPage() {
                     )}
                   </div>
 
+                  {/* PROGRESS */}
+
+                  <div
+                    style={
+                      progressWrapper
+                    }
+                  >
+                    <div
+                      style={
+                        progressHeader
+                      }
+                    >
+                      <span>
+                        Progression
+                      </span>
+
+                      <strong>
+                        {getTimelineProgress(
+                          order.status
+                        )}
+                        %
+                      </strong>
+                    </div>
+
+                    <div
+                      style={
+                        progressBar
+                      }
+                    >
+                      <div
+                        style={{
+                          ...progressFill,
+
+                          width: `${getTimelineProgress(
+                            order.status
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   {/* TIMELINE */}
+
                   <div
                     style={timeline}
                   >
@@ -345,6 +499,7 @@ export default async function OrdersPage() {
                   </div>
 
                   {/* TRACKING */}
+
                   {(order.trackingNumber ||
                     order.carrier) && (
                     <div
@@ -395,14 +550,48 @@ export default async function OrdersPage() {
                             trackingBtn
                           }
                         >
-                          Suivre le colis
-                          →
+                          Suivre le colis →
                         </a>
                       )}
                     </div>
                   )}
 
+                  {/* ACTIONS */}
+
+                  <div
+                    style={actionRow}
+                  >
+                    <Link
+                      href={`/account/orders/${order.id}`}
+                      style={
+                        detailsBtn
+                      }
+                    >
+                      Voir détail
+                    </Link>
+
+                    <a
+                      href={`/api/invoice/${order.id}`}
+                      target="_blank"
+                      style={
+                        invoiceBtn
+                      }
+                    >
+                      Télécharger facture
+                    </a>
+
+                    <Link
+                      href="/support"
+                      style={
+                        supportBtn
+                      }
+                    >
+                      Assistance
+                    </Link>
+                  </div>
+
                   {/* FOOTER */}
+
                   <div
                     style={footer}
                   >
@@ -444,9 +633,7 @@ export default async function OrdersPage() {
   );
 }
 
-/* =========================
-   STYLES
-========================= */
+/* ================= STYLES ================= */
 
 const page: React.CSSProperties = {
   background: "#f8f5ef",
@@ -456,7 +643,7 @@ const page: React.CSSProperties = {
 
 const container: React.CSSProperties =
   {
-    maxWidth: 1100,
+    maxWidth: 1180,
     margin: "0 auto",
   };
 
@@ -464,9 +651,9 @@ const hero: React.CSSProperties = {
   display: "flex",
   justifyContent:
     "space-between",
-  alignItems: "center",
-  marginBottom: 30,
-  gap: 20,
+  alignItems: "flex-start",
+  marginBottom: 34,
+  gap: 24,
   flexWrap: "wrap",
 };
 
@@ -481,14 +668,43 @@ const heroSubtitle: React.CSSProperties =
     fontSize: 12,
   };
 
-const heroBadge: React.CSSProperties =
+const heroText: React.CSSProperties =
+  {
+    color: "#666",
+    marginTop: 14,
+    maxWidth: 520,
+    lineHeight: 1.7,
+  };
+
+const heroStats: React.CSSProperties =
+  {
+    display: "flex",
+    gap: 14,
+    flexWrap: "wrap",
+  };
+
+const heroStatCard: React.CSSProperties =
   {
     background: "white",
-    padding: "12px 18px",
-    borderRadius: 999,
-    fontWeight: 700,
+    borderRadius: 18,
+    padding: "18px 20px",
+    minWidth: 150,
     boxShadow:
-      "0 6px 20px rgba(0,0,0,0.05)",
+      "0 10px 30px rgba(0,0,0,0.05)",
+  };
+
+const heroStatLabel: React.CSSProperties =
+  {
+    display: "block",
+    color: "#777",
+    fontSize: 12,
+    marginBottom: 8,
+  };
+
+const heroStatValue: React.CSSProperties =
+  {
+    fontSize: 24,
+    fontWeight: 800,
   };
 
 const title: React.CSSProperties = {
@@ -500,33 +716,56 @@ const title: React.CSSProperties = {
 const emptyBox: React.CSSProperties =
   {
     background: "white",
-    padding: 40,
-    borderRadius: 24,
+    padding: 50,
+    borderRadius: 28,
     textAlign: "center",
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.05)",
+  };
+
+const emptyIcon: React.CSSProperties =
+  {
+    fontSize: 54,
+    marginBottom: 18,
   };
 
 const emptyTitle: React.CSSProperties =
   {
-    marginBottom: 10,
+    marginBottom: 12,
+    fontSize: 28,
   };
 
 const emptyText: React.CSSProperties =
   {
     color: "#666",
+    marginBottom: 24,
+    lineHeight: 1.7,
+  };
+
+const emptyBtn: React.CSSProperties =
+  {
+    display: "inline-block",
+    background:
+      "linear-gradient(135deg,#b7791f,#8b5e14)",
+    color: "white",
+    padding: "14px 22px",
+    borderRadius: 14,
+    textDecoration: "none",
+    fontWeight: 700,
   };
 
 const ordersGrid: React.CSSProperties =
   {
     display: "grid",
-    gap: 24,
+    gap: 26,
   };
 
 const card: React.CSSProperties = {
   background: "white",
-  borderRadius: 24,
-  padding: 28,
+  borderRadius: 28,
+  padding: 30,
   boxShadow:
-    "0 10px 30px rgba(0,0,0,0.06)",
+    "0 12px 35px rgba(0,0,0,0.06)",
 };
 
 const top: React.CSSProperties = {
@@ -534,25 +773,25 @@ const top: React.CSSProperties = {
   justifyContent:
     "space-between",
   gap: 20,
-  marginBottom: 24,
+  marginBottom: 26,
   flexWrap: "wrap",
 };
 
 const orderId: React.CSSProperties =
   {
     fontWeight: 800,
-    fontSize: 20,
+    fontSize: 22,
   };
 
 const date: React.CSSProperties = {
   color: "#777",
-  marginTop: 6,
+  marginTop: 8,
   fontSize: 14,
 };
 
 const status: React.CSSProperties =
   {
-    padding: "10px 14px",
+    padding: "10px 16px",
     borderRadius: 999,
     fontSize: 13,
     fontWeight: 700,
@@ -571,10 +810,30 @@ const itemRow: React.CSSProperties =
     display: "flex",
     justifyContent:
       "space-between",
+    alignItems: "center",
     gap: 20,
     borderBottom:
       "1px solid #eee",
     paddingBottom: 14,
+  };
+
+const itemLeft: React.CSSProperties =
+  {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+  };
+
+const itemImagePlaceholder: React.CSSProperties =
+  {
+    width: 54,
+    height: 54,
+    borderRadius: 14,
+    background: "#faf7f2",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 22,
   };
 
 const itemName: React.CSSProperties =
@@ -589,12 +848,45 @@ const itemQty: React.CSSProperties =
     fontSize: 13,
   };
 
+const progressWrapper: React.CSSProperties =
+  {
+    marginTop: 26,
+  };
+
+const progressHeader: React.CSSProperties =
+  {
+    display: "flex",
+    justifyContent:
+      "space-between",
+    marginBottom: 10,
+    fontSize: 13,
+    color: "#666",
+  };
+
+const progressBar: React.CSSProperties =
+  {
+    width: "100%",
+    height: 12,
+    background: "#ece7df",
+    borderRadius: 999,
+    overflow: "hidden",
+  };
+
+const progressFill: React.CSSProperties =
+  {
+    height: "100%",
+    borderRadius: 999,
+    background:
+      "linear-gradient(90deg,#a16207,#d4af37)",
+    transition: "0.4s",
+  };
+
 const timeline: React.CSSProperties =
   {
     display: "flex",
     flexWrap: "wrap",
     gap: 10,
-    marginTop: 20,
+    marginTop: 22,
     marginBottom: 20,
   };
 
@@ -613,7 +905,7 @@ const trackingBox: React.CSSProperties =
     background: "#f9fafb",
     border: "1px solid #eee",
     borderRadius: 18,
-    padding: 18,
+    padding: 20,
   };
 
 const trackingTop: React.CSSProperties =
@@ -656,9 +948,54 @@ const trackingBtn: React.CSSProperties =
     fontSize: 14,
   };
 
+const actionRow: React.CSSProperties =
+  {
+    display: "flex",
+    gap: 12,
+    marginTop: 26,
+    flexWrap: "wrap",
+  };
+
+const detailsBtn: React.CSSProperties =
+  {
+    flex: 1,
+    background: "#111",
+    color: "white",
+    padding: "13px 18px",
+    borderRadius: 14,
+    textDecoration: "none",
+    textAlign: "center",
+    fontWeight: 700,
+  };
+
+const invoiceBtn: React.CSSProperties =
+  {
+    flex: 1,
+    background:
+      "linear-gradient(135deg,#16a34a,#15803d)",
+    color: "white",
+    padding: "13px 18px",
+    borderRadius: 14,
+    textDecoration: "none",
+    textAlign: "center",
+    fontWeight: 700,
+  };
+
+const supportBtn: React.CSSProperties =
+  {
+    flex: 1,
+    background: "#f3f4f6",
+    color: "#111",
+    padding: "13px 18px",
+    borderRadius: 14,
+    textDecoration: "none",
+    textAlign: "center",
+    fontWeight: 700,
+  };
+
 const footer: React.CSSProperties = {
-  marginTop: 28,
-  paddingTop: 20,
+  marginTop: 30,
+  paddingTop: 22,
   borderTop: "1px solid #eee",
   display: "flex",
   justifyContent:
@@ -672,12 +1009,12 @@ const footerLabel: React.CSSProperties =
   {
     fontSize: 13,
     color: "#777",
-    marginBottom: 4,
+    marginBottom: 6,
   };
 
 const totalPrice: React.CSSProperties =
   {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 800,
   };
 

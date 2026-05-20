@@ -19,28 +19,23 @@ const allowedStatuses: ReclamationStatus[] = [
 
 export async function POST(req: Request) {
   try {
-    let body: any;
+    const formData = await req.formData();
 
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json(
-        {
-          error: "Payload invalide",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+    const id = String(
+      formData.get("id") || ""
+    ).trim();
 
-    const id = body?.id;
-    const status = body?.status;
+    const status = String(
+      formData.get("status") || ""
+    ).trim();
 
-    if (
-      typeof id !== "string" ||
-      typeof status !== "string"
-    ) {
+    const adminNote = String(
+      formData.get("adminNote") || ""
+    ).trim();
+
+    /* ================= VALIDATION ================= */
+
+    if (!id || !status) {
       return NextResponse.json(
         {
           error: "Paramètres invalides",
@@ -66,10 +61,17 @@ export async function POST(req: Request) {
       );
     }
 
+    /* ================= EXISTING ================= */
+
     const existing =
       await prisma.reclamation.findUnique({
-        where: { id },
-        select: { id: true },
+        where: {
+          id,
+        },
+
+        select: {
+          id: true,
+        },
       });
 
     if (!existing) {
@@ -84,26 +86,53 @@ export async function POST(req: Request) {
       );
     }
 
+    /* ================= UPDATE ================= */
+
     const updated =
       await prisma.reclamation.update({
-        where: { id },
+        where: {
+          id,
+        },
 
         data: {
           status:
             status as ReclamationStatus,
+
+          adminNote:
+            adminNote.length > 0
+              ? adminNote
+              : null,
         },
       });
 
     console.log(
-      "✅ RECLAMATION UPDATED:",
-      updated.id,
+      "\n✅ RECLAMATION UPDATED"
+    );
+
+    console.log(
+      "🆔 ID:",
+      updated.id
+    );
+
+    console.log(
+      "📌 STATUS:",
       updated.status
     );
 
-    return NextResponse.json({
-      success: true,
-      reclamation: updated,
-    });
+    console.log(
+      "📝 ADMIN NOTE:",
+      updated.adminNote
+    );
+
+    /* ================= REDIRECT ================= */
+
+    return NextResponse.redirect(
+      new URL(
+        `/admin/reclamations/${updated.id}`,
+        req.url
+      ),
+      303
+    );
 
   } catch (error) {
     console.error(
@@ -114,7 +143,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "Erreur mise à jour",
+          "Erreur mise à jour réclamation",
       },
       {
         status: 500,

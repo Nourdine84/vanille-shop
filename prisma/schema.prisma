@@ -93,6 +93,12 @@ model Order {
 
   @@index([createdAt])
   @@index([status])
+
+  paidAt         DateTime?
+  expiresAt      DateTime?
+
+@@index([stripeSessionId])
+@@index([stripePaymentId])
 }
 
 model B2BRequest {

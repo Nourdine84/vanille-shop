@@ -447,28 +447,109 @@ export async function sendAdminOrderEmail({
     html,
   });
 }
+/* ================= TRACKING URL ================= */
+
+function getTrackingUrl(
+  carrier?: string,
+  trackingNumber?: string
+) {
+  if (!carrier || !trackingNumber) {
+    return null;
+  }
+
+  const code = encodeURIComponent(
+    trackingNumber
+  );
+
+  switch (
+    carrier.toLowerCase()
+  ) {
+    case "colissimo":
+      return `https://www.laposte.fr/outils/suivre-vos-envois?code=${code}`;
+
+    case "chronopost":
+      return `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${code}`;
+
+    case "dhl":
+      return `https://www.dhl.com/fr-fr/home/tracking/tracking-express.html?submit=1&tracking-id=${code}`;
+
+    case "ups":
+      return `https://www.ups.com/track?tracknum=${code}`;
+
+    default:
+      return null;
+  }
+}
 
 /* ================= SHIPPING ================= */
 
-export async function sendShippingEmail(payload: ShippingPayload) {
+export async function sendShippingEmail(
+  payload: ShippingPayload
+) {
+  const trackingUrl =
+    getTrackingUrl(
+      payload.carrier,
+      payload.trackingNumber
+    );
+
   const html = layout({
     eyebrow: "Expédition",
+
     title: "Commande expédiée",
-    subtitle: "Votre colis est en route.",
+
+    subtitle:
+      "Votre colis est désormais en route vers vous.",
+
     content: `
+      <p style="
+        margin:0;
+        font-size:15px;
+        line-height:1.8;
+        color:#555;
+      ">
+        Bonne nouvelle ✨<br/><br/>
+
+        Votre commande VanilleOr a été expédiée avec succès.
+      </p>
+
       ${sectionCard(
-        statRow("Commande", payload.orderId) +
-          statRow("Transporteur", payload.carrier || "N/A") +
-          statRow("Suivi", payload.trackingNumber || "N/A")
+        statRow(
+          "Commande",
+          payload.orderId
+        ) +
+          statRow(
+            "Transporteur",
+            payload.carrier || "N/A"
+          ) +
+          statRow(
+            "Numéro de suivi",
+            payload.trackingNumber ||
+              "N/A"
+          )
       )}
 
-      ${ctaButton("Découvrir nos produits", `${SITE_URL}/products`)}
+      ${
+        trackingUrl
+          ? ctaButton(
+              "Suivre mon colis",
+              trackingUrl
+            )
+          : ""
+      }
+
+      ${ctaButton(
+        "Découvrir nos produits",
+        `${SITE_URL}/products`
+      )}
     `,
   });
 
   return sendMail({
     to: payload.to,
-    subject: "Commande expédiée",
+
+    subject:
+      "Votre commande a été expédiée 📦",
+
     html,
   });
 }

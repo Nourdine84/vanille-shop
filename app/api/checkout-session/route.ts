@@ -216,15 +216,35 @@ export async function POST(req: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+    
+      locale: "fr",
+    
+      submit_type: "pay",
+    
+      customer_creation: "always",
+    
       payment_method_types: ["card"],
+    
       line_items: lineItems,
-      success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/checkout?error=1`,
+    
+      success_url:
+        `${baseUrl}/checkout/success` +
+        `?session_id={CHECKOUT_SESSION_ID}` +
+        `&order=${order.id}`,
+    
+      cancel_url:
+        `${baseUrl}/checkout?canceled=1`,
+    
       billing_address_collection: "required",
+    
       shipping_address_collection: {
         allowed_countries: ["FR", "BE", "CH"],
       },
-      phone_number_collection: { enabled: true },
+    
+      phone_number_collection: {
+        enabled: true,
+      },
+    
       metadata: {
         orderId: order.id,
         source: "vanilleor-shop",

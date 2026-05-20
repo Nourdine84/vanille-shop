@@ -25,7 +25,9 @@ const PAGE_SIZE = 12;
 
 /* ================= HELPERS ================= */
 
-function formatPrice(priceCents: number) {
+function formatPrice(
+  priceCents: number
+) {
   return (
     (priceCents / 100)
       .toFixed(2)
@@ -33,7 +35,9 @@ function formatPrice(priceCents: number) {
   );
 }
 
-function formatDate(date: Date) {
+function formatDate(
+  date: Date
+) {
   return new Intl.DateTimeFormat(
     "fr-FR",
     {
@@ -70,6 +74,33 @@ function getStatusColor(
   }
 }
 
+function getProgress(
+  status: OrderStatus
+) {
+  switch (status) {
+    case "PENDING":
+      return 20;
+
+    case "PAID":
+      return 45;
+
+    case "SHIPPED":
+      return 75;
+
+    case "DELIVERED":
+      return 100;
+
+    case "FAILED":
+      return 0;
+
+    case "CANCELED":
+      return 0;
+
+    default:
+      return 10;
+  }
+}
+
 /* ================= PAGE ================= */
 
 export default async function AdminOrdersPage({
@@ -86,7 +117,8 @@ export default async function AdminOrdersPage({
   }
 
   const statusRaw = (
-    searchParams?.status || "ACTIVE"
+    searchParams?.status ||
+    "ACTIVE"
   ).trim();
 
   const search = (
@@ -111,7 +143,9 @@ export default async function AdminOrdersPage({
       in: activeStatuses,
     };
   } else if (
-    Object.values(OrderStatus).includes(
+    Object.values(
+      OrderStatus
+    ).includes(
       statusRaw as OrderStatus
     )
   ) {
@@ -182,33 +216,44 @@ export default async function AdminOrdersPage({
     );
   }
 
-  const totalPages = Math.ceil(
-    total / PAGE_SIZE
-  );
+  const totalPages =
+    Math.ceil(
+      total / PAGE_SIZE
+    );
 
   /* ================= KPI ================= */
 
-  const pendingCount = orders.filter(
-    (o) => o.status === "PENDING"
-  ).length;
+  const pendingCount =
+    orders.filter(
+      (o) =>
+        o.status ===
+        "PENDING"
+    ).length;
 
-  const paidCount = orders.filter(
-    (o) => o.status === "PAID"
-  ).length;
+  const paidCount =
+    orders.filter(
+      (o) =>
+        o.status === "PAID"
+    ).length;
 
-  const shippedCount = orders.filter(
-    (o) => o.status === "SHIPPED"
-  ).length;
+  const shippedCount =
+    orders.filter(
+      (o) =>
+        o.status ===
+        "SHIPPED"
+    ).length;
 
   const deliveredCount =
     orders.filter(
       (o) =>
-        o.status === "DELIVERED"
+        o.status ===
+        "DELIVERED"
     ).length;
 
   const revenue = orders
     .filter(
-      (o) => o.status === "PAID"
+      (o) =>
+        o.status === "PAID"
     )
     .reduce(
       (acc, o) =>
@@ -274,7 +319,9 @@ export default async function AdminOrdersPage({
 
         <KpiCard
           title="CA"
-          value={formatPrice(revenue)}
+          value={formatPrice(
+            revenue
+          )}
           color="#111"
         />
       </div>
@@ -296,7 +343,9 @@ export default async function AdminOrdersPage({
 
           <select
             name="status"
-            defaultValue={statusRaw}
+            defaultValue={
+              statusRaw
+            }
             style={input}
           >
             <option value="ACTIVE">
@@ -330,225 +379,357 @@ export default async function AdminOrdersPage({
 
       {/* LIST */}
 
-      {orders.length === 0 ? (
+      {orders.length ===
+      0 ? (
         <div style={emptyCard}>
-          Aucune commande trouvée.
+          Aucune commande
+          trouvée.
         </div>
       ) : (
         <>
           <div style={listWrapper}>
-            {orders.map((order) => {
-              let items: OrderItem[] =
-                [];
+            {orders.map(
+              (order) => {
+                let items: OrderItem[] =
+                  [];
 
-              try {
-                if (
-                  typeof order.items ===
-                  "string"
-                ) {
-                  items = JSON.parse(
-                    order.items
-                  );
-                } else if (
-                  Array.isArray(
-                    order.items
-                  )
-                ) {
-                  items = order.items;
-                }
-              } catch {}
+                try {
+                  if (
+                    typeof order.items ===
+                    "string"
+                  ) {
+                    items =
+                      JSON.parse(
+                        order.items
+                      );
+                  } else if (
+                    Array.isArray(
+                      order.items
+                    )
+                  ) {
+                    items =
+                      order.items;
+                  }
+                } catch {}
 
-              return (
-                <div
-                  key={order.id}
-                  style={orderCard}
-                >
-                  {/* HEADER */}
-
-                  <div style={orderHeader}>
-                    <div>
-                      <h3 style={orderId}>
-                        #
-                        {order.id.slice(
-                          0,
-                          8
-                        )}
-                      </h3>
-
-                      <p style={mutedText}>
-                        {formatDate(
-                          order.createdAt
-                        )}
-                      </p>
-                    </div>
+                return (
+                  <div
+                    key={
+                      order.id
+                    }
+                    style={
+                      orderCard
+                    }
+                  >
+                    {/* HEADER */}
 
                     <div
                       style={
-                        headerRight
+                        orderHeader
                       }
                     >
-                      <StatusBadge
-                        status={
-                          order.status
-                        }
-                      />
-
-                      <strong
-                        style={
-                          priceText
-                        }
-                      >
-                        {formatPrice(
-                          order.totalCents
-                        )}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {/* META */}
-
-                  <div style={metaGrid}>
-                    <Meta
-                      label="Client"
-                      value={
-                        order.email ||
-                        order.user
-                          ?.email ||
-                        "Non renseigné"
-                      }
-                    />
-
-                    <Meta
-                      label="Tracking"
-                      value={
-                        order.trackingNumber ||
-                        "Non renseigné"
-                      }
-                    />
-
-                    <Meta
-                      label="Paiement"
-                      value={
-                        order.stripePaymentId
-                          ? "Validé"
-                          : "En attente"
-                      }
-                    />
-                  </div>
-
-                  {/* ITEMS */}
-
-                  <div style={itemsBox}>
-                    <h4
-                      style={
-                        itemsTitle
-                      }
-                    >
-                      Articles
-                    </h4>
-
-                    {items.map(
-                      (
-                        item,
-                        index
-                      ) => (
-                        <div
-                          key={
-                            index
-                          }
+                      <div>
+                        <h3
                           style={
-                            itemRow
+                            orderId
                           }
                         >
-                          <span>
-                            {
-                              item.name
-                            }
-                          </span>
+                          #
+                          {order.id.slice(
+                            0,
+                            8
+                          )}
+                        </h3>
 
-                          <span>
-                            {
-                              item.quantity
-                            }
-                            ×{" "}
-                            {formatPrice(
-                              item.priceCents
-                            )}
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
+                        <p
+                          style={
+                            mutedText
+                          }
+                        >
+                          {formatDate(
+                            order.createdAt
+                          )}
+                        </p>
+                      </div>
 
-                  {/* ACTIONS */}
+                      <div
+                        style={
+                          headerRight
+                        }
+                      >
+                        <StatusBadge
+                          status={
+                            order.status
+                          }
+                        />
 
-                  <div style={actionsRow}>
-                    <Link
-                      href={`/admin/orders/${order.id}`}
-                      style={detailsBtn}
-                    >
-                      Voir détail
-                    </Link>
+                        <strong
+                          style={
+                            priceText
+                          }
+                        >
+                          {formatPrice(
+                            order.totalCents
+                          )}
+                        </strong>
+                      </div>
+                    </div>
 
-                    <form
-                      action="/api/admin/orders/update-status"
-                      method="POST"
+                    {/* PROGRESS */}
+
+                    <div
                       style={
-                        statusForm
+                        progressWrapper
                       }
                     >
-                      <input
-                        type="hidden"
-                        name="orderId"
+                      <div
+                        style={
+                          progressBar
+                        }
+                      >
+                        <div
+                          style={{
+                            ...progressFill,
+
+                            width: `${getProgress(
+                              order.status
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* META */}
+
+                    <div
+                      style={
+                        metaGrid
+                      }
+                    >
+                      <Meta
+                        label="Client"
                         value={
-                          order.id
+                          order.email ||
+                          order.user
+                            ?.email ||
+                          "Non renseigné"
                         }
                       />
 
-                      <select
-                        name="status"
-                        defaultValue={
-                          order.status
+                      <Meta
+                        label="Tracking"
+                        value={
+                          order.trackingNumber ||
+                          "Non renseigné"
                         }
-                        style={
-                          input
-                        }
-                      >
-                        {Object.values(
-                          OrderStatus
-                        ).map(
-                          (
-                            s
-                          ) => (
-                            <option
-                              key={
-                                s
-                              }
-                              value={
-                                s
-                              }
-                            >
-                              {
-                                s
-                              }
-                            </option>
-                          )
-                        )}
-                      </select>
+                      />
 
-                      <button
-                        type="submit"
+                      <Meta
+                        label="Paiement"
+                        value={
+                          order.stripePaymentId
+                            ? "Validé"
+                            : "En attente"
+                        }
+                      />
+                    </div>
+
+                    {/* ITEMS */}
+
+                    <div
+                      style={
+                        itemsBox
+                      }
+                    >
+                      <h4
                         style={
-                          secondaryBtn
+                          itemsTitle
                         }
                       >
-                        Sauvegarder
-                      </button>
-                    </form>
+                        Articles
+                      </h4>
+
+                      {items.map(
+                        (
+                          item,
+                          index
+                        ) => (
+                          <div
+                            key={
+                              index
+                            }
+                            style={
+                              itemRow
+                            }
+                          >
+                            <span>
+                              {
+                                item.name
+                              }
+                            </span>
+
+                            <span>
+                              {
+                                item.quantity
+                              }
+                              ×{" "}
+                              {formatPrice(
+                                item.priceCents
+                              )}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+
+                    {/* ACTIONS */}
+
+                    <div
+                      style={
+                        actionsRow
+                      }
+                    >
+                      <div
+                        style={
+                          leftActions
+                        }
+                      >
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          style={
+                            detailsBtn
+                          }
+                        >
+                          Voir détail
+                        </Link>
+
+                        <a
+                          href={`/api/invoice/${order.id}`}
+                          target="_blank"
+                          style={
+                            invoiceBtn
+                          }
+                        >
+                          Facture PDF
+                        </a>
+
+                        {order.email && (
+                          <a
+                            href={`mailto:${order.email}`}
+                            style={
+                              mailBtn
+                            }
+                          >
+                            Contacter
+                            client
+                          </a>
+                        )}
+                      </div>
+
+                      <form
+                        action="/api/admin/orders/update-status"
+                        method="POST"
+                        style={
+                          statusForm
+                        }
+                      >
+                        <input
+                          type="hidden"
+                          name="orderId"
+                          value={
+                            order.id
+                          }
+                        />
+
+                        <input
+                          type="text"
+                          name="trackingNumber"
+                          placeholder="Tracking"
+                          defaultValue={
+                            order.trackingNumber ||
+                            ""
+                          }
+                          style={
+                            trackingInput
+                          }
+                        />
+
+                        <select
+                          name="carrier"
+                          defaultValue={
+                            order.carrier ||
+                            ""
+                          }
+                          style={
+                            input
+                          }
+                        >
+                          <option value="">
+                            Transporteur
+                          </option>
+
+                          <option value="colissimo">
+                            Colissimo
+                          </option>
+
+                          <option value="chronopost">
+                            Chronopost
+                          </option>
+
+                          <option value="dhl">
+                            DHL
+                          </option>
+
+                          <option value="ups">
+                            UPS
+                          </option>
+                        </select>
+
+                        <select
+                          name="status"
+                          defaultValue={
+                            order.status
+                          }
+                          style={
+                            input
+                          }
+                        >
+                          {Object.values(
+                            OrderStatus
+                          ).map(
+                            (
+                              s
+                            ) => (
+                              <option
+                                key={
+                                  s
+                                }
+                                value={
+                                  s
+                                }
+                              >
+                                {
+                                  s
+                                }
+                              </option>
+                            )
+                          )}
+                        </select>
+
+                        <button
+                          type="submit"
+                          style={
+                            secondaryBtn
+                          }
+                        >
+                          Sauvegarder
+                        </button>
+                      </form>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              }
+            )}
           </div>
 
           {/* PAGINATION */}
@@ -568,7 +749,8 @@ export default async function AdminOrdersPage({
               {totalPages || 1}
             </span>
 
-            {page < totalPages && (
+            {page <
+              totalPages && (
               <Link
                 href={`/admin/orders?page=${page + 1}&status=${statusRaw}&search=${search}`}
                 style={pageBtn}
@@ -635,7 +817,9 @@ function StatusBadge({
       style={{
         ...statusBadge,
         background:
-          getStatusColor(status),
+          getStatusColor(
+            status
+          ),
       }}
     >
       {status}
@@ -653,8 +837,11 @@ const topBar = {
   display: "flex",
   justifyContent:
     "space-between",
-  alignItems: "flex-start",
+  alignItems:
+    "flex-start",
   marginBottom: 24,
+  gap: 20,
+  flexWrap: "wrap" as const,
 };
 
 const title = {
@@ -677,7 +864,7 @@ const heroBadge = {
 const grid5 = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(5,1fr)",
+    "repeat(auto-fit,minmax(180px,1fr))",
   gap: 20,
   marginBottom: 20,
 };
@@ -706,7 +893,16 @@ const filterRow = {
 const input = {
   padding: 12,
   borderRadius: 12,
-  border: "1px solid #ddd",
+  border:
+    "1px solid #ddd",
+};
+
+const trackingInput = {
+  padding: 12,
+  borderRadius: 12,
+  border:
+    "1px solid #ddd",
+  minWidth: 160,
 };
 
 const searchInput = {
@@ -755,6 +951,8 @@ const orderHeader = {
   justifyContent:
     "space-between",
   marginBottom: 18,
+  gap: 20,
+  flexWrap: "wrap" as const,
 };
 
 const orderId = {
@@ -766,6 +964,7 @@ const headerRight = {
   display: "flex",
   alignItems: "center",
   gap: 14,
+  flexWrap: "wrap" as const,
 };
 
 const priceText = {
@@ -785,10 +984,29 @@ const statusBadge = {
   fontSize: 12,
 };
 
+const progressWrapper = {
+  marginBottom: 18,
+};
+
+const progressBar = {
+  width: "100%",
+  height: 10,
+  background: "#ece7df",
+  borderRadius: 999,
+  overflow: "hidden",
+};
+
+const progressFill = {
+  height: "100%",
+  borderRadius: 999,
+  background:
+    "linear-gradient(90deg,#a16207,#d4af37)",
+};
+
 const metaGrid = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(3,1fr)",
+    "repeat(auto-fit,minmax(220px,1fr))",
   gap: 18,
   marginBottom: 18,
 };
@@ -820,6 +1038,7 @@ const itemRow = {
   padding: "8px 0",
   borderBottom:
     "1px solid #ece7df",
+  gap: 20,
 };
 
 const actionsRow = {
@@ -832,8 +1051,32 @@ const actionsRow = {
   flexWrap: "wrap" as const,
 };
 
+const leftActions = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap" as const,
+};
+
 const detailsBtn = {
   background: "#111",
+  color: "white",
+  padding: "12px 18px",
+  borderRadius: 12,
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+const invoiceBtn = {
+  background: "#7c3aed",
+  color: "white",
+  padding: "12px 18px",
+  borderRadius: 12,
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+const mailBtn = {
+  background: "#16a34a",
   color: "white",
   padding: "12px 18px",
   borderRadius: 12,
@@ -849,10 +1092,12 @@ const statusForm = {
 
 const pagination = {
   display: "flex",
-  justifyContent: "center",
+  justifyContent:
+    "center",
   alignItems: "center",
   gap: 18,
   marginTop: 30,
+  flexWrap: "wrap" as const,
 };
 
 const pageBtn = {

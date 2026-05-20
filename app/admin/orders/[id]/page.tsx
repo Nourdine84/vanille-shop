@@ -75,6 +75,34 @@ function getStatusColor(
   }
 }
 
+function getTrackingUrl(
+  carrier?: string | null,
+  tracking?: string | null
+) {
+  if (!carrier || !tracking) {
+    return null;
+  }
+
+  switch (
+    carrier.toLowerCase()
+  ) {
+    case "colissimo":
+      return `https://www.laposte.fr/outils/suivre-vos-envois?code=${tracking}`;
+
+    case "chronopost":
+      return `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${tracking}`;
+
+    case "dhl":
+      return `https://www.dhl.com/fr-fr/home/tracking/tracking-express.html?tracking-id=${tracking}`;
+
+    case "ups":
+      return `https://www.ups.com/track?tracknum=${tracking}`;
+
+    default:
+      return null;
+  }
+}
+
 function getTimeline(
   status: OrderStatus
 ) {
@@ -148,6 +176,12 @@ export default async function OrderDetailPage({
   const timeline =
     getTimeline(order.status);
 
+  const trackingUrl =
+    getTrackingUrl(
+      order.carrier,
+      order.trackingNumber
+    );
+
   return (
     <div style={container}>
       <AdminBackButton
@@ -156,6 +190,7 @@ export default async function OrderDetailPage({
       />
 
       {/* HERO */}
+
       <div style={hero}>
         <div>
           <p style={heroTag}>
@@ -188,6 +223,7 @@ export default async function OrderDetailPage({
       </div>
 
       {/* KPI */}
+
       <div style={grid3}>
         <Card
           title="💰 Total"
@@ -212,6 +248,7 @@ export default async function OrderDetailPage({
       </div>
 
       {/* TIMELINE */}
+
       <div style={section}>
         <h2 style={sectionTitle}>
           🚀 Timeline commande
@@ -229,6 +266,7 @@ export default async function OrderDetailPage({
                 <div
                   style={{
                     ...timelineDot,
+
                     background:
                       step.done
                         ? "#16a34a"
@@ -252,17 +290,16 @@ export default async function OrderDetailPage({
         </div>
       </div>
 
-      {/* MAIN GRID */}
+      {/* MAIN */}
+
       <div style={mainGrid}>
         {/* LEFT */}
+
         <div>
           {/* CLIENT */}
+
           <div style={section}>
-            <h2
-              style={
-                sectionTitle
-              }
-            >
+            <h2 style={sectionTitle}>
               👤 Client
             </h2>
 
@@ -293,59 +330,88 @@ export default async function OrderDetailPage({
           </div>
 
           {/* PRODUCTS */}
+
           <div style={section}>
-            <h2
-              style={
-                sectionTitle
-              }
-            >
+            <h2 style={sectionTitle}>
               📦 Produits
             </h2>
 
             <div style={productsList}>
-              {items.map(
-                (
-                  item: any,
-                  index: number
-                ) => (
-                  <div
-                    key={index}
-                    style={
-                      productCard
-                    }
-                  >
-                    <div>
-                      <h3
-                        style={
-                          productName
-                        }
-                      >
-                        {item.name}
-                      </h3>
-
-                      <p
-                        style={
-                          productQty
-                        }
-                      >
-                        Quantité :
-                        {" "}
-                        {
-                          item.quantity
-                        }
-                      </p>
-                    </div>
-
-                    <strong
+              {items.length ===
+              0 ? (
+                <div
+                  style={
+                    emptyProducts
+                  }
+                >
+                  Aucun produit.
+                </div>
+              ) : (
+                items.map(
+                  (
+                    item: any,
+                    index: number
+                  ) => (
+                    <div
+                      key={index}
                       style={
-                        productPrice
+                        productCard
                       }
                     >
-                      {formatPrice(
-                        item.priceCents
-                      )}
-                    </strong>
-                  </div>
+                      <div
+                        style={
+                          productLeft
+                        }
+                      >
+                        <img
+                          src={
+                            item.imageUrl ||
+                            "/images/default.jpg"
+                          }
+                          alt={
+                            item.name
+                          }
+                          style={
+                            productImage
+                          }
+                        />
+
+                        <div>
+                          <h3
+                            style={
+                              productName
+                            }
+                          >
+                            {
+                              item.name
+                            }
+                          </h3>
+
+                          <p
+                            style={
+                              productQty
+                            }
+                          >
+                            Quantité :
+                            {" "}
+                            {
+                              item.quantity
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      <strong
+                        style={
+                          productPrice
+                        }
+                      >
+                        {formatPrice(
+                          item.priceCents
+                        )}
+                      </strong>
+                    </div>
+                  )
                 )
               )}
             </div>
@@ -353,14 +419,12 @@ export default async function OrderDetailPage({
         </div>
 
         {/* RIGHT */}
+
         <div>
           {/* SHIPPING */}
+
           <div style={section}>
-            <h2
-              style={
-                sectionTitle
-              }
-            >
+            <h2 style={sectionTitle}>
               🚚 Livraison
             </h2>
 
@@ -389,20 +453,30 @@ export default async function OrderDetailPage({
                 }
               />
             </div>
+
+            {trackingUrl && (
+              <a
+                href={trackingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={
+                  trackingBtn
+                }
+              >
+                📦 Suivre colis
+              </a>
+            )}
           </div>
 
           {/* UPDATE */}
+
           <div style={section}>
-            <h2
-              style={
-                sectionTitle
-              }
-            >
+            <h2 style={sectionTitle}>
               ⚙️ Mise à jour
             </h2>
 
             <form
-              action="/api/admin/update-status"
+              action="/api/admin/orders/update-status"
               method="POST"
               style={form}
             >
@@ -479,21 +553,54 @@ export default async function OrderDetailPage({
             </form>
           </div>
 
-          {/* SUMMARY */}
+          {/* ACTIONS */}
+
           <div style={section}>
-            <h2
-              style={
-                sectionTitle
-              }
+            <h2 style={sectionTitle}>
+              📩 Actions rapides
+            </h2>
+
+            <div style={actions}>
+              <a
+                href={`mailto:${order.email}`}
+                style={primaryBtn}
+              >
+                Contacter client
+              </a>
+
+              <a
+                href="/admin/reclamations"
+                style={secondaryBtn}
+              >
+                Voir SAV
+              </a>
+              <a
+                href={`/api/invoice/${order.id}`}
+                target="_blank"
+                style={invoiceBtn}
             >
+              📄 Télécharger facture
+            </a>
+            </div>
+          </div>
+
+          <a
+            href={`/api/invoice/${order.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={invoicePreviewBtn}
+          >
+            👁️ Prévisualiser facture
+          </a>
+
+          {/* SUMMARY */}
+
+          <div style={section}>
+            <h2 style={sectionTitle}>
               💳 Résumé
             </h2>
 
-            <div
-              style={
-                summaryRow
-              }
-            >
+            <div style={summaryRow}>
               <span>
                 Sous-total
               </span>
@@ -505,11 +612,7 @@ export default async function OrderDetailPage({
               </strong>
             </div>
 
-            <div
-              style={
-                summaryRow
-              }
-            >
+            <div style={summaryRow}>
               <span>
                 Livraison
               </span>
@@ -519,11 +622,7 @@ export default async function OrderDetailPage({
               </strong>
             </div>
 
-            <div
-              style={
-                totalRow
-              }
-            >
+            <div style={totalRow}>
               <span>Total</span>
 
               <strong>
@@ -712,6 +811,19 @@ const productCard = {
   alignItems: "center",
 };
 
+const productLeft = {
+  display: "flex",
+  alignItems: "center",
+  gap: 14,
+};
+
+const productImage = {
+  width: 70,
+  height: 70,
+  borderRadius: 14,
+  objectFit: "cover" as const,
+};
+
 const productName = {
   margin: 0,
 };
@@ -724,6 +836,10 @@ const productQty = {
 const productPrice = {
   color: "#a16207",
   fontSize: 18,
+};
+
+const emptyProducts = {
+  color: "#777",
 };
 
 const form = {
@@ -749,6 +865,43 @@ const updateBtn = {
   cursor: "pointer",
 };
 
+const trackingBtn = {
+  display: "inline-block",
+  marginTop: 20,
+  background: "#111",
+  color: "white",
+  padding: "12px 16px",
+  borderRadius: 12,
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+const actions = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: 14,
+};
+
+const primaryBtn = {
+  background: "#111",
+  color: "white",
+  padding: "14px 18px",
+  borderRadius: 14,
+  textDecoration: "none",
+  textAlign: "center" as const,
+  fontWeight: 700,
+};
+
+const secondaryBtn = {
+  background: "#a16207",
+  color: "white",
+  padding: "14px 18px",
+  borderRadius: 14,
+  textDecoration: "none",
+  textAlign: "center" as const,
+  fontWeight: 700,
+};
+
 const summaryRow = {
   display: "flex",
   justifyContent:
@@ -766,4 +919,35 @@ const totalRow = {
   marginTop: 18,
   fontSize: 20,
   fontWeight: 800,
+};
+
+const invoiceBtn = {
+
+  background:
+
+    "linear-gradient(135deg,#16a34a,#15803d)",
+
+  color: "white",
+
+  padding: "14px 18px",
+
+  borderRadius: 14,
+
+  textDecoration: "none",
+
+  textAlign: "center" as const,
+
+  fontWeight: 700,
+
+}
+
+const invoicePreviewBtn = {
+  background: "#f3f4f6",
+  color: "#111",
+  padding: "14px 18px",
+  borderRadius: 14,
+  textDecoration: "none",
+  textAlign: "center" as const,
+  fontWeight: 700,
+  border: "1px solid #ddd",
 };

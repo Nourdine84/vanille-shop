@@ -1,194 +1,671 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import Link from "next/link";
+
 import { useCart } from "@/lib/cart-context";
 import CrossSell from "@/components/cross-sell";
 import { useToast } from "@/components/ui/toast";
 
 /* ================= SAFE UTILS ================= */
 
-function safeNumber(value: any) {
+function safeNumber(
+  value: any
+) {
   const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+
+  return Number.isFinite(n)
+    ? n
+    : 0;
 }
 
-function formatPrice(priceCents: number) {
-  const safe = safeNumber(priceCents);
-  return (safe / 100).toFixed(2).replace(".", ",") + " €";
+function formatPrice(
+  priceCents: number
+) {
+  const safe =
+    safeNumber(priceCents);
+
+  return (
+    (safe / 100)
+      .toFixed(2)
+      .replace(".", ",") +
+    " €"
+  );
 }
 
 /* ================= PAGE ================= */
 
 export default function CheckoutPage() {
-  const { cart } = useCart();
-  const { showToast } = useToast();
+  const { cart } =
+    useCart();
 
-  const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const { showToast } =
+    useToast();
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [
+    mounted,
+    setMounted,
+  ] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const subtotal = useMemo(() => {
-    return cart.reduce((acc, item) => {
-      const price = safeNumber(item.priceCents);
-      const qty = safeNumber(item.quantity);
-      return acc + price * qty;
-    }, 0);
-  }, [cart]);
+  const subtotal =
+    useMemo(() => {
+      return cart.reduce(
+        (acc, item) => {
+          const price =
+            safeNumber(
+              item.priceCents
+            );
 
-  const freeShippingThreshold = 5000;
-  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 490;
-  const total = subtotal + shippingCost;
-  const remaining = Math.max(0, freeShippingThreshold - subtotal);
+          const qty =
+            safeNumber(
+              item.quantity
+            );
 
-  const handleCheckout = async () => {
-    if (!cart.length || loading) return;
-
-    try {
-      setLoading(true);
-
-      const res = await fetch("/api/checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+          return (
+            acc +
+            price * qty
+          );
         },
-        body: JSON.stringify({ cart }),
-      });
+        0
+      );
+    }, [cart]);
 
-      const data = await res.json().catch(() => null);
+  const freeShippingThreshold =
+    5000;
 
-      if (!res.ok || !data?.url) {
-        let message = data?.error || "Erreur paiement";
+  const shippingCost =
+    subtotal >=
+    freeShippingThreshold
+      ? 0
+      : 490;
 
-        if (message.toLowerCase().includes("stock")) {
-          message =
-            "Un produit de votre panier est en rupture de stock. Merci de mettre à jour votre panier.";
+  const total =
+    subtotal +
+    shippingCost;
+
+  const remaining =
+    Math.max(
+      0,
+      freeShippingThreshold -
+        subtotal
+    );
+
+  const totalItems =
+    cart.reduce(
+      (acc, item) =>
+        acc +
+        safeNumber(
+          item.quantity
+        ),
+      0
+    );
+
+  /* ================= CHECKOUT ================= */
+
+  const handleCheckout =
+    async () => {
+      if (
+        !cart.length ||
+        loading
+      )
+        return;
+
+      try {
+        setLoading(true);
+
+        const res =
+          await fetch(
+            "/api/checkout-session",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body: JSON.stringify(
+                {
+                  cart,
+                }
+              ),
+            }
+          );
+
+        const data =
+          await res
+            .json()
+            .catch(
+              () => null
+            );
+
+        if (
+          !res.ok ||
+          !data?.url
+        ) {
+          let message =
+            data?.error ||
+            "Erreur paiement";
+
+          if (
+            message
+              .toLowerCase()
+              .includes(
+                "stock"
+              )
+          ) {
+            message =
+              "Un produit de votre panier est en rupture de stock.";
+          }
+
+          showToast(
+            message,
+            "error"
+          );
+
+          return;
         }
 
-        showToast(message, "error");
-        return;
+        window.location.href =
+          data.url;
+      } catch (
+        err: unknown
+      ) {
+        console.error(
+          "🔥 CHECKOUT ERROR:",
+          err
+        );
+
+        let message =
+          "Erreur réseau. Merci de réessayer.";
+
+        if (
+          err instanceof
+            Error &&
+          err.message
+        ) {
+          message =
+            err.message;
+        }
+
+        showToast(
+          message,
+          "error"
+        );
+      } finally {
+        setLoading(false);
       }
+    };
 
-      window.location.href = data.url;
-    } catch (err: unknown) {
-      console.error("🔥 CHECKOUT ERROR:", err);
-
-      let message = "Erreur réseau. Merci de réessayer.";
-
-      if (err instanceof Error && err.message) {
-        message = err.message;
-      }
-
-      showToast(message, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!mounted) return null;
+  if (!mounted)
+    return null;
 
   return (
     <div style={page}>
+      {/* HERO */}
+
       <section style={hero}>
-        <div style={heroOverlay} />
-        <div style={heroContent}>
-          <p style={heroTag}>VanilleOr</p>
-          <h1 style={heroTitle}>
-            Finalisez votre commande en toute sérénité
+        <div
+          style={
+            heroOverlay
+          }
+        />
+
+        <div
+          style={
+            heroContent
+          }
+        >
+          <p style={heroTag}>
+            VANILLE’OR
+          </p>
+
+          <h1
+            style={
+              heroTitle
+            }
+          >
+            Finalisez votre
+            commande en
+            toute sérénité
           </h1>
+
           <p style={heroSub}>
-            Paiement sécurisé • Livraison rapide • Qualité premium
+            Paiement
+            sécurisé •
+            Livraison
+            premium •
+            Produits
+            sélectionnés à
+            Madagascar
           </p>
         </div>
       </section>
 
+      {/* CONTENT */}
+
       <div style={container}>
         <div style={grid}>
+          {/* LEFT */}
+
           <div>
+            {/* CART */}
+
             <div style={card}>
-              <h2 style={sectionTitle}>Votre panier</h2>
+              <div
+                style={
+                  sectionHeader
+                }
+              >
+                <div>
+                  <p
+                    style={
+                      sectionEyebrow
+                    }
+                  >
+                    PANIER
+                  </p>
 
-              {cart.length === 0 ? (
-                <p style={meta}>Votre panier est vide.</p>
+                  <h2
+                    style={
+                      sectionTitle
+                    }
+                  >
+                    Votre
+                    sélection
+                  </h2>
+                </div>
+
+                <div
+                  style={
+                    itemCount
+                  }
+                >
+                  {
+                    totalItems
+                  }{" "}
+                  article
+                  {totalItems >
+                  1
+                    ? "s"
+                    : ""}
+                </div>
+              </div>
+
+              {cart.length ===
+              0 ? (
+                <div
+                  style={
+                    emptyCart
+                  }
+                >
+                  <h3>
+                    Votre
+                    panier
+                    est vide
+                  </h3>
+
+                  <p
+                    style={
+                      emptyText
+                    }
+                  >
+                    Découvrez
+                    notre
+                    sélection
+                    premium
+                    Vanille’Or.
+                  </p>
+
+                  <Link
+                    href="/products"
+                    style={
+                      continueBtn
+                    }
+                  >
+                    Découvrir
+                    nos
+                    produits
+                  </Link>
+                </div>
               ) : (
-                cart.map((item) => (
-                  <div key={item.id} style={itemRow}>
-                    <img
-                      src={item.imageUrl || "/images/default.jpg"}
-                      alt={item.name}
-                      style={image}
-                    />
+                <div
+                  style={
+                    cartWrapper
+                  }
+                >
+                  {cart.map(
+                    (
+                      item
+                    ) => (
+                      <div
+                        key={
+                          item.id
+                        }
+                        style={
+                          itemRow
+                        }
+                      >
+                        <img
+                          src={
+                            item.imageUrl ||
+                            "/images/default.jpg"
+                          }
+                          alt={
+                            item.name
+                          }
+                          style={
+                            image
+                          }
+                        />
 
-                    <div style={{ flex: 1 }}>
-                      <p style={name}>{item.name}</p>
-                      <p style={meta}>Quantité : {item.quantity}</p>
-                    </div>
+                        <div
+                          style={{
+                            flex: 1,
+                          }}
+                        >
+                          <p
+                            style={
+                              name
+                            }
+                          >
+                            {
+                              item.name
+                            }
+                          </p>
 
-                    <p style={price}>
-                      {formatPrice(item.priceCents * item.quantity)}
-                    </p>
-                  </div>
-                ))
+                          <p
+                            style={
+                              meta
+                            }
+                          >
+                            Quantité
+                            :{" "}
+                            {
+                              item.quantity
+                            }
+                          </p>
+                        </div>
+
+                        <p
+                          style={
+                            price
+                          }
+                        >
+                          {formatPrice(
+                            item.priceCents *
+                              item.quantity
+                          )}
+                        </p>
+                      </div>
+                    )
+                  )}
+                </div>
               )}
             </div>
 
-            <div style={trust}>
-              <p>✔ Paiement sécurisé Stripe</p>
-              <p>✔ Produits premium Madagascar</p>
-              <p>✔ Expédition rapide & suivie</p>
+            {/* TRUST */}
+
+            <div
+              style={
+                trust
+              }
+            >
+              <div
+                style={
+                  trustItem
+                }
+              >
+                🔒 Paiement
+                sécurisé
+                Stripe
+              </div>
+
+              <div
+                style={
+                  trustItem
+                }
+              >
+                🚚 Livraison
+                rapide &
+                suivie
+              </div>
+
+              <div
+                style={
+                  trustItem
+                }
+              >
+                🌿 Produits
+                premium de
+                Madagascar
+              </div>
+
+              <div
+                style={
+                  trustItem
+                }
+              >
+                ⭐ Qualité
+                sélectionnée
+                Vanille’Or
+              </div>
             </div>
+
+            {/* CROSS SELL */}
 
             <CrossSell />
           </div>
 
-          <div style={summary}>
-            <h2 style={sectionTitle}>Résumé</h2>
+          {/* RIGHT */}
 
-            {remaining > 0 ? (
-              <div style={shippingBox}>
-                Ajoutez encore{" "}
-                <strong>{formatPrice(remaining)}</strong> pour bénéficier de la
-                livraison offerte
+          <div
+            style={
+              summary
+            }
+          >
+            <div
+              style={
+                summaryHeader
+              }
+            >
+              <p
+                style={
+                  sectionEyebrow
+                }
+              >
+                CHECKOUT
+              </p>
+
+              <h2
+                style={
+                  sectionTitle
+                }
+              >
+                Résumé de la
+                commande
+              </h2>
+            </div>
+
+            {remaining >
+            0 ? (
+              <div
+                style={
+                  shippingBox
+                }
+              >
+                Ajoutez
+                encore{" "}
+                <strong>
+                  {formatPrice(
+                    remaining
+                  )}
+                </strong>{" "}
+                pour
+                bénéficier
+                de la
+                livraison
+                offerte
               </div>
             ) : (
-              <div style={shippingFree}>Livraison offerte appliquée 🎉</div>
+              <div
+                style={
+                  shippingFree
+                }
+              >
+                Livraison
+                offerte
+                appliquée 🎉
+              </div>
             )}
 
-            <div style={row}>
-              <span>Sous-total</span>
-              <span>{formatPrice(subtotal)}</span>
+            <div
+              style={
+                summaryBlock
+              }
+            >
+              <div
+                style={
+                  row
+                }
+              >
+                <span>
+                  Sous-total
+                </span>
+
+                <span>
+                  {formatPrice(
+                    subtotal
+                  )}
+                </span>
+              </div>
+
+              <div
+                style={
+                  row
+                }
+              >
+                <span>
+                  Livraison
+                </span>
+
+                <span>
+                  {shippingCost ===
+                  0
+                    ? "Offerte"
+                    : formatPrice(
+                        shippingCost
+                      )}
+                </span>
+              </div>
+
+              <hr
+                style={
+                  divider
+                }
+              />
+
+              <div
+                style={
+                  totalRow
+                }
+              >
+                <span>
+                  Total
+                </span>
+
+                <span>
+                  {formatPrice(
+                    total
+                  )}
+                </span>
+              </div>
             </div>
 
-            <div style={row}>
-              <span>Livraison</span>
-              <span>
-                {shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
-              </span>
-            </div>
-
-            <hr />
-
-            <div style={totalRow}>
-              <span>Total</span>
-              <span>{formatPrice(total)}</span>
-            </div>
+            {/* CTA */}
 
             <button
-              onClick={handleCheckout}
+              onClick={
+                handleCheckout
+              }
               style={{
                 ...cta,
-                opacity: loading ? 0.7 : 1,
+
+                opacity:
+                  loading
+                    ? 0.7
+                    : 1,
+
                 cursor:
-                  loading || cart.length === 0 ? "not-allowed" : "pointer",
+                  loading ||
+                  cart.length ===
+                    0
+                    ? "not-allowed"
+                    : "pointer",
               }}
-              disabled={loading || cart.length === 0}
+              disabled={
+                loading ||
+                cart.length ===
+                  0
+              }
             >
-              {loading ? "Redirection..." : "Payer maintenant 🔒"}
+              {loading
+                ? "Redirection..."
+                : "Payer maintenant 🔒"}
             </button>
 
-            <p style={secure}>Paiement sécurisé via Stripe</p>
+            <div
+              style={
+                secureBox
+              }
+            >
+              <p
+                style={
+                  secureTitle
+                }
+              >
+                🔐 Paiement
+                100%
+                sécurisé
+              </p>
+
+              <p
+                style={
+                  secure
+                }
+              >
+                Toutes les
+                transactions
+                sont
+                sécurisées
+                via Stripe.
+              </p>
+            </div>
+
+            <div
+              style={
+                supportMini
+              }
+            >
+              Besoin d’aide
+              ? Contactez
+              notre support
+              premium.
+            </div>
           </div>
         </div>
       </div>
@@ -198,153 +675,496 @@ export default function CheckoutPage() {
 
 /* ================= STYLES ================= */
 
-const page: React.CSSProperties = {
-  background: "#f8f5ef",
-  minHeight: "100vh",
-};
+const page: React.CSSProperties =
+  {
+    background:
+      "#f8f5ef",
 
-const hero: React.CSSProperties = {
-  position: "relative",
-  height: "280px",
-  backgroundImage: "url('/images/hero-vanille.jpg')",
-  backgroundSize: "cover",
-};
+    minHeight:
+      "100vh",
+  };
 
-const heroOverlay: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "rgba(0,0,0,0.6)",
-};
+const hero: React.CSSProperties =
+  {
+    position:
+      "relative",
 
-const heroContent: React.CSSProperties = {
-  position: "relative",
-  zIndex: 2,
-  textAlign: "center",
-  color: "white",
-  paddingTop: "70px",
-};
+    height: "320px",
 
-const heroTag: React.CSSProperties = {
-  color: "#d4af37",
-  fontSize: "26px",
-  fontWeight: 900,
-  letterSpacing: "0.3em",
-};
+    backgroundImage:
+      "url('/images/hero-vanille.jpg')",
 
-const heroTitle: React.CSSProperties = {
-  fontSize: "28px",
-  marginTop: "10px",
-};
+    backgroundSize:
+      "cover",
 
-const heroSub: React.CSSProperties = {
-  color: "#ddd",
-};
+    backgroundPosition:
+      "center",
+  };
 
-const container: React.CSSProperties = {
-  maxWidth: "1100px",
-  margin: "0 auto",
-  padding: "30px",
-};
+const heroOverlay: React.CSSProperties =
+  {
+    position:
+      "absolute",
 
-const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "2fr 1fr",
-  gap: "30px",
-};
+    inset: 0,
 
-const card: React.CSSProperties = {
-  background: "white",
-  borderRadius: "16px",
-  padding: "20px",
-};
+    background:
+      "linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.55))",
+  };
 
-const itemRow: React.CSSProperties = {
-  display: "flex",
-  gap: "15px",
-  marginBottom: "15px",
-  alignItems: "center",
-};
+const heroContent: React.CSSProperties =
+  {
+    position:
+      "relative",
 
-const image: React.CSSProperties = {
-  width: "70px",
-  height: "70px",
-  borderRadius: "10px",
-  objectFit: "cover",
-};
+    zIndex: 2,
 
-const name: React.CSSProperties = {
-  fontWeight: 700,
-};
+    textAlign:
+      "center",
 
-const meta: React.CSSProperties = {
-  fontSize: "13px",
-  color: "#666",
-};
+    color: "white",
 
-const price: React.CSSProperties = {
-  fontWeight: 700,
-};
+    paddingTop:
+      "90px",
 
-const trust: React.CSSProperties = {
-  marginTop: "20px",
-  background: "#fff7ed",
-  padding: "15px",
-  borderRadius: "12px",
-};
+    maxWidth: 760,
 
-const summary: React.CSSProperties = {
-  background: "white",
-  borderRadius: "16px",
-  padding: "20px",
-  position: "sticky",
-  top: "20px",
-};
+    margin: "0 auto",
 
-const sectionTitle: React.CSSProperties = {
-  fontSize: "20px",
-  marginBottom: "15px",
-};
+    paddingInline:
+      20,
+  };
 
-const row: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginBottom: "10px",
-};
+const heroTag: React.CSSProperties =
+  {
+    color: "#d4af37",
 
-const totalRow: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  fontWeight: 800,
-  fontSize: "18px",
-};
+    fontSize: 14,
 
-const shippingBox: React.CSSProperties = {
-  background: "#fff4df",
-  padding: "12px",
-  borderRadius: "12px",
-  marginBottom: "15px",
-};
+    fontWeight: 900,
 
-const shippingFree: React.CSSProperties = {
-  background: "#ecfdf5",
-  padding: "12px",
-  borderRadius: "12px",
-};
+    letterSpacing:
+      "0.35em",
 
-const cta: React.CSSProperties = {
-  marginTop: "20px",
-  width: "100%",
-  padding: "14px",
-  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
-  color: "white",
-  borderRadius: "12px",
-  border: "none",
-  fontWeight: 800,
-};
+    marginBottom: 16,
+  };
 
-const secure: React.CSSProperties = {
-  textAlign: "center",
-  marginTop: "10px",
-  fontSize: "12px",
-  color: "#777",
-};
+const heroTitle: React.CSSProperties =
+  {
+    fontSize: 42,
+
+    lineHeight: 1.15,
+
+    fontWeight: 900,
+
+    margin: 0,
+  };
+
+const heroSub: React.CSSProperties =
+  {
+    color: "#e5e5e5",
+
+    marginTop: 18,
+
+    lineHeight: 1.7,
+
+    fontSize: 15,
+  };
+
+const container: React.CSSProperties =
+  {
+    maxWidth:
+      "1180px",
+
+    margin: "0 auto",
+
+    padding:
+      "40px 20px 70px",
+  };
+
+const grid: React.CSSProperties =
+  {
+    display: "grid",
+
+    gridTemplateColumns:
+      "2fr 1fr",
+
+    gap: 30,
+
+    alignItems:
+      "start",
+  };
+
+const card: React.CSSProperties =
+  {
+    background:
+      "white",
+
+    borderRadius: 26,
+
+    padding: 28,
+
+    boxShadow:
+      "0 10px 40px rgba(0,0,0,0.05)",
+  };
+
+const sectionHeader: React.CSSProperties =
+  {
+    display: "flex",
+
+    justifyContent:
+      "space-between",
+
+    alignItems:
+      "center",
+
+    gap: 20,
+
+    flexWrap:
+      "wrap",
+
+    marginBottom: 24,
+  };
+
+const summaryHeader: React.CSSProperties =
+  {
+    marginBottom: 22,
+  };
+
+const sectionEyebrow: React.CSSProperties =
+  {
+    color: "#a16207",
+
+    fontWeight: 800,
+
+    letterSpacing:
+      "0.12em",
+
+    fontSize: 12,
+
+    marginBottom: 10,
+  };
+
+const sectionTitle: React.CSSProperties =
+  {
+    fontSize: 26,
+
+    margin: 0,
+
+    fontWeight: 900,
+  };
+
+const itemCount: React.CSSProperties =
+  {
+    background:
+      "#111",
+
+    color: "white",
+
+    padding:
+      "10px 16px",
+
+    borderRadius: 999,
+
+    fontWeight: 700,
+
+    fontSize: 13,
+  };
+
+const emptyCart: React.CSSProperties =
+  {
+    textAlign:
+      "center",
+
+    padding:
+      "40px 20px",
+  };
+
+const emptyText: React.CSSProperties =
+  {
+    color: "#666",
+
+    marginTop: 12,
+
+    marginBottom: 24,
+  };
+
+const continueBtn: React.CSSProperties =
+  {
+    display:
+      "inline-block",
+
+    background:
+      "#111",
+
+    color: "white",
+
+    padding:
+      "14px 20px",
+
+    borderRadius: 14,
+
+    textDecoration:
+      "none",
+
+    fontWeight: 700,
+  };
+
+const cartWrapper: React.CSSProperties =
+  {
+    display: "grid",
+
+    gap: 18,
+  };
+
+const itemRow: React.CSSProperties =
+  {
+    display: "flex",
+
+    gap: 16,
+
+    alignItems:
+      "center",
+
+    paddingBottom: 18,
+
+    borderBottom:
+      "1px solid #eee",
+  };
+
+const image: React.CSSProperties =
+  {
+    width: 84,
+
+    height: 84,
+
+    borderRadius: 18,
+
+    objectFit:
+      "cover",
+
+    background:
+      "#f5f5f5",
+  };
+
+const name: React.CSSProperties =
+  {
+    fontWeight: 800,
+
+    fontSize: 15,
+
+    marginBottom: 8,
+  };
+
+const meta: React.CSSProperties =
+  {
+    fontSize: 13,
+
+    color: "#666",
+  };
+
+const price: React.CSSProperties =
+  {
+    fontWeight: 800,
+
+    color: "#a16207",
+
+    fontSize: 16,
+  };
+
+const trust: React.CSSProperties =
+  {
+    marginTop: 22,
+
+    background:
+      "white",
+
+    borderRadius: 22,
+
+    padding: 24,
+
+    display: "grid",
+
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(220px,1fr))",
+
+    gap: 16,
+
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.04)",
+  };
+
+const trustItem: React.CSSProperties =
+  {
+    background:
+      "#faf7f2",
+
+    borderRadius: 16,
+
+    padding: 16,
+
+    fontWeight: 600,
+
+    color: "#444",
+  };
+
+const summary: React.CSSProperties =
+  {
+    background:
+      "white",
+
+    borderRadius: 26,
+
+    padding: 28,
+
+    position:
+      "sticky",
+
+    top: 20,
+
+    boxShadow:
+      "0 10px 40px rgba(0,0,0,0.05)",
+  };
+
+const shippingBox: React.CSSProperties =
+  {
+    background:
+      "#fff4df",
+
+    padding: 16,
+
+    borderRadius: 18,
+
+    marginBottom: 22,
+
+    color: "#8b5e14",
+
+    lineHeight: 1.6,
+  };
+
+const shippingFree: React.CSSProperties =
+  {
+    background:
+      "#ecfdf5",
+
+    padding: 16,
+
+    borderRadius: 18,
+
+    marginBottom: 22,
+
+    color: "#166534",
+
+    fontWeight: 700,
+  };
+
+const summaryBlock: React.CSSProperties =
+  {
+    background:
+      "#faf7f2",
+
+    borderRadius: 20,
+
+    padding: 20,
+  };
+
+const row: React.CSSProperties =
+  {
+    display: "flex",
+
+    justifyContent:
+      "space-between",
+
+    marginBottom: 14,
+
+    color: "#444",
+  };
+
+const divider: React.CSSProperties =
+  {
+    border: "none",
+
+    borderTop:
+      "1px solid #e5e5e5",
+
+    margin:
+      "20px 0",
+  };
+
+const totalRow: React.CSSProperties =
+  {
+    display: "flex",
+
+    justifyContent:
+      "space-between",
+
+    fontWeight: 900,
+
+    fontSize: 22,
+  };
+
+const cta: React.CSSProperties =
+  {
+    marginTop: 26,
+
+    width: "100%",
+
+    padding:
+      "18px 20px",
+
+    background:
+      "linear-gradient(135deg,#b7791f,#8b5e14)",
+
+    color: "white",
+
+    borderRadius: 18,
+
+    border: "none",
+
+    fontWeight: 900,
+
+    fontSize: 16,
+
+    boxShadow:
+      "0 12px 24px rgba(183,121,31,0.24)",
+  };
+
+const secureBox: React.CSSProperties =
+  {
+    marginTop: 22,
+
+    background:
+      "#f8fafc",
+
+    borderRadius: 18,
+
+    padding: 18,
+  };
+
+const secureTitle: React.CSSProperties =
+  {
+    fontWeight: 800,
+
+    marginBottom: 8,
+  };
+
+const secure: React.CSSProperties =
+  {
+    fontSize: 13,
+
+    color: "#666",
+
+    lineHeight: 1.7,
+  };
+
+const supportMini: React.CSSProperties =
+  {
+    marginTop: 20,
+
+    textAlign:
+      "center",
+
+    color: "#777",
+
+    fontSize: 13,
+  };
