@@ -48,3 +48,5 @@ git commit --amend --no-edit
 # 4) Vérifie que .env n’est plus dans le commit
 git status
 git show --name-only --stat --oneline HEAD
+.vercel
+.env*

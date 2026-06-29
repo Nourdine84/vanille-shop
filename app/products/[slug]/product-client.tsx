@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { useCart } from "@/lib/cart-context";
 import { getImageUrl } from "@/lib/image";
+import { useUIStore } from "@/components/ui-providers";
 
 /* ================= TYPES ================= */
 
@@ -78,8 +79,8 @@ export default function ClientProduct({
     isOutOfStock?: boolean;
   };
 }) {
-  const { addToCart } =
-    useCart();
+  const { addToCart } = useCart();
+  const { openCart } = useUIStore(); // ← CORRECTION
 
   if (!product) return null;
 
@@ -294,6 +295,8 @@ export default function ClientProduct({
 
       quantity: 1,
     });
+
+    openCart(); // ← CORRECTION
   }
 
   /* ================= RENDER ================= */
@@ -391,7 +394,7 @@ export default function ClientProduct({
 
         <div>
           <p style={eyebrow}>
-            VANILLE’OR
+            VANILLE'OR
           </p>
 
           <h1 style={title}>
@@ -406,7 +409,7 @@ export default function ClientProduct({
 
           <p style={desc}>
             {product.description ||
-              "Produit premium Vanille’Or, sélectionné pour sa qualité exceptionnelle."}
+              "Produit premium Vanille'Or, sélectionné pour sa qualité exceptionnelle."}
           </p>
 
           {/* SELECTOR */}
@@ -631,25 +634,25 @@ export default function ClientProduct({
                       style={
                         crossSellBtn
                       }
-                      onClick={() =>
-                        addToCart(
-                          {
-                            id: p.id,
+                      onClick={() => {
+                        addToCart({
+                          id: p.id,
 
-                            name:
-                              p.name,
+                          name:
+                            p.name,
 
-                            priceCents:
-                              p.priceCents,
+                          priceCents:
+                            p.priceCents,
 
-                            imageUrl:
-                              p.imageUrl ||
-                              undefined,
+                          imageUrl:
+                            p.imageUrl ||
+                            undefined,
 
-                            quantity: 1,
-                          }
-                        )
-                      }
+                          quantity: 1,
+                        });
+
+                        openCart(); // ← CORRECTION
+                      }}
                     >
                       Ajouter
                     </button>
@@ -774,7 +777,7 @@ export default function ClientProduct({
             }
           >
             Publier
-            l’avis
+            l'avis
           </button>
         </div>
 
