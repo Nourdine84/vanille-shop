@@ -488,7 +488,7 @@ export async function GET(
         order
       );
 
-    return new Response(pdf, {
+    return new Response(Buffer.from(pdf), {
       status: 200,
       headers: {
         "Content-Type":
