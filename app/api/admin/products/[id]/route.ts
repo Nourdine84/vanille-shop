@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminRequest, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,10 +44,14 @@ function normalizePricing(raw: unknown) {
    GET
 ========================= */
 export async function GET(
-  _: Request,
+  req: Request,
   { params }: { params: { id: string | string[] } }
 ) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const id = getSafeId(params.id);
 
     if (!id) {
@@ -83,6 +88,10 @@ export async function PUT(
   { params }: { params: { id: string | string[] } }
 ) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const id = getSafeId(params.id);
 
     if (!id) {
@@ -241,10 +250,14 @@ export async function PUT(
    DELETE
 ========================= */
 export async function DELETE(
-  _: Request,
+  req: Request,
   { params }: { params: { id: string | string[] } }
 ) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const id = getSafeId(params.id);
 
     if (!id) {

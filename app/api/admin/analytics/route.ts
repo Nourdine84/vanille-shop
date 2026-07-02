@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminRequest, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -8,8 +9,12 @@ export const runtime = "nodejs";
    GET ANALYTICS
 ========================= */
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const orders = await prisma.order.findMany({
       where: { status: "PAID" },
       orderBy: { createdAt: "asc" },

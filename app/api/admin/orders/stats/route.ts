@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
+import { isAdminRequest, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const { prisma } = await import("@/lib/prisma");
 
     const now = new Date();

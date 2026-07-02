@@ -95,6 +95,14 @@ export default function RegisterPage() {
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? "Création..." : "Créer mon compte"}
           </button>
+
+          <p style={{ fontSize: "13px", color: "#777", textAlign: "center" }}>
+            En créant un compte, vous acceptez nos{" "}
+            <a href="/legal/cgu" style={{ color: "#a16207" }}>
+              Conditions Générales d’Utilisation
+            </a>
+            .
+          </p>
         </form>
       </div>
     </div>

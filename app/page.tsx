@@ -1,21 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
+import { getMinPriceCents, hasMultiplePriceFormats } from "@/lib/pricing";
 
-/* =========================
-   TYPES
-========================= */
-
-type Product = {
-  id: string;
-  name: string;
-  slug: string;
-  priceCents: number;
-  imageUrl?: string;
-  category?: string;
-};
+export const dynamic = "force-dynamic";
 
 /* =========================
    HELPERS
@@ -31,27 +19,12 @@ function formatPrice(priceCents: number) {
    PAGE
 ========================= */
 
-export default function HomePage() {
-  const [best, setBest] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch("/api/products");
-        const data = await res.json();
-
-        setBest(Array.isArray(data) ? data.slice(0, 6) : []);
-      } catch (err) {
-        console.error("❌ HOME FETCH ERROR:", err);
-        setBest([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
+export default async function HomePage() {
+  const best = await prisma.product.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+    take: 6,
+  });
 
   return (
     <div style={page}>
@@ -154,13 +127,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {loading && (
-          <div style={center}>
-            Chargement des produits...
-          </div>
-        )}
-
-        {!loading && best.length === 0 && (
+        {best.length === 0 && (
           <div style={center}>
             Aucun produit disponible
           </div>
@@ -193,7 +160,8 @@ export default function HomePage() {
                 </h3>
 
                 <p style={price}>
-                  {formatPrice(p.priceCents)}
+                  {hasMultiplePriceFormats(p) && "À partir de "}
+                  {formatPrice(getMinPriceCents(p))}
                 </p>
               </div>
             </Link>

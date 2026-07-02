@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
+import { getMinPriceCents, hasMultiplePriceFormats } from "@/lib/pricing";
 import type { CSSProperties } from "react";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +87,10 @@ export default async function VanillePage() {
 
                   <div style={content}>
                     <h3>{p.name}</h3>
-                    <p style={price}>{formatPrice(p.priceCents)}</p>
+                    <p style={price}>
+                      {hasMultiplePriceFormats(p) && "À partir de "}
+                      {formatPrice(getMinPriceCents(p))}
+                    </p>
 
                     <div style={actions}>
                       <span style={link}>Voir</span>
@@ -134,7 +138,10 @@ export default async function VanillePage() {
 
                 <div style={content}>
                   <h3>{p.name}</h3>
-                  <p style={price}>{formatPrice(p.priceCents)}</p>
+                  <p style={price}>
+                    {hasMultiplePriceFormats(p) && "À partir de "}
+                    {formatPrice(getMinPriceCents(p))}
+                  </p>
 
                   <div style={actions}>
                     <span style={link}>Voir</span>

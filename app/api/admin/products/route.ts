@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
+import { isAdminRequest, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +66,10 @@ async function uploadFileToCloudinary(file: File) {
 
 export async function GET(req: Request) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const { searchParams } = new URL(req.url);
 
     const page = Number(searchParams.get("page") || "1");
@@ -180,6 +185,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const formData = await req.formData();
 
     const name =

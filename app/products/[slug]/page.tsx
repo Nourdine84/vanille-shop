@@ -76,7 +76,7 @@ export async function generateMetadata({
       },
 
       alternates: {
-        canonical: `/product/${product.slug}`,
+        canonical: `/products/${product.slug}`,
       },
 
       openGraph: {
@@ -228,7 +228,7 @@ export default async function ProductPage({
           process.env
             .NEXT_PUBLIC_SITE_URL ||
           "http://localhost:3000"
-        }/product/${product.slug}`,
+        }/products/${product.slug}`,
       },
     };
 

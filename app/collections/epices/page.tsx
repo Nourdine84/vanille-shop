@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/image";
+import { getMinPriceCents, hasMultiplePriceFormats } from "@/lib/pricing";
 import type { CSSProperties } from "react";
 
 type Product = {
@@ -10,6 +11,7 @@ type Product = {
   slug: string;
   name: string;
   priceCents: number;
+  pricing?: unknown;
   imageUrl?: string;
   isPack?: boolean;
   category?: string;
@@ -107,7 +109,10 @@ export default function EpicesPage() {
 
                   <div style={content}>
                     <h3>{p.name}</h3>
-                    <p style={price}>{formatPrice(p.priceCents)}</p>
+                    <p style={price}>
+                      {hasMultiplePriceFormats(p) && "À partir de "}
+                      {formatPrice(getMinPriceCents(p))}
+                    </p>
 
                     <div style={actions}>
                       <span style={link}>Voir</span>
@@ -155,7 +160,10 @@ export default function EpicesPage() {
 
                 <div style={content}>
                   <h3>{p.name}</h3>
-                  <p style={price}>{formatPrice(p.priceCents)}</p>
+                  <p style={price}>
+                    {hasMultiplePriceFormats(p) && "À partir de "}
+                    {formatPrice(getMinPriceCents(p))}
+                  </p>
 
                   <div style={actions}>
                     <span style={link}>Voir</span>

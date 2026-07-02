@@ -38,6 +38,7 @@ export async function GET() {
       name: product.name,
       slug: normalizeSlug(product.slug || product.name),
       priceCents: product.priceCents,
+      pricing: product.pricing,
       imageUrl: product.imageUrl,
       stock: product.stock,
       category: product.category,

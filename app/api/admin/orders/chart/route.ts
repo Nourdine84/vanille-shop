@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // ✅ FIX CRITIQUE
+import { isAdminRequest, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,8 +10,12 @@ export const revalidate = 0;
 /* =========================
    GET CHART DATA (30 DAYS)
 ========================= */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const now = new Date();
     const start = new Date();
     start.setDate(now.getDate() - 30);

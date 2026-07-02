@@ -75,7 +75,7 @@ export default function CGVPage() {
 
       <h2>8. Contact</h2>
 
-      <p>Email : contact@vanilleor.com</p>
+      <p>Email : contact@vanilleor.fr</p>
     </div>
   );
 }

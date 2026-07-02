@@ -82,12 +82,16 @@ export default function BlogForm({
         throw new Error(data.error || "Erreur serveur");
       }
 
-      setSuccess("Article créé avec succès ✨");
+      if (initialData) {
+        setSuccess("Article mis à jour avec succès ✨");
+      } else {
+        setSuccess("Article créé avec succès ✨");
 
-      // reset form
-      e.currentTarget.reset();
-      setPreview(null);
-      setImageUrl("");
+        // reset form (create mode only)
+        e.currentTarget.reset();
+        setPreview(null);
+        setImageUrl("");
+      }
 
     } catch (err: any) {
       setError(err.message || "Erreur inconnue");
@@ -105,6 +109,11 @@ export default function BlogForm({
 
       {/* SUCCESS */}
       {success && <div style={successBox}>{success}</div>}
+
+      {/* ID (édition) */}
+      {initialData?.id && (
+        <input type="hidden" name="id" value={initialData.id} />
+      )}
 
       {/* TITLE */}
       <input

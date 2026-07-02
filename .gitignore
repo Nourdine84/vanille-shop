@@ -50,3 +50,4 @@ git status
 git show --name-only --stat --oneline HEAD
 .vercel
 .env*
+tsconfig.tsbuildinfo

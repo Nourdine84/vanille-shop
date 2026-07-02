@@ -92,6 +92,24 @@ export default function ClientProduct({
   const isOutOfStock =
     product.stock <= 0;
 
+  /* ================= RESPONSIVE ================= */
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
   /* ================= PRICING ================= */
 
   const formats = useMemo(() => {
@@ -361,7 +379,14 @@ export default function ClientProduct({
 
       {/* HERO */}
 
-      <div style={topGrid}>
+      <div
+        style={{
+          ...topGrid,
+          gridTemplateColumns: isMobile
+            ? "1fr"
+            : topGrid.gridTemplateColumns,
+        }}
+      >
         {/* IMAGE */}
 
         <div
@@ -595,7 +620,7 @@ export default function ClientProduct({
                   }
                 >
                   <Link
-                    href={`/product/${p.slug}`}
+                    href={`/products/${p.slug}`}
                   >
                     <img
                       src={getImageUrl(

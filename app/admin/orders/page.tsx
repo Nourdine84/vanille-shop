@@ -285,8 +285,24 @@ export default async function AdminOrdersPage({
           </p>
         </div>
 
-        <div style={heroBadge}>
-          {total} commandes
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 10,
+          }}
+        >
+          <div style={heroBadge}>
+            {total} commandes
+          </div>
+
+          <a
+            href="/api/admin/export"
+            style={exportBtn}
+          >
+            ⬇️ Exporter CSV
+          </a>
         </div>
       </div>
 
@@ -859,6 +875,16 @@ const heroBadge = {
   padding: "12px 18px",
   borderRadius: 999,
   fontWeight: 800,
+};
+
+const exportBtn = {
+  background: "#a16207",
+  color: "white",
+  padding: "10px 16px",
+  borderRadius: 10,
+  fontWeight: 700,
+  fontSize: 13,
+  textDecoration: "none",
 };
 
 const grid5 = {

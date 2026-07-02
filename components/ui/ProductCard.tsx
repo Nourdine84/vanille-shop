@@ -24,7 +24,7 @@ export default function ProductCard({ product }: { product: Product }) {
       }}
     >
       {/* IMAGE */}
-      <Link href={`/product/${product.slug}`}>
+      <Link href={`/products/${product.slug}`}>
         <div style={{ overflow: "hidden" }}>
           <img
             src={product.imageUrl || "/images/placeholder.jpg"}
@@ -41,7 +41,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
       {/* CONTENT */}
       <div style={{ padding: "16px" }}>
-        <Link href={`/product/${product.slug}`}>
+        <Link href={`/products/${product.slug}`}>
           <h3
             style={{
               fontWeight: 600,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAdminRequest, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,8 +20,12 @@ function escapeCSV(value: any) {
 /* =========================
    EXPORT CSV
 ========================= */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const { prisma } = await import("@/lib/prisma"); // ✅ FIX CRITIQUE
 
     const orders = await prisma.order.findMany({

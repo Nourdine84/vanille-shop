@@ -385,7 +385,7 @@ export default async function ReclamationDetailPage({
               </div>
 
               <form
-                action="/api/admin/reclamations/update"
+                action="/api/admin/reclamations/update-status"
                 method="POST"
                 style={form}
               >

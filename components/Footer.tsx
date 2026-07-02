@@ -152,10 +152,10 @@ export default function Footer() {
               © {new Date().getFullYear()} Vanille’Or — Tous droits réservés
             </div>
 
-            <div className="flex items-center gap-5 text-sm text-[#777]">
+            <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-[#777]">
 
               <Link
-                href="/mentions-legales"
+                href="/legal/mentions-legales"
                 className="hover:text-[#a16207] transition"
               >
                 Mentions légales
@@ -169,10 +169,24 @@ export default function Footer() {
               </Link>
 
               <Link
-                href="/confidentialite"
+                href="/legal/confidentialite"
                 className="hover:text-[#a16207] transition"
               >
                 Confidentialité
+              </Link>
+
+              <Link
+                href="/legal/cookies"
+                className="hover:text-[#a16207] transition"
+              >
+                Politique de cookies
+              </Link>
+
+              <Link
+                href="/legal/cgu"
+                className="hover:text-[#a16207] transition"
+              >
+                CGU
               </Link>
             </div>
           </div>

@@ -61,6 +61,22 @@ export default function CheckoutPage() {
     setMounted(true);
   }, []);
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
   const subtotal =
     useMemo(() => {
       return cart.reduce(
@@ -259,7 +275,14 @@ export default function CheckoutPage() {
       {/* CONTENT */}
 
       <div style={container}>
-        <div style={grid}>
+        <div
+          style={{
+            ...grid,
+            gridTemplateColumns: isMobile
+              ? "1fr"
+              : grid.gridTemplateColumns,
+          }}
+        >
           {/* LEFT */}
 
           <div>

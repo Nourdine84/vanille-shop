@@ -1,49 +1,32 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
+
 export const dynamic = "force-dynamic";
 
-export default function CollectionPage() {
-  const { slug } = useParams();
+type CollectionPageProps = {
+  params: {
+    slug: string;
+  };
+};
 
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-
-    fetch("/api/products", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!mounted) return;
-
-        const safe = Array.isArray(data) ? data : [];
-
-        const filtered = safe.filter(
-          (p) =>
-            p &&
-            p.id &&
-            !p.isPack &&
-            p.category === slug
-        );
-
-        setItems(filtered);
-      })
-      .finally(() => mounted && setLoading(false));
-
-    return () => {
-      mounted = false;
-    };
-  }, [slug]);
+export default async function CollectionPage({
+  params,
+}: CollectionPageProps) {
+  const items = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      isPack: false,
+      category: params.slug,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>{slug}</h1>
+      <h1>{params.slug}</h1>
 
-      {loading && <p>Chargement...</p>}
+      {items.length === 0 && <p>Aucun produit disponible</p>}
 
       <div style={{ display: "grid", gap: 20 }}>
         {items.map((p) => (

@@ -6,6 +6,7 @@ import {
 } from "@/lib/email";
 
 import { OrderStatus } from "@prisma/client";
+import { isAdminRequest, unauthorizedResponse } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,6 +17,10 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    if (!isAdminRequest(req)) {
+      return unauthorizedResponse();
+    }
+
     const formData = await req.formData();
 
     const orderId = String(

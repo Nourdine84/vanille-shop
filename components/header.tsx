@@ -78,7 +78,7 @@ export default function Header() {
         }}
       >
         {/* LOGO */}
-        <Link href="/" style={logo}>
+        <Link href="/" style={logo} data-testid="nav-home">
           <Image
             src="/images/logo-vanilleor.png"
             alt="Vanille'Or"
@@ -96,7 +96,7 @@ export default function Header() {
         {/* NAV DESKTOP */}
         {!isMobile && (
           <nav style={desktopNav}>
-            <NavLink href="/products" label="Produits" />
+            <NavLink href="/products" label="Produits" data-testid="nav-products" />
             <NavLink href="/collections/vanille" label="Vanille" />
             <NavLink href="/collections/epices" label="Épices" />
             <NavLink href="/packs" label="Packs" />
@@ -117,6 +117,7 @@ export default function Header() {
             onClick={openCart}
             style={cartBtn}
             aria-label="Ouvrir le panier"
+            data-testid="cart-button"
           >
             🛒
 
@@ -139,6 +140,7 @@ export default function Header() {
               style={burger}
               onClick={() => setMenuOpen(true)}
               aria-label="Ouvrir le menu"
+              data-testid="burger-button"
             >
               ☰
             </button>
@@ -192,7 +194,7 @@ export default function Header() {
         </div>
 
         <div style={mobileLinks}>
-          <MobileLink href="/products" label="Produits" />
+          <MobileLink href="/products" label="Produits" data-testid="nav-products-mobile" />
           <MobileLink href="/collections/vanille" label="Vanille" />
           <MobileLink href="/collections/epices" label="Épices" />
           <MobileLink href="/packs" label="Packs cadeaux" />
@@ -220,12 +222,14 @@ export default function Header() {
 function NavLink({
   href,
   label,
+  "data-testid": testId,
 }: {
   href: string;
   label: string;
+  "data-testid"?: string;
 }) {
   return (
-    <Link href={href} style={navLink}>
+    <Link href={href} style={navLink} data-testid={testId}>
       {label}
     </Link>
   );
@@ -234,12 +238,14 @@ function NavLink({
 function MobileLink({
   href,
   label,
+  "data-testid": testId,
 }: {
   href: string;
   label: string;
+  "data-testid"?: string;
 }) {
   return (
-    <Link href={href} style={mobileLink}>
+    <Link href={href} style={mobileLink} data-testid={testId}>
       {label}
     </Link>
   );
