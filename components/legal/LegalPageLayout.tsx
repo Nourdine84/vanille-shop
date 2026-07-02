@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ShieldCheck } from "lucide-react";
 import ReadingProgressBar from "./ReadingProgressBar";
 import PrintButton from "./PrintButton";
+import TocActiveTracker from "./TocActiveTracker";
 import { estimateReadingTime } from "@/lib/reading-time";
 
 export type LegalSection = {
@@ -23,6 +25,8 @@ export default function LegalPageLayout({
   slug,
   metaDescription,
   printLabel,
+  officialBadge,
+  officialNote,
 }: {
   title: string;
   intro: string;
@@ -38,10 +42,19 @@ export default function LegalPageLayout({
   slug: string;
   metaDescription: string;
   printLabel?: string;
+  officialBadge?: boolean;
+  officialNote?: string;
 }) {
   const baseUrl = "https://vanille-or.com";
   const hasGroups = sections.some((s) => s.group);
   const readingTime = estimateReadingTime(sections);
+  const sectionIds = sections.map((s) => s.id);
+
+  const articleCount = sections.filter((s) => s.group).length;
+
+  const partieCount = new Set(
+    sections.map((s) => s.group).filter(Boolean)
+  ).size;
 
   const jsonLd = [
     {
@@ -150,6 +163,8 @@ export default function LegalPageLayout({
 
       <ReadingProgressBar />
 
+      <TocActiveTracker sectionIds={sectionIds} />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -190,6 +205,13 @@ export default function LegalPageLayout({
         <div style={heroContent}>
           <p style={heroTag}>VANILLE’OR</p>
 
+          {officialBadge && (
+            <div style={officialBadgeStyle}>
+              <ShieldCheck size={14} />
+              Document officiel
+            </div>
+          )}
+
           <h1 style={heroTitle}>{title}</h1>
 
           <p style={heroSubtitle}>{intro}</p>
@@ -218,8 +240,23 @@ export default function LegalPageLayout({
           <PrintButton label={printLabel || "Imprimer ce document"} />
         </div>
 
+        {hasGroups && (
+          <div style={structureBadges}>
+            <span style={structureBadge}>
+              {articleCount} articles
+            </span>
+            <span style={structureBadge}>
+              {partieCount} parties
+            </span>
+            <span style={structureBadge}>
+              Mise à jour le {lastUpdated}
+            </span>
+          </div>
+        )}
+
         {/* SOMMAIRE */}
 
+        <nav aria-label="Sommaire">
         <details open className="legal-toc" style={toc}>
           <summary className="legal-toc-summary" style={tocTitle}>
             Sommaire
@@ -257,6 +294,7 @@ export default function LegalPageLayout({
             </ol>
           )}
         </details>
+        </nav>
 
         {/* SECTIONS */}
 
@@ -286,6 +324,10 @@ export default function LegalPageLayout({
               </p>
             ))}
           </div>
+
+          {officialNote && (
+            <p style={officialNoteStyle}>{officialNote}</p>
+          )}
 
           {/* VOIR AUSSI */}
 
@@ -417,10 +459,50 @@ const heroSubtitle: React.CSSProperties = {
   margin: "0 auto",
 };
 
+const officialBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "6px",
+  background: "rgba(212,175,55,0.15)",
+  color: "#d4af37",
+  border: "1px solid rgba(212,175,55,0.4)",
+  borderRadius: "999px",
+  padding: "5px 14px",
+  fontSize: "12px",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  margin: "0 auto 14px",
+};
+
 const container: React.CSSProperties = {
   maxWidth: "850px",
   margin: "0 auto",
   padding: "50px 20px 90px",
+};
+
+const structureBadges: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+  marginBottom: "24px",
+};
+
+const structureBadge: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e7dfd3",
+  borderRadius: "999px",
+  padding: "6px 14px",
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "#a16207",
+};
+
+const officialNoteStyle: React.CSSProperties = {
+  marginTop: "16px",
+  fontSize: "12px",
+  color: "#999",
+  opacity: 0.7,
+  textAlign: "center",
 };
 
 const metaRow: React.CSSProperties = {
