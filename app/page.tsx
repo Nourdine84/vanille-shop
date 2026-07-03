@@ -67,27 +67,27 @@ export default async function HomePage() {
 
       <section style={sectionAlt}>
         <Reveal>
-        <div style={promiseIntro}>
+        <div style={sectionIntro}>
           <p style={sectionEyebrow}>
             NOTRE PROMESSE
           </p>
 
-          <h2 style={promiseTitle}>
+          <h2 style={sectionIntroTitle}>
             Une sélection exigeante, du terroir malgache jusqu’à votre cuisine.
           </h2>
 
-          <p style={promiseText}>
+          <p style={sectionIntroText}>
             Nous sélectionnons des vanilles et des épices reconnues pour
             leur qualité, leur richesse aromatique et leur authenticité.
           </p>
 
-          <p style={promiseText}>
+          <p style={sectionIntroText}>
             Chaque lot est choisi avec soin afin d’offrir une expérience
             fidèle à ce que Madagascar produit de meilleur, sans compromis
             sur la régularité ni sur la traçabilité.
           </p>
 
-          <p style={promiseText}>
+          <p style={sectionIntroText}>
             Notre engagement est simple : proposer des produits que nous
             serions fiers d’utiliser et d’offrir.
           </p>
@@ -130,9 +130,92 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div style={promiseCtaBox}>
+        <div style={sectionCtaBox}>
           <Link href="/products" style={btnSecondary}>
             Découvrir notre sélection
+          </Link>
+        </div>
+        </Reveal>
+      </section>
+
+      {/* ================= DIFFÉRENCE ================= */}
+      {/* Placée juste après "Notre Promesse" (plutôt que juste avant Collections) : les deux blocs
+          forment un même mouvement "pourquoi nous faire confiance / en quoi sommes-nous différents"
+          avant de passer à l'histoire puis aux produits. Évite aussi un doublon de CTA vers /products
+          juste à côté du bloc Packs, qui pointe déjà vers /products. */}
+
+      <section style={sectionAlt}>
+        <Reveal>
+        <div style={sectionIntro}>
+          <p style={sectionEyebrow}>
+            NOTRE DIFFÉRENCE
+          </p>
+
+          <h2 style={sectionIntroTitle}>
+            Une Maison de sélection, pas un simple e-commerce.
+          </h2>
+
+          <p style={sectionIntroText}>
+            Vanille’Or ne cherche pas à proposer le plus grand catalogue.
+            Nous sélectionnons moins, mais mieux : des produits cohérents,
+            traçables et capables de porter l’exigence de la Maison.
+          </p>
+
+          <p style={sectionIntroText}>
+            Chaque référence doit avoir une origine claire, une utilité
+            réelle et une place légitime dans notre collection.
+          </p>
+        </div>
+
+        <div style={diffList}>
+          <div style={diffItem}>
+            <span style={diffNumber}>1</span>
+            <div>
+              <h3 style={diffItemTitle}>Sélection courte</h3>
+              <p style={diffItemText}>
+                Nous privilégions une gamme lisible plutôt qu’un
+                catalogue surchargé.
+              </p>
+            </div>
+          </div>
+
+          <div style={diffItem}>
+            <span style={diffNumber}>2</span>
+            <div>
+              <h3 style={diffItemTitle}>Origine assumée</h3>
+              <p style={diffItemText}>
+                Madagascar reste au cœur de notre exigence et de notre
+                identité.
+              </p>
+            </div>
+          </div>
+
+          <div style={diffItem}>
+            <span style={diffNumber}>3</span>
+            <div>
+              <h3 style={diffItemTitle}>Qualité visible</h3>
+              <p style={diffItemText}>
+                Textures, parfums, souplesse, brillance : la qualité doit
+                se voir avant même l’achat.
+              </p>
+            </div>
+          </div>
+
+          <div style={diffItem}>
+            <span style={diffNumber}>4</span>
+            <div>
+              <h3 style={diffItemTitle}>Expérience soignée</h3>
+              <p style={diffItemText}>
+                Du site au colis, chaque détail doit renforcer la
+                confiance.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style={sectionCtaBox}>
+          <Link href="/products" style={btnSecondary}>
+            Explorer les produits
           </Link>
         </div>
         </Reveal>
@@ -567,27 +650,34 @@ const sectionLink = {
   fontWeight: 700,
 };
 
-/* PROMESSE */
+/* INTRO DE SECTION (réutilisé par Promesse, Différence, et les futurs blocs similaires) */
 
-const promiseIntro = {
+const sectionIntro = {
   maxWidth: "760px",
   margin: "0 auto 60px",
   textAlign: "center" as const,
 };
 
-const promiseTitle = {
+const sectionIntroTitle = {
   fontSize: "clamp(28px,5vw,42px)",
   fontWeight: 800,
   lineHeight: 1.25,
   marginBottom: "24px",
 };
 
-const promiseText = {
+const sectionIntroText = {
   color: "#5f5f5f",
   lineHeight: 1.8,
   marginBottom: "16px",
   fontSize: "16px",
 };
+
+const sectionCtaBox = {
+  textAlign: "center" as const,
+  marginTop: "56px",
+};
+
+/* PROMESSE */
 
 const pillarGrid = {
   maxWidth: "1200px",
@@ -623,11 +713,6 @@ const pillarText = {
   fontSize: "14px",
 };
 
-const promiseCtaBox = {
-  textAlign: "center" as const,
-  marginTop: "56px",
-};
-
 const btnSecondary = {
   display: "inline-block",
   border: `2px solid ${colors.gold}`,
@@ -637,6 +722,43 @@ const btnSecondary = {
   borderRadius: "14px",
   textDecoration: "none",
   fontWeight: 700,
+};
+
+/* DIFFÉRENCE */
+
+const diffList = {
+  maxWidth: "900px",
+  margin: "0 auto",
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(360px,1fr))",
+  gap: "36px 48px",
+};
+
+const diffItem = {
+  display: "flex",
+  gap: "18px",
+  alignItems: "flex-start" as const,
+};
+
+const diffNumber = {
+  fontSize: "26px",
+  fontWeight: 800,
+  color: colors.gold,
+  lineHeight: 1,
+  flexShrink: 0,
+};
+
+const diffItemTitle = {
+  fontSize: "17px",
+  fontWeight: 700,
+  marginBottom: "8px",
+};
+
+const diffItemText = {
+  color: "#666",
+  lineHeight: 1.6,
+  fontSize: "14px",
 };
 
 /* STORY */
