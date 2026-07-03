@@ -118,6 +118,51 @@ export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
       },
     ],
   },
+
+  "caviar-de-vanille": {
+    title: "Caviar de Vanille",
+    hook: "Une préparation intense et prête à l'emploi, pensée pour apporter instantanément toute la profondeur aromatique de la vanille.",
+    origin: "Madagascar",
+    aromaticProfile:
+      "Le caviar de vanille concentre les graines et les arômes de la vanille dans une texture généreuse, facile à doser. Il révèle des notes chaudes, rondes et légèrement boisées, idéales pour les préparations où l'intensité aromatique doit être immédiate et régulière.",
+    uses: [
+      "crèmes",
+      "ganaches",
+      "glaces",
+      "pâtisserie",
+      "desserts maison",
+      "yaourts",
+      "cocktails",
+      "préparations professionnelles",
+    ],
+    conservation:
+      "À conserver dans son contenant bien fermé, à température ambiante, à l'abri de la lumière et de l'humidité. Utiliser une cuillère propre à chaque prélèvement.",
+    trust:
+      "Nous sélectionnons le caviar de vanille pour sa praticité, son intensité et sa régularité. Il s'adresse aux passionnés comme aux professionnels qui recherchent une solution élégante, rapide et précise pour parfumer leurs créations.",
+    faq: [
+      {
+        question:
+          "Quelle est la différence entre une gousse et le caviar de vanille ?",
+        answer:
+          "La gousse demande d'être fendue pour récupérer les graines. Le caviar de vanille est prêt à l'emploi et permet un dosage plus rapide.",
+      },
+      {
+        question: "Comment utiliser le caviar de vanille ?",
+        answer:
+          "Ajoutez une petite quantité directement dans votre préparation, puis mélangez pour répartir les graines et les arômes.",
+      },
+      {
+        question: "Est-il adapté aux professionnels ?",
+        answer:
+          "Oui. Sa texture prête à l'emploi et son dosage précis sont particulièrement pratiques en pâtisserie, restauration et préparation artisanale.",
+      },
+      {
+        question: "Comment le conserver ?",
+        answer:
+          "Conservez-le bien fermé, à température ambiante, loin de la lumière et de l'humidité, avec une cuillère propre à chaque utilisation.",
+      },
+    ],
+  },
 };
 
 export function getProductEditorial(
