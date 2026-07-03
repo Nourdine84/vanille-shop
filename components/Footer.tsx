@@ -190,11 +190,6 @@ export default function Footer() {
               </Link>
             </div>
           </div>
-
-          {/* SIGNATURE */}
-          <div className="mt-6 text-center text-xs text-[#999]">
-            Site réalisé par <strong>AKM.Consulting</strong>
-          </div>
         </div>
       </div>
     </footer>

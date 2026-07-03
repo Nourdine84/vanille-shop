@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getImageUrl } from "@/lib/image";
 import { getMinPriceCents, hasMultiplePriceFormats } from "@/lib/pricing";
+import { colors } from "@/lib/design-tokens";
+import Reveal from "@/components/Reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -53,17 +55,94 @@ export default async function HomePage() {
             <Link href="/products" style={btnPrimary}>
               Découvrir la collection
             </Link>
-
-            <Link href="/b2b" style={btnGhost}>
-              Espace professionnel
-            </Link>
           </div>
+
+          <Link href="/b2b" style={heroSecondaryLink}>
+            Vous êtes un professionnel ? →
+          </Link>
         </div>
       </section>
 
+      {/* ================= PROMESSE ================= */}
+
+      <section style={sectionAlt}>
+        <Reveal>
+        <div style={promiseIntro}>
+          <p style={sectionEyebrow}>
+            NOTRE PROMESSE
+          </p>
+
+          <h2 style={promiseTitle}>
+            Une sélection exigeante, du terroir malgache jusqu’à votre cuisine.
+          </h2>
+
+          <p style={promiseText}>
+            Nous sélectionnons des vanilles et des épices reconnues pour
+            leur qualité, leur richesse aromatique et leur authenticité.
+          </p>
+
+          <p style={promiseText}>
+            Chaque lot est choisi avec soin afin d’offrir une expérience
+            fidèle à ce que Madagascar produit de meilleur, sans compromis
+            sur la régularité ni sur la traçabilité.
+          </p>
+
+          <p style={promiseText}>
+            Notre engagement est simple : proposer des produits que nous
+            serions fiers d’utiliser et d’offrir.
+          </p>
+        </div>
+
+        <div style={pillarGrid}>
+          <div style={pillarCard}>
+            <div style={pillarIcon}>🇲🇬</div>
+            <h3 style={pillarTitle}>Origine maîtrisée</h3>
+            <p style={pillarText}>
+              Une sélection directement issue des terroirs de Madagascar.
+            </p>
+          </div>
+
+          <div style={pillarCard}>
+            <div style={pillarIcon}>⭐</div>
+            <h3 style={pillarTitle}>Qualité constante</h3>
+            <p style={pillarText}>
+              Des critères de sélection exigeants pour garantir une
+              expérience régulière.
+            </p>
+          </div>
+
+          <div style={pillarCard}>
+            <div style={pillarIcon}>🤝</div>
+            <h3 style={pillarTitle}>Transparence</h3>
+            <p style={pillarText}>
+              Une origine claire, des conseils utiles et une information
+              honnête.
+            </p>
+          </div>
+
+          <div style={pillarCard}>
+            <div style={pillarIcon}>🍽️</div>
+            <h3 style={pillarTitle}>Pour tous les passionnés</h3>
+            <p style={pillarText}>
+              Du cuisinier amateur au professionnel, chacun trouve le
+              format adapté à ses besoins.
+            </p>
+          </div>
+        </div>
+
+        <div style={promiseCtaBox}>
+          <Link href="/products" style={btnSecondary}>
+            Découvrir notre sélection
+          </Link>
+        </div>
+        </Reveal>
+      </section>
+
       {/* ================= STORY ================= */}
+      {/* NOTE: contenu voué à être retravaillé/fusionné une fois le bloc "Notre Histoire" finalisé côté contenu */}
 
       <section style={section}>
+        <Reveal>
         <div style={storyContainer}>
           <div style={storyTextBox}>
             <p style={sectionEyebrow}>
@@ -75,42 +154,36 @@ export default async function HomePage() {
             </h2>
 
             <p style={storyText}>
-              Vanille’Or est née d’un lien familial fort
-              avec Madagascar et d’une volonté simple :
-              proposer des produits premium accessibles,
-              sélectionnés directement auprès de producteurs
-              locaux.
+              Vanille’Or est née d’un lien familial fort avec
+              Madagascar : des gousses récoltées et affinées selon
+              un savoir-faire artisanal transmis depuis des
+              générations, pour une intensité aromatique
+              exceptionnelle.
             </p>
 
             <p style={storyText}>
-              Notre vanille est issue d’un savoir-faire
-              artisanal unique transmis depuis des générations.
-              Chaque gousse est récoltée, affinée et préparée
-              avec précision afin d’obtenir une intensité
-              aromatique exceptionnelle.
-            </p>
-
-            <p style={storyText}>
-              Inspirée par l’héritage de Raymond Albius,
-              figure emblématique de la pollinisation de la
-              vanille, Vanille’Or valorise l’authenticité,
-              la qualité et la passion du produit.
+              Inspirée par l’héritage de Raymond Albius, figure
+              emblématique de la pollinisation de la vanille,
+              Vanille’Or valorise l’authenticité et la passion du
+              produit.
             </p>
           </div>
 
           <div style={storyImageBox}>
             <img
-              src="/images/hero-vanille.jpg"
-              alt="Vanille Madagascar"
+              src="/images/vanille-250.jpg"
+              alt="Gousses de vanille de Madagascar"
               style={storyImage}
             />
           </div>
         </div>
+        </Reveal>
       </section>
 
       {/* ================= BEST SELLERS ================= */}
 
       <section style={sectionAlt}>
+        <Reveal>
         <div style={sectionHeader}>
           <div>
             <p style={sectionEyebrow}>
@@ -167,11 +240,13 @@ export default async function HomePage() {
             </Link>
           ))}
         </div>
+        </Reveal>
       </section>
 
       {/* ================= PACKS ================= */}
 
       <section style={section}>
+        <Reveal>
         <div style={packContainer}>
           <div style={packCardLarge}>
             <div style={packOverlay} />
@@ -200,11 +275,25 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+        </Reveal>
       </section>
 
       {/* ================= COLLECTIONS ================= */}
 
       <section style={sectionAlt}>
+        <Reveal>
+        <div style={sectionHeader}>
+          <div>
+            <p style={sectionEyebrow}>
+              EXPLORER
+            </p>
+
+            <h2 style={sectionTitleLeft}>
+              Nos collections
+            </h2>
+          </div>
+        </div>
+
         <div style={collectionsGrid}>
           <Link
             href="/collections/vanille"
@@ -252,11 +341,13 @@ export default async function HomePage() {
             </div>
           </Link>
         </div>
+        </Reveal>
       </section>
 
       {/* ================= B2B ================= */}
 
       <section style={b2b}>
+        <Reveal>
         <div style={b2bContent}>
           <p style={sectionEyebrow}>
             PROFESSIONNELS
@@ -295,11 +386,13 @@ export default async function HomePage() {
             Faire une demande pro
           </Link>
         </div>
+        </Reveal>
       </section>
 
       {/* ================= CTA ================= */}
 
       <section style={cta}>
+        <Reveal>
         <h2 style={ctaTitle}>
           Passez à l’expérience Vanille’Or
         </h2>
@@ -316,14 +409,9 @@ export default async function HomePage() {
         >
           Voir le catalogue
         </Link>
+        </Reveal>
       </section>
 
-      {/* ================= SIGNATURE ================= */}
-
-      <div style={signature}>
-        Site développé par{" "}
-        <strong>Akm.Consulting</strong>
-      </div>
     </div>
   );
 }
@@ -333,7 +421,7 @@ export default async function HomePage() {
 ========================= */
 
 const page = {
-  background: "#f8f5ef",
+  background: colors.cream,
   overflowX: "hidden" as const,
 };
 
@@ -367,7 +455,7 @@ const heroContent = {
 };
 
 const heroTag = {
-  color: "#d4af37",
+  color: colors.goldLight,
   fontWeight: 700,
   letterSpacing: "0.2em",
   fontSize: "13px",
@@ -397,10 +485,20 @@ const heroActions = {
   gap: "14px",
 };
 
+const heroSecondaryLink = {
+  display: "inline-block",
+  marginTop: "22px",
+  color: "#ddd",
+  fontSize: "14px",
+  fontWeight: 600,
+  textDecoration: "none",
+  opacity: 0.85,
+};
+
 /* BUTTONS */
 
 const btnPrimary = {
-  background: "#a16207",
+  background: colors.gold,
   color: "white",
   padding: "15px 24px",
   borderRadius: "14px",
@@ -409,18 +507,8 @@ const btnPrimary = {
   display: "inline-block",
 };
 
-const btnGhost = {
-  background: "rgba(255,255,255,0.12)",
-  color: "white",
-  padding: "15px 24px",
-  borderRadius: "14px",
-  textDecoration: "none",
-  fontWeight: 700,
-  border: "1px solid rgba(255,255,255,0.2)",
-};
-
 const btnPrimaryLarge = {
-  background: "#a16207",
+  background: colors.gold,
   color: "white",
   padding: "18px 30px",
   borderRadius: "16px",
@@ -441,7 +529,7 @@ const sectionAlt = {
 };
 
 const sectionEyebrow = {
-  color: "#a16207",
+  color: colors.gold,
   fontWeight: 700,
   letterSpacing: "0.15em",
   fontSize: "12px",
@@ -474,7 +562,79 @@ const sectionHeader = {
 };
 
 const sectionLink = {
-  color: "#a16207",
+  color: colors.gold,
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+/* PROMESSE */
+
+const promiseIntro = {
+  maxWidth: "760px",
+  margin: "0 auto 60px",
+  textAlign: "center" as const,
+};
+
+const promiseTitle = {
+  fontSize: "clamp(28px,5vw,42px)",
+  fontWeight: 800,
+  lineHeight: 1.25,
+  marginBottom: "24px",
+};
+
+const promiseText = {
+  color: "#5f5f5f",
+  lineHeight: 1.8,
+  marginBottom: "16px",
+  fontSize: "16px",
+};
+
+const pillarGrid = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(230px,1fr))",
+  gap: "24px",
+};
+
+const pillarCard = {
+  background: colors.cream,
+  border: "1px solid rgba(0,0,0,0.05)",
+  borderRadius: "20px",
+  padding: "32px 24px",
+  textAlign: "center" as const,
+};
+
+const pillarIcon = {
+  fontSize: "32px",
+  marginBottom: "16px",
+};
+
+const pillarTitle = {
+  fontSize: "17px",
+  fontWeight: 700,
+  marginBottom: "10px",
+};
+
+const pillarText = {
+  color: "#666",
+  lineHeight: 1.6,
+  fontSize: "14px",
+};
+
+const promiseCtaBox = {
+  textAlign: "center" as const,
+  marginTop: "56px",
+};
+
+const btnSecondary = {
+  display: "inline-block",
+  border: `2px solid ${colors.gold}`,
+  color: colors.gold,
+  background: "transparent",
+  padding: "13px 26px",
+  borderRadius: "14px",
   textDecoration: "none",
   fontWeight: 700,
 };
@@ -535,7 +695,7 @@ const badge = {
   position: "absolute" as const,
   top: 14,
   left: 14,
-  background: "#a16207",
+  background: colors.gold,
   color: "white",
   padding: "6px 12px",
   borderRadius: "999px",
@@ -570,7 +730,7 @@ const cardTitle = {
 };
 
 const price = {
-  color: "#a16207",
+  color: colors.gold,
   fontWeight: 800,
   fontSize: "18px",
 };
@@ -588,7 +748,7 @@ const packCardLarge = {
   borderRadius: "30px",
   overflow: "hidden",
   backgroundImage:
-    "url('/images/hero-vanille.jpg')",
+    "url('/images/PACK-DECOUVERTE.jpg')",
   backgroundSize: "cover",
   backgroundPosition: "center",
   display: "flex",
@@ -662,7 +822,7 @@ const collectionContent = {
 };
 
 const collectionTag = {
-  color: "#d4af37",
+  color: colors.goldLight,
   marginBottom: "8px",
   fontWeight: 700,
   letterSpacing: "0.12em",
@@ -738,15 +898,6 @@ const ctaText = {
   lineHeight: 1.8,
   maxWidth: "700px",
   margin: "0 auto 30px",
-};
-
-/* FOOTER */
-
-const signature = {
-  textAlign: "center" as const,
-  padding: "30px",
-  fontSize: "13px",
-  color: "#777",
 };
 
 const center = {
