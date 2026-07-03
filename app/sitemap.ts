@@ -41,6 +41,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
     },
     {
+      url: `${baseUrl}/maison/notre-histoire`,
+      lastModified: new Date(),
+    },
+    {
       url: `${baseUrl}/confiance`,
       lastModified: new Date(),
     },

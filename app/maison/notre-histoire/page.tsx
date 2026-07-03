@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import CinematicHero from "@/components/maison/CinematicHero";
 import NarrativeSection from "@/components/maison/NarrativeSection";
 import Timeline from "@/components/maison/Timeline";
-import StatBand from "@/components/maison/StatBand";
 import QuoteBlock from "@/components/maison/QuoteBlock";
-import ChapterNav from "@/components/maison/ChapterNav";
 import MaisonCTA from "@/components/maison/MaisonCTA";
 
 const description =
@@ -22,8 +20,6 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
-
-const PLACEHOLDER = "[À RÉDIGER — contenu à compléter ensemble]";
 
 export default function NotreHistoirePage() {
   const jsonLd = {
@@ -45,7 +41,7 @@ export default function NotreHistoirePage() {
         badge="La Maison Vanille’Or"
         tag="NOTRE HISTOIRE"
         title="Un lien avec Madagascar"
-        subtitle="Née d’un attachement profond à la terre malgache, Vanille’Or est avant tout une histoire d’exigence et d’authenticité."
+        subtitle="Vanille’Or est née d’une conviction simple : les saveurs de Madagascar méritent une Maison capable de les présenter avec exigence, respect et transparence."
         image="/images/hero-vanille.jpg"
       />
 
@@ -56,12 +52,15 @@ export default function NotreHistoirePage() {
         imageAlt="Gousses de vanille de Madagascar liées ensemble"
       >
         <p>
-          Vanille’Or est née d’un lien familial fort avec Madagascar et
-          d’une volonté simple : proposer des produits premium
-          accessibles, sélectionnés directement auprès de producteurs
-          locaux.
+          La vanille n’est pas un produit ordinaire. Avant d’arriver
+          dans une cuisine, elle traverse un long cycle de patience, de
+          gestes précis et de savoir-faire.
         </p>
-        <p style={{ marginTop: "16px" }}>{PLACEHOLDER}</p>
+        <p style={{ marginTop: "16px" }}>
+          À Madagascar, chaque gousse raconte une origine, une récolte,
+          une préparation et une sélection. Notre rôle est de préserver
+          cette histoire jusqu’au client final.
+        </p>
       </NarrativeSection>
 
       <Timeline
@@ -96,14 +95,6 @@ export default function NotreHistoirePage() {
         ]}
       />
 
-      <StatBand
-        stats={[
-          { value: "[X]", label: "ans d’exigence" },
-          { value: "[X]", label: "producteurs partenaires" },
-          { value: "[X]", label: "pays livrés" },
-        ]}
-      />
-
       <NarrativeSection
         eyebrow="Notre exigence"
         title="Une sélection sans compromis"
@@ -112,17 +103,19 @@ export default function NotreHistoirePage() {
         reverse
       >
         <p>
-          Notre vanille est issue d’un savoir-faire artisanal unique
-          transmis depuis des générations. Chaque gousse est récoltée,
-          affinée et préparée avec précision afin d’obtenir une
-          intensité aromatique exceptionnelle.
+          Nous ne cherchons pas à proposer le catalogue le plus large.
+          Nous préférons sélectionner moins, mais mieux.
         </p>
-        <p style={{ marginTop: "16px" }}>{PLACEHOLDER}</p>
+        <p style={{ marginTop: "16px" }}>
+          Chaque produit Vanille’Or doit répondre à trois exigences :
+          une origine claire, une qualité visible et une utilité réelle
+          pour ceux qui l’utilisent.
+        </p>
       </NarrativeSection>
 
       <QuoteBlock
-        quote={PLACEHOLDER}
-        signature="— Fondateur·rice, Vanille’Or [à compléter]"
+        quote="La confiance ne se promet pas. Elle se construit dans chaque détail."
+        signature="La Maison Vanille’Or"
       />
 
       <MaisonCTA
@@ -135,12 +128,9 @@ export default function NotreHistoirePage() {
         }}
       />
 
-      <ChapterNav
-        next={{
-          label: "Nos engagements",
-          href: "/maison/nos-engagements",
-        }}
-      />
+      {/* ChapterNav retiré temporairement : /maison/nos-engagements n'existe pas
+          encore. À réintroduire (avec next → nos-engagements) une fois cette page
+          créée, pour éviter tout lien 404. */}
     </div>
   );
 }
