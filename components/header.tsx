@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,11 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  const burgerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
+  const hasOpenedRef = useRef(false);
 
   const totalItems = cart.reduce(
     (acc, item) => acc + item.quantity,
@@ -46,6 +51,55 @@ export default function Header() {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  /* =========================
+     MOBILE MENU: FOCUS + CLAVIER
+  ========================= */
+
+  useEffect(() => {
+    if (menuOpen) {
+      hasOpenedRef.current = true;
+      closeRef.current?.focus();
+    } else if (hasOpenedRef.current) {
+      burgerRef.current?.focus();
+    }
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        return;
+      }
+
+      if (e.key !== "Tab" || !menuRef.current) return;
+
+      const focusable = menuRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled])'
+      );
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
 
   /* =========================
      MOBILE DETECTION
@@ -137,9 +191,12 @@ export default function Header() {
           {/* BURGER */}
           {isMobile && (
             <button
+              ref={burgerRef}
               style={burger}
               onClick={() => setMenuOpen(true)}
               aria-label="Ouvrir le menu"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
               data-testid="burger-button"
             >
               ☰
@@ -154,6 +211,7 @@ export default function Header() {
 
       <div
         onClick={() => setMenuOpen(false)}
+        aria-hidden={!menuOpen}
         style={{
           ...overlay,
           opacity: menuOpen ? 1 : 0,
@@ -166,6 +224,12 @@ export default function Header() {
       ========================= */}
 
       <aside
+        id="mobile-menu"
+        ref={menuRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de navigation"
+        aria-hidden={!menuOpen}
         style={{
           ...mobileMenu,
           transform: menuOpen
@@ -186,8 +250,10 @@ export default function Header() {
           />
 
           <button
+            ref={closeRef}
             onClick={() => setMenuOpen(false)}
             style={closeBtn}
+            aria-label="Fermer le menu"
           >
             ✕
           </button>

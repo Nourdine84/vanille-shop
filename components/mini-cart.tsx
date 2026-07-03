@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
@@ -62,6 +62,55 @@ export default function MiniCart() {
 
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const panelRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isCartOpen) {
+      previouslyFocused.current = document.activeElement as HTMLElement | null;
+      closeRef.current?.focus();
+    } else {
+      previouslyFocused.current?.focus();
+    }
+  }, [isCartOpen]);
+
+  useEffect(() => {
+    if (!isCartOpen) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        closeCart();
+        return;
+      }
+
+      if (e.key !== "Tab" || !panelRef.current) return;
+
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled])'
+      );
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCartOpen, closeCart]);
 
   const subtotal = useMemo(
     () =>
@@ -178,8 +227,12 @@ export default function MiniCart() {
       />
 
       <aside
+        ref={panelRef}
         data-panel
         data-testid="mini-cart"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mini-cart-title"
         aria-hidden={!isCartOpen}
         style={{
           ...panel,
@@ -190,7 +243,7 @@ export default function MiniCart() {
       >
         <div style={header}>
           <div>
-            <h3 style={title}>Votre panier</h3>
+            <h3 id="mini-cart-title" style={title}>Votre panier</h3>
             <p style={subtitle}>
               {cart.length === 0
                 ? "Aucun article sélectionné"
@@ -199,6 +252,7 @@ export default function MiniCart() {
           </div>
 
           <button
+            ref={closeRef}
             type="button"
             onClick={closeCart}
             style={closeBtn}

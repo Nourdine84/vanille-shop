@@ -591,6 +591,9 @@ export default async function HomePage() {
       </section>
 
       {/* ================= CTA ================= */}
+      {/* Fusion des deux CTA de fermeture (Sprint 06) validée en revue qualité (Sprint 07) :
+          une seule intention finale (le catalogue), "Rejoindre la Maison" redescend en lien
+          secondaire discret, sur le même principe que le lien B2B sous le CTA du Hero. */}
 
       <section style={cta}>
         <Reveal>
@@ -610,41 +613,12 @@ export default async function HomePage() {
         >
           Voir le catalogue
         </Link>
-        </Reveal>
-      </section>
 
-      {/* ================= NEWSLETTER / FERMETURE ================= */}
-      {/* Bloc de fermeture, volontairement épuré et sobre : bouton en style "secondaire"
-          (btnSecondary, pas btnPrimaryLarge) pour rester discret par rapport au CTA qui précède,
-          et créer une respiration avant le footer plutôt qu'une seconde relance commerciale. */}
-
-      <section style={cta}>
-        <Reveal>
-        <p style={sectionEyebrow}>
-          LA MAISON VANILLE’OR
-        </p>
-
-        <h2 style={ctaTitle}>
-          Entrez dans l’univers des saveurs de Madagascar.
-        </h2>
-
-        <p style={ctaText}>
-          Recevez nos découvertes, nos conseils d’utilisation, nos
-          recettes et les nouveautés de la Maison.
-        </p>
-
-        <p style={ctaText}>
-          Nous privilégions des contenus utiles, inspirants et toujours
-          liés à notre exigence de qualité.
-        </p>
-
-        <Link href="/register" style={btnSecondary}>
-          Rejoindre la Maison
-        </Link>
-
-        <p style={newsletterHint}>
-          Aucun spam. Seulement l’essentiel.
-        </p>
+        <div style={{ marginTop: "22px" }}>
+          <Link href="/register" style={sectionLink}>
+            Rejoindre la Maison →
+          </Link>
+        </div>
         </Reveal>
       </section>
 
@@ -1266,12 +1240,6 @@ const ctaText = {
   lineHeight: 1.8,
   maxWidth: "700px",
   margin: "0 auto 30px",
-};
-
-const newsletterHint = {
-  color: "#999",
-  fontSize: "13px",
-  marginTop: "18px",
 };
 
 const center = {

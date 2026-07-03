@@ -23,6 +23,15 @@ const nextConfig = {
     ignoreBuildErrors: false, // ✅ ON FIX PROPRE
   },
 
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: false,
+    };
+
+    return config;
+  },
+
   async redirects() {
     return [
       {
