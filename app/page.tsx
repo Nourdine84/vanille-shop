@@ -519,6 +519,77 @@ export default async function HomePage() {
         </Reveal>
       </section>
 
+      {/* ================= CONFIANCE ================= */}
+      {/* Volontairement sans pictogramme (aucune icône livraison/CB/camion) : la séparation entre
+          les 3 engagements se fait par un simple filet doré, pas une icône, pour garder la
+          sensation de calme demandée. Enchaîne juste après le B2B (fond sombre) pour un contraste
+          apaisant avant la section CTA finale. */}
+
+      <section style={sectionAlt}>
+        <Reveal>
+        <div style={sectionIntro}>
+          <p style={sectionEyebrow}>
+            NOTRE ENGAGEMENT
+          </p>
+
+          <h2 style={sectionIntroTitle}>
+            La confiance se construit dans les détails.
+          </h2>
+
+          <p style={sectionIntroText}>
+            Nous pensons qu’une relation durable commence par la
+            transparence.
+          </p>
+
+          <p style={sectionIntroText}>
+            Nous privilégions une sélection exigeante, des informations
+            claires et un accompagnement attentif avant comme après votre
+            commande.
+          </p>
+
+          <p style={sectionIntroText}>
+            Nos engagements sont simples : présenter honnêtement nos
+            produits, respecter leur origine et vous permettre d’acheter
+            en toute confiance.
+          </p>
+        </div>
+
+        <div style={trustList}>
+          <div style={trustColumn}>
+            <div style={trustColumnRule} />
+            <h3 style={trustColumnTitle}>Sélection rigoureuse</h3>
+            <p style={trustColumnText}>
+              Chaque lot est contrôlé avant sa mise en vente.
+            </p>
+          </div>
+
+          <div style={trustColumn}>
+            <div style={trustColumnRule} />
+            <h3 style={trustColumnTitle}>Traçabilité</h3>
+            <p style={trustColumnText}>
+              Nous mettons en avant l’origine de nos produits et leur
+              parcours.
+            </p>
+          </div>
+
+          <div style={trustColumn}>
+            <div style={trustColumnRule} />
+            <h3 style={trustColumnTitle}>Accompagnement</h3>
+            <p style={trustColumnText}>
+              Conseils de conservation, d’utilisation et disponibilité si
+              vous avez une question.
+            </p>
+          </div>
+        </div>
+
+        <div style={sectionCtaBox}>
+          <Link href="/confiance" style={btnSecondary}>
+            Découvrir nos engagements
+          </Link>
+        </div>
+        </Reveal>
+      </section>
+
       {/* ================= CTA ================= */}
 
       <section style={cta}>
@@ -1103,6 +1174,43 @@ const trustItem = {
   borderRadius: "16px",
   border:
     "1px solid rgba(255,255,255,0.08)",
+};
+
+/* CONFIANCE */
+
+const trustList = {
+  maxWidth: "1000px",
+  margin: "56px auto 0",
+  paddingTop: "40px",
+  borderTop: "1px solid rgba(0,0,0,0.08)",
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(220px,1fr))",
+  gap: "48px 40px",
+};
+
+const trustColumn = {
+  textAlign: "center" as const,
+};
+
+const trustColumnRule = {
+  width: "36px",
+  height: "2px",
+  background: colors.gold,
+  margin: "0 auto 18px",
+};
+
+const trustColumnTitle = {
+  fontSize: "17px",
+  fontWeight: 600,
+  letterSpacing: "0.01em",
+  marginBottom: "10px",
+};
+
+const trustColumnText = {
+  color: "#666",
+  lineHeight: 1.7,
+  fontSize: "14px",
 };
 
 /* CTA */
