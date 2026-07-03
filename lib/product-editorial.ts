@@ -75,6 +75,49 @@ export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
       },
     ],
   },
+
+  "vanille-pompona": {
+    title: "Vanille Pompona Grand Calibre",
+    hook: "Une vanille rare, généreuse et charnue, reconnue pour ses grandes gousses et son profil aromatique singulier.",
+    origin: "Madagascar",
+    aromaticProfile:
+      "La Vanille Pompona offre un parfum doux, rond et enveloppant, avec des notes chaudes, fruitées et légèrement florales. Son grand calibre en fait une vanille visuellement remarquable, idéale pour les créations où la présence du produit compte autant que son arôme.",
+    uses: [
+      "pâtisserie",
+      "infusions",
+      "rhums arrangés",
+      "crèmes",
+      "desserts maison",
+      "préparations artisanales",
+      "créations premium",
+    ],
+    conservation:
+      "À conserver dans un contenant bien fermé, à température ambiante, à l'abri de la lumière et de l'humidité. Éviter le réfrigérateur afin de préserver sa souplesse et son parfum.",
+    trust:
+      "Nous sélectionnons la Vanille Pompona pour son calibre, sa souplesse, son parfum et son caractère distinctif. Elle s'adresse aux passionnés comme aux professionnels qui recherchent une vanille différente, généreuse et élégante.",
+    faq: [
+      {
+        question: "Quelle est la différence entre la Pompona et la Bourbon ?",
+        answer:
+          "La Pompona se distingue par des gousses généralement plus grandes et charnues, avec un profil aromatique plus doux, rond et floral.",
+      },
+      {
+        question: "Comment utiliser la Vanille Pompona ?",
+        answer:
+          "Elle s'utilise comme une gousse classique : fendue dans la longueur pour récupérer les graines, ou infusée entière dans une préparation.",
+      },
+      {
+        question: "Est-elle adaptée aux professionnels ?",
+        answer:
+          "Oui. Son grand calibre et son aspect visuel en font une vanille intéressante pour les créations artisanales, les infusions et les préparations premium.",
+      },
+      {
+        question: "Comment la conserver ?",
+        answer:
+          "Dans un contenant fermé, à température ambiante, loin de la lumière et de l'humidité.",
+      },
+    ],
+  },
 };
 
 export function getProductEditorial(

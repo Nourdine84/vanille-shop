@@ -430,8 +430,12 @@ export default function ClientProduct({
           </p>
 
           <h1 style={title}>
-            {product.name}
+            {editorial?.title || product.name}
           </h1>
+
+          {editorial?.hook && (
+            <p style={hook}>{editorial.hook}</p>
+          )}
 
           <p style={price}>
             {formatPrice(
@@ -973,6 +977,16 @@ const title = {
   margin: 0,
 
   fontWeight: 900,
+};
+
+const hook = {
+  color: "#555",
+
+  marginTop: 14,
+
+  lineHeight: 1.7,
+
+  fontSize: 17,
 };
 
 const price = {
