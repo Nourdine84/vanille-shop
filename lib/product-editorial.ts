@@ -210,6 +210,51 @@ export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
       },
     ],
   },
+
+  "poudre-de-vanille": {
+    title: "Poudre de Vanille",
+    hook: "Une poudre fine et concentrée, prête à doser, pour parfumer et colorer naturellement vos préparations d'une touche de vanille.",
+    origin: "Madagascar",
+    aromaticProfile:
+      "Obtenue à partir de gousses broyées, la poudre de vanille concentre l'arôme dans une texture fine et régulière. Elle libère des notes chaudes, douces et légèrement boisées, et se répartit de façon homogène pour parfumer sans ajouter de liquide à vos préparations.",
+    uses: [
+      "pâtisserie",
+      "boissons chaudes",
+      "coloration naturelle",
+      "crèmes",
+      "yaourts",
+      "sucres parfumés",
+      "pâtes et biscuits",
+      "préparations professionnelles",
+    ],
+    conservation:
+      "À conserver dans un contenant hermétique, à température ambiante, à l'abri de la lumière et surtout de l'humidité pour éviter que la poudre ne s'agglomère. Prélever avec une cuillère sèche.",
+    trust:
+      "Nous sélectionnons la poudre de vanille pour sa finesse, son intensité et sa simplicité d'utilisation. Elle offre une solution précise et régulière aux passionnés comme aux professionnels qui souhaitent parfumer et colorer leurs créations sans ajout de liquide.",
+    faq: [
+      {
+        question:
+          "Quelle est la différence entre une gousse et la poudre de vanille ?",
+        answer:
+          "La gousse doit être fendue et infusée pour libérer ses arômes. La poudre est prête à doser et s'incorpore directement, sans infusion ni liquide ajouté.",
+      },
+      {
+        question: "Comment utiliser la poudre de vanille ?",
+        answer:
+          "Ajoutez une petite quantité directement dans votre préparation, sèche ou liquide, puis mélangez pour répartir l'arôme de façon homogène.",
+      },
+      {
+        question: "Peut-on l'utiliser pour colorer une préparation ?",
+        answer:
+          "Oui. La poudre apporte une teinte naturelle et de fins points vanillés, appréciés en pâtisserie, dans les crèmes et les glaces.",
+      },
+      {
+        question: "Comment la conserver ?",
+        answer:
+          "Dans un contenant hermétique, à température ambiante, à l'abri de la lumière et de l'humidité, en prélevant avec une cuillère sèche pour éviter qu'elle ne s'agglomère.",
+      },
+    ],
+  },
 };
 
 export function getProductEditorial(
