@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { getImageUrl } from "@/lib/image";
 import { useUIStore } from "@/components/ui-providers";
+import { getProductEditorial } from "@/lib/product-editorial";
+import ProductEditorial from "@/components/product/ProductEditorial";
 
 /* ================= TYPES ================= */
 
@@ -91,6 +93,11 @@ export default function ClientProduct({
 
   const isOutOfStock =
     product.stock <= 0;
+
+  /* ================= ÉDITORIAL PREMIUM ================= */
+  // Contenu éditorial optionnel, indexé par slug (lib/product-editorial).
+  // null si le produit n'a pas encore de couche éditoriale → rien ne s'affiche.
+  const editorial = getProductEditorial(product.slug);
 
   /* ================= RESPONSIVE ================= */
 
@@ -572,6 +579,12 @@ export default function ClientProduct({
           </div>
         </div>
       </div>
+
+      {/* ÉDITORIAL PREMIUM */}
+
+      {editorial && (
+        <ProductEditorial editorial={editorial} />
+      )}
 
       {/* CROSS SELL */}
 
