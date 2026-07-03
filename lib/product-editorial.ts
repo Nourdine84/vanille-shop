@@ -163,6 +163,53 @@ export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
       },
     ],
   },
+
+  // NB : clé = slug DB tel quel, avec la faute de frappe "extrai" (sans "t").
+  // Ne pas "corriger" en "extrait-vanille" → provoquerait un miss silencieux.
+  "extrai-vanille": {
+    title: "Extrait de Vanille",
+    hook: "Une solution aromatique fluide et pratique, idéale pour parfumer rapidement vos préparations avec la douceur de la vanille.",
+    origin: "Madagascar",
+    aromaticProfile:
+      "L'extrait de vanille révèle des notes douces, chaudes et rondes, avec une intensité facile à doser. Sa texture liquide permet une incorporation rapide dans les préparations sucrées, les boissons, les crèmes et les recettes du quotidien.",
+    uses: [
+      "pâtisserie",
+      "crèmes",
+      "boissons chaudes",
+      "cocktails",
+      "glaces",
+      "yaourts",
+      "desserts maison",
+      "préparations professionnelles",
+    ],
+    conservation:
+      "À conserver dans son flacon bien fermé, à température ambiante, à l'abri de la lumière et de la chaleur. Agiter légèrement avant utilisation si nécessaire.",
+    trust:
+      "Nous sélectionnons l'extrait de vanille pour sa praticité, sa régularité et sa facilité d'utilisation. Il permet d'apporter rapidement une touche aromatique élégante aux créations du quotidien comme aux préparations professionnelles.",
+    faq: [
+      {
+        question:
+          "Quelle est la différence entre une gousse et un extrait de vanille ?",
+        answer:
+          "La gousse apporte les graines et une infusion plus traditionnelle. L'extrait est liquide, prêt à doser et plus rapide à incorporer.",
+      },
+      {
+        question: "Comment utiliser l'extrait de vanille ?",
+        answer:
+          "Ajoutez quelques gouttes ou une petite quantité directement dans votre préparation, puis mélangez.",
+      },
+      {
+        question: "Peut-on l'utiliser dans les boissons ?",
+        answer:
+          "Oui. Il peut parfumer un chocolat chaud, un café, un cocktail, une infusion ou une boisson lactée.",
+      },
+      {
+        question: "Comment le conserver ?",
+        answer:
+          "Gardez le flacon bien fermé, à température ambiante, loin de la lumière et de la chaleur.",
+      },
+    ],
+  },
 };
 
 export function getProductEditorial(
