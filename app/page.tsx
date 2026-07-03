@@ -263,6 +263,53 @@ export default async function HomePage() {
         </Reveal>
       </section>
 
+      {/* ================= MADAGASCAR ================= */}
+      {/* Placée ici (après Notre Histoire, avant Best Sellers) plutôt qu'immédiatement après
+          "Notre Différence" comme le laissait supposer l'architecture cible initiale : trois blocs
+          de texte s'enchaînaient déjà (Promesse, Différence, Histoire) sans réelle respiration.
+          Ce grand visuel sert de rupture de rythme avant les sections produits. Visuel temporaire
+          en attendant le média définitif. */}
+
+      <section style={madagascarSection}>
+        <div style={madagascarOverlay} />
+
+        <Reveal>
+        <div style={madagascarContent}>
+          <p style={sectionEyebrowLight}>
+            MADAGASCAR
+          </p>
+
+          <h2 style={packTitle}>
+            L’origine qui révèle chaque arôme.
+          </h2>
+
+          <p style={madagascarText}>
+            À Madagascar, la culture de la vanille repose sur un
+            savoir-faire transmis depuis des générations.
+          </p>
+
+          <p style={madagascarText}>
+            Chaque fleur est pollinisée à la main, chaque récolte demande
+            patience et précision, chaque étape influence la richesse
+            aromatique du produit final.
+          </p>
+
+          <p style={madagascarText}>
+            Notre rôle est de sélectionner ces produits avec la même
+            exigence que ceux qui les cultivent.
+          </p>
+
+          <p style={madagascarQuote}>
+            « Le temps est le premier ingrédient de la qualité. »
+          </p>
+
+          <Link href="/maison/notre-histoire" style={btnSecondaryLight}>
+            Découvrir notre histoire
+          </Link>
+        </div>
+        </Reveal>
+      </section>
+
       {/* ================= BEST SELLERS ================= */}
 
       <section style={sectionAlt}>
@@ -789,6 +836,62 @@ const storyImage = {
   borderRadius: "24px",
   objectFit: "cover" as const,
   minHeight: "420px",
+};
+
+/* MADAGASCAR */
+
+const madagascarSection = {
+  position: "relative" as const,
+  minHeight: "85vh",
+  display: "flex",
+  alignItems: "flex-end" as const,
+  justifyContent: "center",
+  textAlign: "center" as const,
+  padding: "60px 20px",
+  backgroundImage:
+    "url('/images/about-vanille.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+};
+
+const madagascarOverlay = {
+  position: "absolute" as const,
+  inset: 0,
+  background:
+    "linear-gradient(to top,#000000d9 0%,#00000066 35%,transparent 65%)",
+};
+
+const madagascarContent = {
+  position: "relative" as const,
+  zIndex: 2,
+  maxWidth: "640px",
+};
+
+const madagascarText = {
+  color: "#eee",
+  lineHeight: 1.7,
+  marginBottom: "14px",
+  fontSize: "15px",
+};
+
+const madagascarQuote = {
+  color: colors.goldLight,
+  fontStyle: "italic" as const,
+  fontSize: "18px",
+  fontWeight: 600,
+  margin: "26px 0 30px",
+  lineHeight: 1.5,
+};
+
+const btnSecondaryLight = {
+  display: "inline-block",
+  border: "2px solid rgba(255,255,255,0.8)",
+  color: "white",
+  background: "transparent",
+  padding: "13px 26px",
+  borderRadius: "14px",
+  textDecoration: "none",
+  fontWeight: 700,
 };
 
 /* PRODUCTS */
