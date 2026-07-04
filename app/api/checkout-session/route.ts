@@ -59,6 +59,49 @@ function isValidCartItem(item: any): item is CartItem {
   );
 }
 
+/**
+ * Décompose l'id panier composite `productId-format`.
+ * Les cuid Prisma ne contiennent pas de tiret, et les libellés de format non
+ * plus (ex. "10g", "100ml", "1kg") : le premier segment est donc toujours le
+ * productId, le reste le format (vide pour un ajout sans format, ex. cross-sell).
+ */
+function parseCartId(id: string): { productId: string; format: string } {
+  const parts = id.split("-");
+  return {
+    productId: parts[0],
+    format: parts.slice(1).join("-"),
+  };
+}
+
+/**
+ * Coerce le champ `pricing` (Json?) en table format → prix (centimes),
+ * en ne gardant que des montants numériques strictement positifs.
+ */
+function parsePricing(pricing: unknown): Record<string, number> {
+  if (!pricing || typeof pricing !== "object") return {};
+
+  const out: Record<string, number> = {};
+
+  for (const [key, value] of Object.entries(
+    pricing as Record<string, unknown>
+  )) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) out[key] = n;
+  }
+
+  return out;
+}
+
+/** Article validé côté serveur : le prix vient EXCLUSIVEMENT de la DB. */
+type ServerItem = {
+  id: string;
+  name: string;
+  priceCents: number;
+  quantity: number;
+  imageUrl?: string;
+  format?: string;
+};
+
 /* ================= POST ================= */
 
 export async function POST(req: Request) {
@@ -96,11 +139,11 @@ export async function POST(req: Request) {
 
     /* ================= VALIDATION DB ================= */
 
-    const validatedItems: CartItem[] = [];
+    const validatedItems: ServerItem[] = [];
 
     for (const item of cart) {
       try {
-        const productId = item.id.split("-")[0];
+        const { productId, format } = parseCartId(item.id);
 
         const product = await prisma.product.findUnique({
           where: { id: productId },
@@ -116,25 +159,60 @@ export async function POST(req: Request) {
           continue;
         }
 
+        /* ===== PRIX : SOURCE DE VÉRITÉ = DB, JAMAIS LE CLIENT ===== */
+
+        const pricing = parsePricing(product.pricing);
+
+        let unitPrice: number | null = null;
+        let resolvedFormat: string | undefined = undefined;
+
+        if (format) {
+          // Article avec format : le prix DOIT exister dans product.pricing.
+          if (pricing[format] != null) {
+            unitPrice = pricing[format];
+            resolvedFormat = format;
+          } else {
+            console.warn("⚠️ Format invalide, article rejeté:", item.id);
+            continue;
+          }
+        } else {
+          // Article sans format (ex. cross-sell) : prix de base DB.
+          unitPrice = product.priceCents;
+        }
+
+        if (unitPrice == null || !Number.isFinite(unitPrice) || unitPrice <= 0) {
+          console.warn("⚠️ Prix serveur indisponible, article rejeté:", item.id);
+          continue;
+        }
+
+        /* ===== STOCK ===== */
+
         if (product.stock < item.quantity) {
           console.error("❌ STOCK INSUFFISANT:", {
             productId: product.id,
             stock: product.stock,
             requested: item.quantity,
           });
-        
+
           return NextResponse.json(
             { error: `Stock insuffisant pour ${product.name}` },
             { status: 400 }
           );
         }
 
-        if (product.priceCents !== item.priceCents) {
-          console.warn("⚠️ Prix mismatch:", item.id);
-          continue;
-        }
-
-        validatedItems.push(item);
+        /* ===== ARTICLE RECONSTRUIT CÔTÉ SERVEUR ===== */
+        // Nom et image proviennent aussi de la DB : rien du client n'est
+        // utilisé comme source de vérité, seule la quantité est reprise.
+        validatedItems.push({
+          id: item.id,
+          name: resolvedFormat
+            ? `${product.name} (${resolvedFormat})`
+            : product.name,
+          priceCents: unitPrice,
+          quantity: item.quantity,
+          imageUrl: product.imageUrl,
+          format: resolvedFormat,
+        });
       } catch (err) {
         console.error("❌ DB ERROR ITEM:", item.id, err);
       }
