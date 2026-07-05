@@ -98,9 +98,22 @@ export async function POST(req: Request) {
       });
     }
 
-    /* ===== FAST-PATH IDEMPOTENT ===== */
+    /* ===== FILTRE DE STATUT ===== */
+    // Seule une commande PENDING peut être promue en PAID. Tout autre statut
+    // est acquitté (200) sans aucun effet :
+    //  - PAID              → déjà traité (idempotence)
+    //  - CANCELED / FAILED / SHIPPED / DELIVERED → on n'y touche pas, ce qui
+    //    empêche la "résurrection" d'une commande annulée/échouée par un
+    //    événement completed tardif.
     if (order.status === "PAID") {
       return NextResponse.json({ received: true, alreadyProcessed: true });
+    }
+
+    if (order.status !== "PENDING") {
+      return NextResponse.json({
+        received: true,
+        ignoredStatus: order.status,
+      });
     }
 
     const customerEmail =
@@ -114,15 +127,17 @@ export async function POST(req: Request) {
     const items = parseItems(order.items);
 
     /* ===== CLAIM ATOMIQUE + STOCK (MÊME TRANSACTION) ===== */
-    // Un seul webhook peut faire passer la commande de non-PAID à PAID :
-    // `updateMany` avec `status: { not: PAID }` ne matche qu'une fois. Le
-    // décrément stock vit dans la MÊME transaction → soit tout réussit, soit
-    // tout est annulé (donc rejouable sans double effet).
+    // Un seul webhook peut faire passer la commande de PENDING à PAID :
+    // `updateMany` avec `status: "PENDING"` ne matche qu'une fois (et jamais
+    // une commande CANCELED/FAILED/…). Le décrément stock vit dans la MÊME
+    // transaction → soit tout réussit, soit tout est annulé (rejouable sans
+    // double effet).
     const claimed = await prisma.$transaction(async (tx) => {
       const claim = await tx.order.updateMany({
-        where: { id: orderId, status: { not: "PAID" } },
+        where: { id: orderId, status: "PENDING" },
         data: {
           status: "PAID",
+          paidAt: new Date(),
           email: customerEmail,
           stripePaymentId: paymentId,
         },
