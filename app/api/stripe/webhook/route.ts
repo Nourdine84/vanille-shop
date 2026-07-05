@@ -1,6 +1,7 @@
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { stripe } from "@/lib/stripe";
 import {
   sendCustomerOrderEmail,
   sendAdminOrderEmail,
@@ -9,9 +10,20 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+/* =========================
+   GARDE ENV (au chargement)
+========================= */
+// `stripe` (lib/stripe.ts) lève déjà si STRIPE_SECRET_KEY manque et fixe
+// l'apiVersion partagée. On garde ici le secret de webhook.
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  throw new Error("STRIPE_WEBHOOK_SECRET manquant");
+}
 
-function parseItems(items: any) {
+/* =========================
+   HELPERS
+========================= */
+
+function parseItems(items: unknown): any[] {
   try {
     if (!items) return [];
     if (typeof items === "string") return JSON.parse(items);
@@ -22,15 +34,25 @@ function parseItems(items: any) {
   }
 }
 
+/* =========================
+   WEBHOOK
+========================= */
+
 export async function POST(req: Request) {
   try {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
 
     if (!signature) {
-      return NextResponse.json({ error: "Signature manquante" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Signature manquante" },
+        { status: 400 }
+      );
     }
 
+    /* ===== VÉRIFICATION SIGNATURE ===== */
+    // constructEvent est hors-ligne (HMAC local) : ne dépend pas de la
+    // validité de la clé API Stripe.
     let event: Stripe.Event;
 
     try {
@@ -39,91 +61,142 @@ export async function POST(req: Request) {
         signature,
         process.env.STRIPE_WEBHOOK_SECRET as string
       );
-    } catch (error: any) {
-      console.error("❌ STRIPE WEBHOOK SIGNATURE ERROR:", error.message);
-      return NextResponse.json({ error: "Signature invalide" }, { status: 400 });
+    } catch (err: any) {
+      console.error("❌ STRIPE WEBHOOK SIGNATURE ERROR:", err?.message);
+      return NextResponse.json(
+        { error: "Signature invalide" },
+        { status: 400 }
+      );
     }
 
+    /* ===== ÉVÉNEMENTS NON PERTINENTS ===== */
     if (event.type !== "checkout.session.completed") {
-      return NextResponse.json({ received: true });
+      return NextResponse.json({ received: true, ignored: event.type });
     }
 
     const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.metadata?.orderId;
 
     if (!orderId) {
-      return NextResponse.json({ error: "orderId manquant" }, { status: 400 });
+      return NextResponse.json(
+        { error: "orderId manquant" },
+        { status: 400 }
+      );
     }
 
-    const existingOrder = await prisma.order.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id: orderId },
     });
 
-    if (!existingOrder) {
-      return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
-    }
-
-    if (existingOrder.status === "PAID") {
-      return NextResponse.json({ received: true, alreadyPaid: true });
-    }
-
-    const customerEmail =
-      session.customer_details?.email ||
-      existingOrder.email ||
-      null;
-
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: "PAID",
-        email: customerEmail,
-        stripePaymentId:
-          typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : session.payment_intent?.id || null,
-      },
-    });
-
-    const items = parseItems(updatedOrder.items);
-
-    await Promise.all(
-      items.map(async (item: any) => {
-        const productId = item?.id?.split("-")[0];
-        if (!productId) return;
-
-        await prisma.product.update({
-          where: { id: productId },
-          data: {
-            stock: {
-              decrement: Math.max(1, Number(item.quantity) || 1),
-            },
-          },
-        });
-      })
-    );
-
-    if (customerEmail) {
-      await sendCustomerOrderEmail({
-        to: customerEmail,
-        orderId: updatedOrder.id,
-        totalCents: updatedOrder.totalCents,
-        items,
+    if (!order) {
+      // Commande absente : rien à traiter. On accuse réception pour éviter
+      // des retries infinis côté Stripe.
+      console.warn("⚠️ WEBHOOK: commande introuvable:", orderId);
+      return NextResponse.json({
+        received: true,
+        skipped: "order_not_found",
       });
     }
 
-    await sendAdminOrderEmail({
-      orderId: updatedOrder.id,
-      customerEmail,
-      totalCents: updatedOrder.totalCents,
-      items,
+    /* ===== FAST-PATH IDEMPOTENT ===== */
+    if (order.status === "PAID") {
+      return NextResponse.json({ received: true, alreadyProcessed: true });
+    }
+
+    const customerEmail =
+      session.customer_details?.email || order.email || null;
+
+    const paymentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id || null;
+
+    const items = parseItems(order.items);
+
+    /* ===== CLAIM ATOMIQUE + STOCK (MÊME TRANSACTION) ===== */
+    // Un seul webhook peut faire passer la commande de non-PAID à PAID :
+    // `updateMany` avec `status: { not: PAID }` ne matche qu'une fois. Le
+    // décrément stock vit dans la MÊME transaction → soit tout réussit, soit
+    // tout est annulé (donc rejouable sans double effet).
+    const claimed = await prisma.$transaction(async (tx) => {
+      const claim = await tx.order.updateMany({
+        where: { id: orderId, status: { not: "PAID" } },
+        data: {
+          status: "PAID",
+          email: customerEmail,
+          stripePaymentId: paymentId,
+        },
+      });
+
+      // Une autre exécution (rejeu / livraison concurrente) a déjà pris la main.
+      if (claim.count === 0) return false;
+
+      for (const item of items) {
+        const productId = item?.id?.split("-")[0];
+        if (!productId) continue;
+
+        // updateMany : ne lève pas si le produit a été supprimé (count 0),
+        // ce qui éviterait de faire rollback un paiement déjà encaissé.
+        await tx.product.updateMany({
+          where: { id: productId },
+          data: {
+            stock: { decrement: Math.max(1, Number(item?.quantity) || 1) },
+          },
+        });
+      }
+
+      return true;
     });
 
-    console.log("✅ STRIPE ORDER PAID:", updatedOrder.id);
+    if (!claimed) {
+      return NextResponse.json({ received: true, alreadyProcessed: true });
+    }
+
+    console.log("✅ STRIPE ORDER PAID:", orderId);
+
+    /* ===== EMAILS : NON BLOQUANTS ===== */
+    // La commande est payée et le stock décrémenté : un échec Resend ne doit
+    // jamais invalider le webhook (un 500 déclencherait un retry qui, la
+    // commande étant PAID, sauterait le stock).
+    const formattedItems = items.map((item: any) => ({
+      id: item?.id || "",
+      name: item?.name || "Produit",
+      quantity: Number(item?.quantity) || 1,
+      priceCents: Number(item?.priceCents) || 0,
+      imageUrl: item?.imageUrl || "",
+      description: item?.description || "",
+      format: item?.format || "",
+    }));
+
+    if (customerEmail) {
+      try {
+        await sendCustomerOrderEmail({
+          to: customerEmail,
+          orderId,
+          totalCents: order.totalCents,
+          items: formattedItems,
+        });
+      } catch (err) {
+        console.error("❌ CLIENT EMAIL ERROR:", err);
+      }
+    } else {
+      console.warn("⚠️ Aucun email client détecté");
+    }
+
+    try {
+      await sendAdminOrderEmail({
+        orderId,
+        customerEmail,
+        totalCents: order.totalCents,
+        items: formattedItems,
+      });
+    } catch (err) {
+      console.error("❌ ADMIN EMAIL ERROR:", err);
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("🔥 STRIPE WEBHOOK ERROR:", error);
-
     return NextResponse.json(
       { error: "Erreur webhook Stripe" },
       { status: 500 }
