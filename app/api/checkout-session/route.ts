@@ -249,6 +249,15 @@ export async function POST(req: Request) {
 
     console.log("👤 USER SESSION:", userId);
 
+    /* ================= EXPIRATION ================= */
+    // Échéance unique partagée entre la commande (expiresAt) et la session
+    // Stripe (expires_at), pour que la DB et Stripe aient exactement la même
+    // date limite. 30 min = plancher autorisé par Stripe Checkout.
+    const CHECKOUT_EXPIRY_MINUTES = 30;
+    const expiresAt = new Date(
+      Date.now() + CHECKOUT_EXPIRY_MINUTES * 60 * 1000
+    );
+
     /* ================= ORDER ================= */
 
     const order = await prisma.order.create({
@@ -260,6 +269,8 @@ export async function POST(req: Request) {
         currency: "EUR",
 
         items: JSON.stringify(validatedItems),
+
+        expiresAt,
       },
     });
 
@@ -294,7 +305,10 @@ export async function POST(req: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-    
+
+      // Même échéance que la commande (expiresAt) — DB et Stripe alignés.
+      expires_at: Math.floor(expiresAt.getTime() / 1000),
+
       locale: "fr",
     
       submit_type: "pay",
@@ -327,6 +341,10 @@ export async function POST(req: Request) {
         orderId: order.id,
         source: "vanilleor-shop",
       },
+    }, {
+      // Clé d'idempotence : une même commande (order.id) ne peut donner qu'une
+      // seule session Stripe, même en cas de retry/double appel de create.
+      idempotencyKey: `checkout_${order.id}`,
     });
 
     console.log("✅ STRIPE SESSION:", session.id);
