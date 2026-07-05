@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
 import {
   PDFDocument,
@@ -435,9 +436,11 @@ export async function GET(
     }
 
     const isAdmin =
-      cookies().get(
-        "admin"
-      )?.value === "true";
+      verifyAdminToken(
+        cookies().get(
+          ADMIN_SESSION_COOKIE
+        )?.value
+      );
 
     const userId =
       cookies().get(

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { signAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
@@ -33,18 +34,36 @@ export async function POST(req: Request) {
     }
 
     /* =========================
-       COOKIE SAFE (🔥 FIX CRITIQUE)
+       COOKIE DE SESSION SIGNÉ
     ========================= */
+    const token = signAdminToken();
+
+    if (!token) {
+      console.error("❌ ADMIN session secret manquant");
+      return NextResponse.json(
+        { error: "Server misconfigured" },
+        { status: 500 }
+      );
+    }
+
     const res = NextResponse.json({ success: true });
 
     res.cookies.set({
-      name: "admin",
-      value: "true",
+      name: ADMIN_SESSION_COOKIE,
+      value: token,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production", // ✅ FIX IMPORTANT
+      secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 60 * 24, // 24h
+    });
+
+    // Nettoie l'ancien cookie non signé s'il traîne.
+    res.cookies.set({
+      name: "admin",
+      value: "",
+      path: "/",
+      maxAge: 0,
     });
 
     console.log("✅ ADMIN LOGIN SUCCESS");
