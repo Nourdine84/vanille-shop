@@ -6,7 +6,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  async function handleLogin() {
     if (!password.trim()) {
       alert("Entre un mot de passe");
       return;
@@ -21,73 +21,136 @@ export default function AdminLoginPage() {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({
+          password,
+        }),
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        window.location.href = "/admin/products"; // 🔥 FIX ROUTE
-      } else {
+      if (!res.ok) {
         alert(data?.error || "Mot de passe incorrect");
+        return;
       }
 
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect") || "/admin/products";
+
+      window.location.replace(redirect);
     } catch (error) {
       console.error("LOGIN ERROR:", error);
       alert("Erreur serveur");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div style={container}>
-      <h1 style={title}>🔐 Admin Vanille’Or</h1>
+    <div style={page}>
+      <div style={card}>
+        <div style={badge}>ADMIN VANILLE’OR</div>
 
-      <input
-        type="password"
-        placeholder="Mot de passe"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        disabled={loading}
-        style={input}
-      />
+        <h1 style={title}>🔐 Connexion admin</h1>
 
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        style={btn}
-      >
-        {loading ? "Connexion..." : "Se connecter"}
-      </button>
+        <p style={subtitle}>
+          Accès réservé à l’administration de la boutique.
+        </p>
+
+        <input
+          type="password"
+          placeholder="Mot de passe admin"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleLogin();
+            }
+          }}
+          disabled={loading}
+          style={input}
+        />
+
+        <button
+          type="button"
+          onClick={handleLogin}
+          disabled={loading}
+          style={{
+            ...btn,
+            opacity: loading ? 0.7 : 1,
+            cursor: loading ? "wait" : "pointer",
+          }}
+        >
+          {loading ? "Connexion..." : "Se connecter"}
+        </button>
+      </div>
     </div>
   );
 }
 
-const container = {
-  padding: 40,
-  textAlign: "center" as const,
-  maxWidth: 400,
-  margin: "0 auto",
+const page: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#f8f5ef",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 20,
 };
 
-const title = {
-  marginBottom: 20,
-};
-
-const input = {
-  padding: 12,
+const card: React.CSSProperties = {
   width: "100%",
-  borderRadius: 10,
+  maxWidth: 420,
+  background: "white",
+  padding: 34,
+  borderRadius: 24,
+  boxShadow: "0 16px 45px rgba(0,0,0,0.08)",
+  textAlign: "center",
+};
+
+const badge: React.CSSProperties = {
+  display: "inline-block",
+  background: "#111",
+  color: "#d4af37",
+  padding: "8px 14px",
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.12em",
+  marginBottom: 18,
+};
+
+const title: React.CSSProperties = {
+  margin: 0,
+  fontSize: 30,
+  fontWeight: 900,
+};
+
+const subtitle: React.CSSProperties = {
+  color: "#666",
+  fontSize: 14,
+  lineHeight: 1.6,
+  marginTop: 12,
+  marginBottom: 26,
+};
+
+const input: React.CSSProperties = {
+  padding: 14,
+  width: "100%",
+  borderRadius: 12,
   border: "1px solid #ddd",
+  fontSize: 15,
+  outline: "none",
+  boxSizing: "border-box",
 };
 
-const btn = {
-  marginTop: 20,
+const btn: React.CSSProperties = {
+  marginTop: 18,
   width: "100%",
-  padding: 12,
-  background: "#a16207",
+  padding: 14,
+  background: "linear-gradient(135deg,#b7791f,#8b5e14)",
   color: "white",
-  borderRadius: 10,
+  borderRadius: 12,
   border: "none",
+  fontWeight: 800,
 };
