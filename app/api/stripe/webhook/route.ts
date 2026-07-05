@@ -69,12 +69,43 @@ export async function POST(req: Request) {
       );
     }
 
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    /* ===== SESSION EXPIRÉE ===== */
+    // Stripe signale une session Checkout expirée (délai dépassé). On annule
+    // la commande UNIQUEMENT si elle est encore PENDING. Aucun stock n'a été
+    // décrémenté à ce stade, aucun email. Tout autre statut (PAID, CANCELED,
+    // FAILED, SHIPPED, DELIVERED) est laissé intact.
+    if (event.type === "checkout.session.expired") {
+      const expiredOrderId = session.metadata?.orderId;
+
+      if (!expiredOrderId) {
+        console.warn("⚠️ WEBHOOK expired: orderId manquant dans la session");
+        return NextResponse.json({ received: true, skipped: "missing_orderId" });
+      }
+
+      const res = await prisma.order.updateMany({
+        where: { id: expiredOrderId, status: "PENDING" },
+        data: { status: "CANCELED" },
+      });
+
+      if (res.count === 1) {
+        console.log("⌛ ORDER EXPIRED → CANCELED:", expiredOrderId);
+        return NextResponse.json({ received: true, expired: "canceled" });
+      }
+
+      console.log(
+        "⌛ WEBHOOK expired ignoré (commande absente ou statut non PENDING):",
+        expiredOrderId
+      );
+      return NextResponse.json({ received: true, expired: "noop" });
+    }
+
     /* ===== ÉVÉNEMENTS NON PERTINENTS ===== */
     if (event.type !== "checkout.session.completed") {
       return NextResponse.json({ received: true, ignored: event.type });
     }
 
-    const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.metadata?.orderId;
 
     if (!orderId) {
