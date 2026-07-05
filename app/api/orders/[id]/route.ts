@@ -70,32 +70,63 @@ export async function GET(
     }
 
     /* =========================
-       SUCCESS
+       CONTRÔLE D'ACCÈS (capability)
+    =========================
+
+       La preuve d'accès est le `session_id` Stripe (haute entropie) : seul
+       celui qui possède l'URL de confirmation Stripe peut voir les données
+       sensibles de la commande. Il doit correspondre au stripeSessionId stocké.
+
+       - Autorisé (session_id correct) → réponse complète (email + items).
+       - Sinon → sous-ensemble PUBLIC minimal : ni email, ni items (le contenu
+         acheté). Suffisant pour la page de confirmation (statut, total, suivi),
+         mais aucune donnée personnelle n'est exposée à un tiers qui devinerait
+         un id de commande.
+
+       Aucun changement frontend requis : la page actuelle n'utilise pas
+       `items` et n'affiche `email` que de façon conditionnelle. */
+
+    const sessionId = new URL(req.url).searchParams.get("session_id");
+
+    const authorized =
+      !!sessionId &&
+      !!order.stripeSessionId &&
+      sessionId === order.stripeSessionId;
+
+    /* =========================
+       SUCCESS (données publiques)
     ========================= */
 
-    return NextResponse.json({
+    const publicOrder = {
       success: true,
 
       id: order.id,
 
-      email: order.email,
-
       status: order.status,
 
-      totalCents:
-        order.totalCents,
+      totalCents: order.totalCents,
 
-      currency:
-        order.currency,
+      currency: order.currency,
 
-      trackingNumber:
-        order.trackingNumber,
+      trackingNumber: order.trackingNumber,
 
-      carrier:
-        order.carrier,
+      carrier: order.carrier,
 
-      createdAt:
-        order.createdAt,
+      createdAt: order.createdAt,
+    };
+
+    if (!authorized) {
+      return NextResponse.json(publicOrder);
+    }
+
+    /* =========================
+       SUCCESS (données sensibles, accès prouvé)
+    ========================= */
+
+    return NextResponse.json({
+      ...publicOrder,
+
+      email: order.email,
 
       items: order.items,
     });
