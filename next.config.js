@@ -68,6 +68,27 @@ const nextConfig = {
       },
     ];
   },
+
+  async headers() {
+    // Headers de sécurité sans risque (PROD-002-B). Pas de CSP.
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

@@ -20,7 +20,17 @@ type RelancePayload = {
 /* =========================
    CRON B2B RELANCE
 ========================= */
-export async function GET() {
+export async function GET(req: Request) {
+  /* ===== AUTH (fail-closed) ===== */
+  // Sans CRON_SECRET configuré, ou header absent/incorrect → 401.
+  // Jamais de cron public. Même stratégie que /api/cron/orders-cleanup.
+  const secret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("authorization");
+
+  if (!secret || authHeader !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const now = new Date();
 
