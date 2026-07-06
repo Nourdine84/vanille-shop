@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { useUIStore } from "@/components/ui-providers";
 import { getImageUrl } from "@/lib/image";
@@ -59,6 +60,7 @@ export default function MiniCart() {
   } = useCart();
 
   const { isCartOpen, closeCart } = useUIStore();
+  const pathname = usePathname();
 
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -210,6 +212,9 @@ export default function MiniCart() {
   }
 
   if (!isReady) return null;
+
+  // Le panier storefront ne s'affiche pas dans l'administration.
+  if (pathname?.startsWith("/admin")) return null;
 
   return (
     <>

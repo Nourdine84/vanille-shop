@@ -119,6 +119,10 @@ export default function Header() {
     };
   }, []);
 
+  // L'administration a son propre chrome (sidebar) : on masque le header
+  // storefront sur /admin pour éviter une double navigation.
+  if (pathname?.startsWith("/admin")) return null;
+
   return (
     <>
       {/* =========================

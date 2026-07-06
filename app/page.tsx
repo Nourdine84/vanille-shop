@@ -53,7 +53,7 @@ export default async function HomePage() {
 
           <div style={heroActions}>
             <Link href="/products" style={btnPrimary}>
-              Découvrir la collection
+              Découvrir nos produits d’exception
             </Link>
           </div>
 
@@ -95,7 +95,12 @@ export default async function HomePage() {
 
         <div style={pillarGrid}>
           <div style={pillarCard}>
-            <div style={pillarIcon}>🇲🇬</div>
+            <div style={pillarIcon}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a16207" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                <path d="M2 21c0-3 1.85-5.36 5.08-6" />
+              </svg>
+            </div>
             <h3 style={pillarTitle}>Origine maîtrisée</h3>
             <p style={pillarText}>
               Une sélection directement issue des terroirs de Madagascar.
@@ -103,7 +108,12 @@ export default async function HomePage() {
           </div>
 
           <div style={pillarCard}>
-            <div style={pillarIcon}>⭐</div>
+            <div style={pillarIcon}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a16207" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="8" r="6" />
+                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+              </svg>
+            </div>
             <h3 style={pillarTitle}>Qualité constante</h3>
             <p style={pillarText}>
               Des critères de sélection exigeants pour garantir une
@@ -112,7 +122,12 @@ export default async function HomePage() {
           </div>
 
           <div style={pillarCard}>
-            <div style={pillarIcon}>🤝</div>
+            <div style={pillarIcon}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a16207" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </div>
             <h3 style={pillarTitle}>Transparence</h3>
             <p style={pillarText}>
               Une origine claire, des conseils utiles et une information
@@ -121,7 +136,12 @@ export default async function HomePage() {
           </div>
 
           <div style={pillarCard}>
-            <div style={pillarIcon}>🍽️</div>
+            <div style={pillarIcon}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a16207" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
+                <line x1="6" x2="18" y1="17" y2="17" />
+              </svg>
+            </div>
             <h3 style={pillarTitle}>Pour tous les passionnés</h3>
             <p style={pillarText}>
               Du cuisinier amateur au professionnel, chacun trouve le
@@ -344,7 +364,7 @@ export default async function HomePage() {
               style={card}
             >
               <div style={badge}>
-                Premium
+                {p.badge || "Premium"}
               </div>
 
               <img
@@ -1032,6 +1052,9 @@ const cardTitle = {
   fontWeight: 700,
   lineHeight: 1.4,
   marginBottom: "10px",
+  // Réserve la hauteur de 2 lignes pour aligner les prix quel que soit
+  // le nombre de lignes du nom (cartes de hauteur homogène).
+  minHeight: "50px",
 };
 
 const price = {

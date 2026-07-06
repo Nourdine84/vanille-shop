@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Masqué sur l'administration (chrome dédié).
+  if (pathname?.startsWith("/admin")) return null;
+
   return (
     <footer className="bg-[#f8f5ef] border-t border-[#ece7df] mt-24">
       <div className="max-w-7xl mx-auto px-6 py-16">
