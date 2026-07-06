@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
 import AdminBackButton from "@/components/admin/AdminBackButton";
 
@@ -110,9 +111,9 @@ function getTimeline(
 export default async function ReclamationDetailPage({
   params,
 }: Props) {
-  const isAdmin =
-    cookies().get("admin")?.value ===
-    "true";
+  const isAdmin = verifyAdminToken(
+    cookies().get(ADMIN_SESSION_COOKIE)?.value
+  );
 
   if (!isAdmin) {
     redirect("/admin/login");

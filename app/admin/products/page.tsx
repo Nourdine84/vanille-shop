@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 import ProductForm from "@/components/admin/ProductForm";
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
 import ProductToggle from "@/components/admin/ProductToggle";
@@ -49,8 +50,9 @@ export default async function AdminProductsPage({
 }: {
   searchParams?: SearchParams;
 }) {
-  const isAdmin =
-    cookies().get("admin")?.value === "true";
+  const isAdmin = verifyAdminToken(
+    cookies().get(ADMIN_SESSION_COOKIE)?.value
+  );
 
   if (!isAdmin) {
     redirect("/admin/login");

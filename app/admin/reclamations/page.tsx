@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
 import AdminBackButton from "@/components/admin/AdminBackButton";
 
@@ -87,9 +88,9 @@ export default async function AdminReclamationsPage({
     q?: string;
   };
 }) {
-  const isAdmin =
-    cookies().get("admin")?.value ===
-    "true";
+  const isAdmin = verifyAdminToken(
+    cookies().get(ADMIN_SESSION_COOKIE)?.value
+  );
 
   if (!isAdmin) {
     redirect("/admin/login");

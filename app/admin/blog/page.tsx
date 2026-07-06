@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 import AdminBackButton from "@/components/admin/AdminBackButton";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,7 @@ function formatDate(date: Date) {
 /* ================= PAGE ================= */
 
 export default async function BlogAdminPage() {
-  const isAdmin = cookies().get("admin")?.value === "true";
+  const isAdmin = verifyAdminToken(cookies().get(ADMIN_SESSION_COOKIE)?.value);
 
   if (!isAdmin) {
     redirect("/admin/login");

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminBackButton from "@/components/admin/AdminBackButton";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
 type Status = "NEW" | "CONTACTED" | "CLOSED";
 
@@ -24,7 +25,7 @@ export default async function AdminB2BPage({
     q?: string;
   };
 }) {
-  const isAdmin = cookies().get("admin");
+  const isAdmin = verifyAdminToken(cookies().get(ADMIN_SESSION_COOKIE)?.value);
 
   if (!isAdmin) {
     redirect("/admin/login");

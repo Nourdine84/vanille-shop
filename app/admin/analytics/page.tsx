@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
 import RevenueChart from "@/components/admin/RevenueChart";
 import AdminBackButton from "@/components/admin/AdminBackButton";
@@ -103,9 +104,9 @@ function parseItems(items: any) {
 ========================= */
 
 export default async function AnalyticsPage() {
-  const isAdmin =
-    cookies().get("admin")?.value ===
-    "true";
+  const isAdmin = verifyAdminToken(
+    cookies().get(ADMIN_SESSION_COOKIE)?.value
+  );
 
   if (!isAdmin) {
     redirect("/admin/login");

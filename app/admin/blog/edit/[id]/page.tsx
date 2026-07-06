@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import BlogForm from "@/components/admin/BlogForm";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 import AdminBackButton from "@/components/admin/AdminBackButton";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function EditBlogPage({
 }: {
   params: { id: string };
 }) {
-  const isAdmin = cookies().get("admin")?.value === "true";
+  const isAdmin = verifyAdminToken(cookies().get(ADMIN_SESSION_COOKIE)?.value);
 
   if (!isAdmin) {
     redirect("/admin/login");

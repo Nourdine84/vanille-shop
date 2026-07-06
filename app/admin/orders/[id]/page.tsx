@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { OrderStatus } from "@prisma/client";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
 import AdminBackButton from "@/components/admin/AdminBackButton";
 
@@ -146,9 +147,9 @@ export default async function OrderDetailPage({
 }: {
   params: { id: string };
 }) {
-  const isAdmin =
-    cookies().get("admin")?.value ===
-    "true";
+  const isAdmin = verifyAdminToken(
+    cookies().get(ADMIN_SESSION_COOKIE)?.value
+  );
 
   if (!isAdmin) {
     redirect("/admin/login");

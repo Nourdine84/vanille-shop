@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 import RevenueChart from "@/components/admin/RevenueChart";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,7 @@ export default async function AdminDashboard({
 }: {
   searchParams?: SearchParams;
 }) {
-  const isAdmin = cookies().get("admin")?.value === "true";
+  const isAdmin = verifyAdminToken(cookies().get(ADMIN_SESSION_COOKIE)?.value);
 
   if (!isAdmin) redirect("/admin/login");
 
