@@ -98,6 +98,69 @@ export default function SupportPage() {
           </p>
         </div>
 
+        {/* SAV — INFOS */}
+
+        <div style={infoCard}>
+          <div style={infoRow}>
+            <div style={infoBlock}>
+              <p style={infoLabel}>Contact SAV</p>
+              <p style={infoValue}>
+                <a href="mailto:contact@vanilleor.fr" style={infoLink}>
+                  contact@vanilleor.fr
+                </a>
+              </p>
+            </div>
+
+            <div style={infoBlock}>
+              <p style={infoLabel}>Délai de réponse</p>
+              <p style={infoValue}>48 heures ouvrées maximum</p>
+            </div>
+          </div>
+
+          <div style={infoSection}>
+            <p style={infoHeading}>Procédure de traitement</p>
+            <ol style={infoList}>
+              <li>Réception de votre demande.</li>
+              <li>Numéro de commande obligatoire.</li>
+              <li>Description du problème.</li>
+              <li>Photos si nécessaire.</li>
+              <li>Analyse du dossier.</li>
+              <li>
+                Remplacement, remboursement ou avoir selon le cas.
+              </li>
+            </ol>
+          </div>
+
+          <div style={infoSection}>
+            <p style={infoHeading}>Garantie qualité</p>
+            <ul style={infoList}>
+              <li>
+                <strong>Produit abîmé :</strong> remplacement ou
+                remboursement après validation.
+              </li>
+              <li>
+                <strong>Colis perdu :</strong> enquête transporteur puis
+                remplacement ou remboursement.
+              </li>
+              <li>
+                <strong>Erreur de préparation :</strong> remplacement
+                immédiat aux frais de Vanille’Or.
+              </li>
+              <li>
+                <strong>Produit non conforme :</strong> remboursement ou
+                remplacement selon le choix du client après validation.
+              </li>
+            </ul>
+          </div>
+
+          <div style={infoSection}>
+            <p style={infoHeading}>Zones de livraison</p>
+            <p style={infoValue}>
+              France • Europe • DOM-TOM • International
+            </p>
+          </div>
+        </div>
+
         {/* FORM */}
 
         <div style={card}>
@@ -217,6 +280,70 @@ const card: React.CSSProperties = {
   padding: 30,
   boxShadow:
     "0 12px 40px rgba(0,0,0,0.06)",
+};
+
+const infoCard: React.CSSProperties = {
+  background: "white",
+  borderRadius: 28,
+  padding: 30,
+  marginBottom: 24,
+  boxShadow: "0 12px 40px rgba(0,0,0,0.06)",
+};
+
+const infoRow: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+  gap: 16,
+  marginBottom: 20,
+};
+
+const infoBlock: React.CSSProperties = {
+  background: "#faf7f2",
+  borderRadius: 16,
+  padding: 16,
+};
+
+const infoLabel: React.CSSProperties = {
+  margin: "0 0 6px",
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#a16207",
+};
+
+const infoValue: React.CSSProperties = {
+  margin: 0,
+  fontSize: 15,
+  color: "#333",
+  lineHeight: 1.6,
+};
+
+const infoLink: React.CSSProperties = {
+  color: "#a16207",
+  fontWeight: 700,
+  textDecoration: "none",
+};
+
+const infoSection: React.CSSProperties = {
+  marginTop: 18,
+  paddingTop: 18,
+  borderTop: "1px solid #eee",
+};
+
+const infoHeading: React.CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: 16,
+  fontWeight: 800,
+  color: "#111",
+};
+
+const infoList: React.CSSProperties = {
+  margin: 0,
+  paddingLeft: 20,
+  color: "#444",
+  fontSize: 14,
+  lineHeight: 1.8,
 };
 
 const form: React.CSSProperties = {

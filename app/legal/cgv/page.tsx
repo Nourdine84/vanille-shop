@@ -118,58 +118,96 @@ function VersionHistoryTable() {
   );
 }
 
-function MediatorPlaceholder() {
+function MediatorInfo() {
   return (
     <div
       style={{
         marginTop: "20px",
-        background: "#fff3e0",
-        border: "2px solid #f59e0b",
+        background: "#fff7ed",
+        border: "1px solid #f0dfc0",
         borderRadius: "14px",
-        padding: "20px 22px",
+        padding: "18px 20px",
       }}
     >
-      <p
-        style={{
-          margin: "0 0 12px",
-          fontWeight: 800,
-          fontSize: "13px",
-          color: "#b45309",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <span aria-hidden="true">⚠️</span>
-        À compléter avant mise en production
-      </p>
-
       <div
         style={{
           display: "grid",
           gap: "6px",
           fontSize: "14px",
-          color: "#78350f",
+          color: "#5b4a2f",
         }}
       >
         <p style={{ margin: 0 }}>
-          <strong>Nom du médiateur :</strong> —
+          <strong>Médiateur :</strong> ANM Consommation
         </p>
         <p style={{ margin: 0 }}>
-          <strong>Adresse :</strong> —
+          <strong>Adresse :</strong> 25 allée Rose Dieng Kuntz, 75019 Paris
         </p>
         <p style={{ margin: 0 }}>
-          <strong>Site internet :</strong> —
+          <strong>Site internet :</strong>{" "}
+          <a
+            href="https://www.anm-conso.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            https://www.anm-conso.com
+          </a>
         </p>
         <p style={{ margin: 0 }}>
-          <strong>Coordonnées :</strong> —
-        </p>
-        <p style={{ margin: 0 }}>
-          <strong>Numéro de référencement :</strong> —
+          <strong>Email :</strong>{" "}
+          <a href="mailto:contact@anmconso.com">
+            contact@anmconso.com
+          </a>
         </p>
       </div>
+    </div>
+  );
+}
+
+function WithdrawalForm() {
+  return (
+    <div
+      style={{
+        marginTop: "20px",
+        background: "#faf8f4",
+        border: "1px solid #e7dfd3",
+        borderRadius: "14px",
+        padding: "18px 20px",
+        fontSize: "14px",
+        color: "#3a3a3a",
+        lineHeight: 1.7,
+      }}
+    >
+      <p style={{ margin: "0 0 8px", fontWeight: 800 }}>
+        Formulaire type de rétractation
+      </p>
+
+      <p style={{ margin: "0 0 12px", fontStyle: "italic", color: "#777" }}>
+        (À compléter et à renvoyer uniquement si vous souhaitez vous
+        rétracter du contrat.)
+      </p>
+
+      <p style={{ margin: 0 }}>
+        À l’attention de Vanille’Or — 18 rue du Pont Colbert, 78000
+        Versailles — contact@vanilleor.fr :
+      </p>
+
+      <p style={{ marginTop: 12 }}>
+        Je vous notifie par la présente ma rétractation du contrat portant
+        sur la vente du bien ci-dessous :
+      </p>
+
+      <ul>
+        <li>Commandé le / reçu le : …………………………</li>
+        <li>Numéro de commande : …………………………</li>
+        <li>Nom du (des) consommateur(s) : …………………………</li>
+        <li>Adresse du (des) consommateur(s) : …………………………</li>
+        <li>
+          Signature (uniquement en cas de notification sur papier) :
+          …………………………
+        </li>
+        <li>Date : …………………………</li>
+      </ul>
     </div>
   );
 }
@@ -902,6 +940,8 @@ const sections: LegalSection[] = [
           Politique de retour et remboursement disponible sur le
           site.
         </p>
+
+        <WithdrawalForm />
       </>
     ),
   },
@@ -947,7 +987,7 @@ const sections: LegalSection[] = [
         <p>
           Sous réserve des dispositions légales applicables, les
           demandes de retour doivent être effectuées dans un délai de
-          sept (7) jours suivant la réception de la commande.
+          quatorze (14) jours suivant la réception de la commande.
         </p>
 
         <p>Les produits retournés doivent être :</p>
@@ -963,9 +1003,13 @@ const sections: LegalSection[] = [
         </ul>
 
         <p>
-          Sauf erreur imputable à Vanille’Or ou disposition légale
-          contraire, les frais de retour demeurent à la charge du
-          client.
+          Les retours sont à adresser à : Vanille’Or — 18 rue du Pont
+          Colbert, 78000 Versailles.
+        </p>
+
+        <p>
+          Sauf erreur imputable à Vanille’Or ou produit défectueux, les
+          frais de retour demeurent à la charge du client.
         </p>
       </>
     ),
@@ -1177,7 +1221,7 @@ const sections: LegalSection[] = [
           amiable d’un litige.
         </p>
 
-        <MediatorPlaceholder />
+        <MediatorInfo />
       </>
     ),
   },
