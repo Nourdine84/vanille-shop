@@ -1,7 +1,8 @@
 import { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://vanille-or.com";
+  const baseUrl = SITE_URL;
 
   return [
     {
@@ -49,7 +50,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
     },
     {
-      url: `${baseUrl}/cgv`,
+      url: `${baseUrl}/legal/cgv`,
       lastModified: new Date(),
     },
     {

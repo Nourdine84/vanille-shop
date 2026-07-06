@@ -59,6 +59,13 @@ const nextConfig = {
         destination: "/legal/mentions-legales",
         permanent: true,
       },
+      {
+        // SEO : /cgv (stub) → CGV officielle complète. Le stub n'est pas
+        // supprimé (juridique intact) ; la redirection le supersède.
+        source: "/cgv",
+        destination: "/legal/cgv",
+        permanent: true,
+      },
     ];
   },
 };
