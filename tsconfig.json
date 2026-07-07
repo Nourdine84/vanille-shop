@@ -53,6 +53,7 @@
         IMPORT ALIAS
      ========================= */
     "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@/*": ["./*"]
     },
