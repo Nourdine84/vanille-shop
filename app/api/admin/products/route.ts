@@ -366,6 +366,30 @@ export async function POST(req: Request) {
       );
     }
 
+    /* ================= BORNE MAX (anti-overflow INT4) ================= */
+    // priceCents est un Int (INT4, max ~2,15 Md). On borne bien en deçà pour
+    // éviter toute erreur Prisma brute exposée à l'admin.
+    const MAX_PRICE_CENTS = 100_000_000; // 1 000 000 €
+
+    const allPrices = [
+      Number(basePrice),
+      ...Object.values(pricing).map((v) => Number(v)),
+    ];
+
+    if (
+      allPrices.some(
+        (p) => !Number.isFinite(p) || p > MAX_PRICE_CENTS
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Prix trop élevé (maximum 1 000 000 € par format).",
+        },
+        { status: 400 }
+      );
+    }
+
     /* ================= CREATE ================= */
 
     const product = await prisma.product.create({
@@ -405,11 +429,9 @@ export async function POST(req: Request) {
       );
     }
 
+    // Ne pas exposer l'erreur Prisma brute à l'admin.
     return NextResponse.json(
-      {
-        error:
-          error?.message || "Erreur serveur",
-      },
+      { error: "Une erreur est survenue lors de la création du produit." },
       { status: 500 }
     );
   }

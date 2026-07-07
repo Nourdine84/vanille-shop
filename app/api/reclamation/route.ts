@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import {
   sendSupportAdminEmail,
   sendSupportCustomerEmail,
@@ -29,31 +30,48 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("\n📩 ===== SAV REQUEST =====");
-    console.log("👤 Name:", name);
-    console.log("📧 Email:", email);
-    console.log("🧾 Order:", orderId);
-    console.log("💬 Message:", message);
-    console.log("📩 ======================\n");
-
-    /* ================= EMAIL ADMIN ================= */
-
-    await sendSupportAdminEmail({
-      name,
-      email,
-      orderId,
-      subject,
-      message,
+    /* ================= DB ================= */
+    // Persiste la réclamation pour qu'elle apparaisse dans /admin/reclamations
+    // (aligné sur /api/support). Sans cela, les réclamations client étaient
+    // uniquement envoyées par email et invisibles côté admin.
+    const reclamation = await prisma.reclamation.create({
+      data: {
+        name,
+        email,
+        orderId: orderId || null,
+        subject,
+        message,
+      },
     });
 
-    /* ================= EMAIL CLIENT ================= */
+    console.log("📩 RECLAMATION CREATED:", reclamation.id);
 
-    await sendSupportCustomerEmail({
-      to: email,
-      name,
-      subject,
-      orderId,
-    });
+    /* ================= EMAIL ADMIN (non bloquant) ================= */
+
+    try {
+      await sendSupportAdminEmail({
+        name,
+        email,
+        orderId,
+        subject,
+        message,
+      });
+    } catch (err) {
+      console.error("❌ ADMIN EMAIL ERROR:", err);
+    }
+
+    /* ================= EMAIL CLIENT (non bloquant) ================= */
+
+    try {
+      await sendSupportCustomerEmail({
+        to: email,
+        name,
+        subject,
+        orderId,
+      });
+    } catch (err) {
+      console.error("❌ CUSTOMER EMAIL ERROR:", err);
+    }
 
     return NextResponse.json({ success: true });
 

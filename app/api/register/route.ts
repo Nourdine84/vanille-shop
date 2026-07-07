@@ -17,6 +17,16 @@ export async function POST(req: Request) {
       );
     }
 
+    if (password.length < 10) {
+      return NextResponse.json(
+        {
+          error:
+            "Le mot de passe doit contenir au moins 10 caractères.",
+        },
+        { status: 400 }
+      );
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });

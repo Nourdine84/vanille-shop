@@ -213,6 +213,23 @@ export async function PUT(
       }
     }
 
+    /* ===== BORNE MAX (anti-overflow INT4) ===== */
+    const MAX_PRICE_CENTS = 100_000_000; // 1 000 000 €
+    const allPrices = [
+      Number(priceCents),
+      ...Object.values(pricing).map((v) => Number(v)),
+    ];
+    if (
+      allPrices.some(
+        (p) => !Number.isFinite(p) || p > MAX_PRICE_CENTS
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Prix trop élevé (maximum 1 000 000 € par format)." },
+        { status: 400 }
+      );
+    }
+
     const updated = await prisma.product.update({
       where: { id },
       data: {
