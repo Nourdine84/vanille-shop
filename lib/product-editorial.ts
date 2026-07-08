@@ -39,13 +39,14 @@ export type ProductEditorial = {
    slug actuel ET sur le slug propre, pour que la fiche reste alimentée si le
    slug est corrigé ultérieurement — sans réécrire ce fichier.
 
-   `origin` n'est renseigné que lorsque l'origine est déjà affirmée
-   publiquement par le site (cf. règle de non-fabrication ci-dessus).
+   `origin` est renseigné à "Madagascar" pour l'ensemble des produits :
+   information métier confirmée par l'équipe Vanille'Or.
 ========================================================================= */
 
 const CANNELLE: ProductEditorial = {
   title: "Cannelle",
   hook: "Chaleureuse et enveloppante, une cannelle choisie pour son équilibre : elle parfume sans jamais dominer.",
+  origin: "Madagascar",
   aromaticProfile:
     "Des arômes doux, épicés et légèrement sucrés, portés par une chaleur boisée. Son intensité reste mesurée : elle apporte de la profondeur à une préparation sans écraser les autres saveurs. En bâton, elle libère lentement ses arômes à l'infusion ; moulue, elle se diffuse immédiatement et demande une main plus légère.",
   uses: [
@@ -115,6 +116,7 @@ const CANNELLE: ProductEditorial = {
 const CACAO_PUR: ProductEditorial = {
   title: "Cacao Pur",
   hook: "Un cacao pur, sans sucre ajouté, à l'amertume franche et au caractère profond.",
+  origin: "Madagascar",
   aromaticProfile:
     "Une amertume nette, portée par des notes torréfiées, boisées et une légère acidité fruitée. Sans sucre pour l'adoucir, sa puissance se révèle telle quelle : c'est un ingrédient de construction, qui donne de la profondeur et de la longueur plutôt que de la gourmandise immédiate.",
   uses: [
@@ -259,6 +261,7 @@ const POIVRE_SAUVAGE: ProductEditorial = {
 const POIVRE_VERT: ProductEditorial = {
   title: "Poivre Vert",
   hook: "Le même fruit que le poivre noir, cueilli avant maturité : plus vif, plus végétal, moins piquant.",
+  origin: "Madagascar",
   aromaticProfile:
     "Récolté jeune, le poivre vert conserve une fraîcheur végétale et herbacée que la maturation fait disparaître. Son piquant est nettement plus discret que celui du poivre noir, laissant place à des notes vives, presque acidulées, qui réveillent une sauce sans l'alourdir.",
   uses: [
@@ -328,6 +331,7 @@ const POIVRE_VERT: ProductEditorial = {
 const CLOUS_DE_GIROFLE: ProductEditorial = {
   title: "Clous de Girofle",
   hook: "Une épice de caractère, chaude et pénétrante, à manier avec retenue.",
+  origin: "Madagascar",
   aromaticProfile:
     "Un parfum puissant, chaud et légèrement camphré, dû à l'eugénol qu'il contient naturellement en forte proportion. Le clou de girofle ne se dose pas comme une épice d'appoint : quelques unités suffisent à marquer durablement un plat entier, avec une persistance importante en bouche.",
   uses: [
@@ -397,6 +401,7 @@ const CLOUS_DE_GIROFLE: ProductEditorial = {
 const HUILE_DE_GIROFLE: ProductEditorial = {
   title: "Huile de Girofle",
   hook: "Une essence concentrée, à manier avec précision : quelques gouttes suffisent.",
+  origin: "Madagascar",
   aromaticProfile:
     "Extrêmement concentrée, l'huile de girofle porte les notes chaudes, épicées et camphrées du clou, mais démultipliées. Là où l'on compte les clous, on compte ici les gouttes. C'est un produit de précision, réservé à ceux qui maîtrisent le dosage et cherchent à marquer un profil aromatique d'une empreinte nette.",
   uses: [
