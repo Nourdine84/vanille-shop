@@ -556,6 +556,297 @@ const VANILLE_GIVREE: ProductEditorial = {
   ],
 };
 
+/* =========================================================================
+   COFFRETS / PACKS
+   La composition exacte n'est PAS répétée ici : elle est rendue au-dessus de
+   la couche éditoriale, à partir du champ `packItems` de la base. On évite
+   ainsi toute duplication et toute quantité inventée.
+
+   Note : les intitulés de sections sont figés dans
+   components/product/ProductEditorial.tsx (« Portrait aromatique »,
+   « Comment l'utiliser »…). Le vocabulaire coffret est donc porté par le
+   texte lui-même, sans modifier le composant.
+========================================================================= */
+
+const PACK_DECOUVERTE: ProductEditorial = {
+  title: "Pack Découverte",
+  hook: "Une première rencontre avec la vanille de Madagascar, sous quatre formes complémentaires.",
+  origin: "Madagascar",
+  aromaticProfile:
+    "Ce coffret réunit quatre expressions d'une même vanille : la gousse, la poudre, l'extrait et le caviar. Chacune libère l'arôme différemment — infusion lente pour la gousse, diffusion immédiate pour la poudre, précision pour l'extrait, intensité concentrée pour le caviar. C'est un coffret conçu pour comprendre la vanille en la comparant, plutôt que pour en consommer beaucoup.",
+  uses: [
+    "premier achat",
+    "découverte comparative",
+    "pâtisserie du quotidien",
+    "crèmes et desserts",
+    "boissons chaudes",
+    "cadeau d'initiation",
+  ],
+  conservation:
+    "Conservez chaque produit dans son contenant d'origine, bien refermé, à température ambiante et à l'abri de la lumière et de l'humidité. Évitez le réfrigérateur, qui favorise la condensation. Les gousses et la poudre craignent surtout l'humidité ; l'extrait, la lumière et la chaleur.",
+  trust:
+    "Nous avons pensé ce coffret comme une porte d'entrée honnête : des formats volontairement mesurés, pour essayer avant de s'engager sur de plus grandes quantités. Les produits qui le composent sont exactement ceux que nous vendons à l'unité — aucune qualité au rabais réservée aux coffrets.",
+  faq: [
+    {
+      question: "À qui s'adresse ce coffret ?",
+      answer:
+        "À celles et ceux qui découvrent la vanille de Madagascar et souhaitent comprendre ce qui distingue une gousse d'une poudre, d'un extrait ou d'un caviar. C'est aussi un cadeau d'initiation adapté à un amateur de pâtisserie.",
+    },
+    {
+      question: "Que contient-il exactement ?",
+      answer:
+        "La composition détaillée, avec les formats précis de chaque produit, est affichée sur cette page, au-dessus de cette section.",
+    },
+    {
+      question: "Comment l'utiliser ?",
+      answer:
+        "Le plus instructif est de comparer : parfumez une même crème avec la gousse, puis avec la poudre, puis avec l'extrait. Les différences d'intensité et de diffusion apparaissent immédiatement.",
+    },
+    {
+      question: "Les produits sont-ils les mêmes que ceux vendus à l'unité ?",
+      answer:
+        "Oui, strictement les mêmes, dans des formats réduits. Le coffret ne contient pas une qualité distincte.",
+    },
+    {
+      question: "Comment conserver les produits du coffret ?",
+      answer:
+        "À température ambiante, chaque produit dans son contenant refermé, à l'abri de la lumière et de l'humidité. Ne les stockez pas au réfrigérateur.",
+    },
+    {
+      question: "Combien de temps se conservent-ils ?",
+      answer:
+        "Bien conservés, les produits secs gardent longtemps leurs qualités, en perdant progressivement en intensité. Fiez-vous à l'odeur à l'ouverture, et référez-vous aux mentions portées sur chaque contenant.",
+    },
+    {
+      question: "Peut-on congeler les produits du coffret ?",
+      answer:
+        "Ce n'est pas recommandé. Le froid n'apporte rien à ces produits et la condensation, au retour à température ambiante, apporte de l'humidité.",
+    },
+    {
+      question: "Convient-il à un usage professionnel ?",
+      answer:
+        "Les formats de ce coffret sont pensés pour un usage domestique ou une dégustation. Un professionnel s'orientera plutôt vers nos formats à l'unité, ou vers un coffret de gamme supérieure.",
+    },
+    {
+      question: "Quelle différence avec les autres coffrets ?",
+      answer:
+        "Celui-ci est le plus accessible et le plus resserré : il se concentre sur la vanille seule. Les coffrets supérieurs élargissent la sélection aux épices et proposent des formats plus généreux.",
+    },
+  ],
+};
+
+const PACK_ARTISAN: ProductEditorial = {
+  title: "Pack Artisan",
+  hook: "Le coffret de celles et ceux qui cuisinent souvent : la vanille, élargie à deux épices de caractère.",
+  origin: "Madagascar",
+  aromaticProfile:
+    "Autour de la vanille — gousse, caviar et extrait — ce coffret ouvre sur deux compagnons naturels : la cannelle, chaleureuse et enveloppante, et le cacao pur, franc et profond. Trois familles aromatiques qui se répondent : la douceur boisée de la vanille, la chaleur épicée de la cannelle, l'amertume construite du cacao. Ensemble, elles couvrent l'essentiel d'un répertoire de pâtisserie.",
+  uses: [
+    "pâtisserie régulière",
+    "crèmes et ganaches",
+    "chocolaterie maison",
+    "biscuits et pains d'épices",
+    "compotes et fruits cuits",
+    "boissons chaudes",
+    "cadeau à un passionné",
+  ],
+  conservation:
+    "Chaque produit se conserve dans son contenant refermé, à température ambiante, à l'abri de la lumière et de l'humidité. Le cacao capte facilement les odeurs : tenez-le à distance des épices puissantes. Les bâtons de cannelle conservent leurs arômes plus longtemps que la cannelle moulue.",
+  trust:
+    "Ce coffret correspond à ce que nous utilisons nous-mêmes le plus souvent. Il ne cherche pas l'exhaustivité mais la cohérence : chaque produit y a une raison d'être, et aucun n'est présent pour gonfler la liste.",
+  faq: [
+    {
+      question: "À qui s'adresse ce coffret ?",
+      answer:
+        "À une personne qui pâtisse régulièrement et souhaite disposer d'une base cohérente : de la vanille sous plusieurs formes, plus deux épices qui l'accompagnent naturellement.",
+    },
+    {
+      question: "Que contient-il exactement ?",
+      answer:
+        "La composition détaillée, avec les formats précis, figure sur cette page, juste au-dessus de cette section.",
+    },
+    {
+      question: "En quoi diffère-t-il du Pack Découverte ?",
+      answer:
+        "Le Découverte se concentre sur la vanille seule, en petits formats. L'Artisan propose des formats plus généreux et élargit la sélection à la cannelle et au cacao pur.",
+    },
+    {
+      question: "Comment associer ces produits ?",
+      answer:
+        "La vanille et le cacao construisent le fond d'une ganache ou d'une mousse ; la cannelle vient réchauffer une compote, un pain d'épices ou une boisson. Utilisez le cacao pur en gardant la main sur le sucre : il n'en contient pas.",
+    },
+    {
+      question: "Comment conserver les produits du coffret ?",
+      answer:
+        "À température ambiante, chacun dans son contenant hermétique, à l'abri de la lumière et de l'humidité. Isolez le cacao des produits odorants.",
+    },
+    {
+      question: "Le cacao est-il sucré ?",
+      answer:
+        "Non. C'est un cacao pur, sans sucre ni additif. Son amertume est franche, et c'est vous qui maîtrisez le sucrage de la préparation.",
+    },
+    {
+      question: "Peut-on congeler les produits ?",
+      answer:
+        "Ce n'est ni utile ni recommandé pour des produits secs. La condensation au retour à température ambiante introduit de l'humidité.",
+    },
+    {
+      question: "Convient-il à un usage professionnel ?",
+      answer:
+        "Il peut convenir à un petit atelier ou à un usage ponctuel. Pour une production régulière, orientez-vous vers le coffret professionnel ou vers nos formats à l'unité.",
+    },
+    {
+      question: "Les produits sont-ils identiques à ceux vendus séparément ?",
+      answer:
+        "Oui. Aucun produit de coffret ne fait l'objet d'une sélection différente de celle appliquée aux ventes à l'unité.",
+    },
+  ],
+};
+
+const PACK_PRO: ProductEditorial = {
+  title: "Pack Pro",
+  hook: "La sélection complète, en formats de travail : conçue pour ceux qui cuisinent tous les jours.",
+  origin: "Madagascar",
+  aromaticProfile:
+    "Ce coffret rassemble l'essentiel de notre sélection : la vanille sous toutes ses formes — gousse, caviar, poudre, extrait — élargie à la Pompona, à la cannelle, au cacao pur, au poivre sauvage et à l'huile de girofle. Le registre va de la douceur boisée de la vanille jusqu'aux notes résineuses du voatsiperifery et à la puissance camphrée du girofle. C'est une palette de travail, pas une vitrine.",
+  uses: [
+    "usage professionnel",
+    "pâtisserie et glacerie",
+    "chocolaterie",
+    "restauration",
+    "cuisine salée",
+    "sauces et jus",
+    "production régulière",
+  ],
+  conservation:
+    "Stockez chaque produit dans son contenant refermé, à température ambiante, à l'abri de la lumière et de l'humidité. Isolez le cacao des épices puissantes, qu'il capte facilement. Ne moulez le poivre qu'au moment de servir. L'huile de girofle, très concentrée, se conserve flacon fermé, debout, hors de portée des enfants, et s'emploie toujours très diluée.",
+  trust:
+    "Les formats de ce coffret sont ceux qui tournent réellement dans une cuisine qui produit. Nous n'y avons ajouté aucun produit pour l'effet de liste : chaque référence répond à un usage identifié. Nous appliquons les mêmes critères de sélection qu'aux ventes à l'unité, et contrôlons chaque lot avant mise en vente.",
+  faq: [
+    {
+      question: "À qui s'adresse ce coffret ?",
+      answer:
+        "Aux professionnels — pâtissiers, chocolatiers, glaciers, restaurateurs — et aux cuisiniers amateurs très réguliers, qui souhaitent disposer de la sélection complète en formats de travail.",
+    },
+    {
+      question: "Que contient-il exactement ?",
+      answer:
+        "La composition détaillée, produit par produit et format par format, est affichée sur cette page, au-dessus de cette section.",
+    },
+    {
+      question: "En quoi diffère-t-il du Pack Artisan ?",
+      answer:
+        "L'Artisan couvre la vanille et deux épices, en formats domestiques. Le Pro élargit la sélection — Pompona, poivre sauvage, huile de girofle — et propose des formats adaptés à une production suivie.",
+    },
+    {
+      question: "Puis-je l'utiliser en production régulière ?",
+      answer:
+        "Oui, c'est sa raison d'être. Si vos volumes dépassent ce que le coffret couvre, nous proposons des formats plus importants à l'unité ainsi que des tarifs professionnels.",
+    },
+    {
+      question: "Y a-t-il des précautions particulières ?",
+      answer:
+        "Oui, pour l'huile de girofle : c'est une essence très concentrée. Elle ne se consomme jamais pure, s'emploie toujours très diluée, et doit rester hors de portée des enfants. Respectez les mentions portées sur son étiquette.",
+    },
+    {
+      question: "Comment conserver l'ensemble ?",
+      answer:
+        "À température ambiante, chaque produit refermé, à l'abri de la lumière et de l'humidité. Isolez le cacao des odeurs fortes. Le poivre se conserve en grains et ne se moud qu'à l'usage.",
+    },
+    {
+      question: "Les lots sont-ils les mêmes que ceux vendus à l'unité ?",
+      answer:
+        "Oui. Nous ne réservons pas une qualité distincte aux coffrets : ce sont les mêmes lots, soumis aux mêmes contrôles.",
+    },
+    {
+      question: "Peut-on congeler les produits ?",
+      answer:
+        "Non, ce n'est pas recommandé pour ces produits secs ou concentrés. La conservation à température ambiante, au sec et à l'obscurité, reste la solution adaptée.",
+    },
+    {
+      question: "Proposez-vous des conditions professionnelles ?",
+      answer:
+        "Oui. Pour des besoins récurrents ou des volumes plus importants, contactez-nous : nous étudions chaque demande professionnelle au cas par cas.",
+    },
+    {
+      question: "Peut-on remplacer un produit du coffret ?",
+      answer:
+        "La composition du coffret est fixe. Pour une sélection sur mesure, adressez-vous à notre service client, qui vous orientera vers un assemblage de produits à l'unité.",
+    },
+  ],
+};
+
+const PACK_SIGNATURE: ProductEditorial = {
+  title: "Pack Signature",
+  hook: "Notre coffret d'exception, réservé aux plus belles sélections de la maison.",
+  origin: "Madagascar",
+  aromaticProfile:
+    "Le Signature rassemble ce que nous avons de plus abouti : les lots que nous mettons de côté quand un affinage a été particulièrement bien conduit. Sa composition n'est pas figée — elle suit la qualité des récoltes plutôt qu'une liste arrêtée à l'avance. C'est un coffret de dégustation, pensé pour être ouvert lentement.",
+  uses: [
+    "dégustation",
+    "cadeau d'exception",
+    "pâtisserie de fête",
+    "créations signature",
+    "table de réception",
+  ],
+  conservation:
+    "Comme pour l'ensemble de nos produits : contenant refermé, température ambiante, à l'abri de la lumière et de l'humidité. Le réfrigérateur est à proscrire, la condensation abîmant les gousses. Reportez-vous aux indications portées sur chaque contenant du coffret reçu.",
+  trust:
+    "Nous préférons ne pas proposer ce coffret plutôt que de le composer avec des lots ordinaires. Sa disponibilité dépend donc directement des récoltes et de l'affinage, et non d'un calendrier commercial. Nous ne lui prêtons aucune certification ni distinction : sa seule promesse est la sélection.",
+  faq: [
+    {
+      question: "Que contient le Pack Signature ?",
+      answer:
+        "Sa composition n'est pas encore figée : elle dépend des lots retenus au moment de l'assemblage. Le détail exact sera affiché sur cette page dès que le coffret sera disponible.",
+    },
+    {
+      question: "À qui s'adresse ce coffret ?",
+      answer:
+        "À un amateur averti, ou comme cadeau d'exception. Il s'adresse à quelqu'un qui souhaite goûter le haut de notre sélection plutôt que constituer un stock de travail.",
+    },
+    {
+      question: "Quand sera-t-il disponible ?",
+      answer:
+        "Nous ne communiquons pas de date. Sa mise en vente dépend de la disponibilité de lots répondant à nos critères. Nous préférons l'annoncer tard que l'annoncer à tort.",
+    },
+    {
+      question: "En quoi diffère-t-il du Pack Pro ?",
+      answer:
+        "Le Pro est un coffret de travail, pensé pour la production. Le Signature est un coffret de dégustation, orienté vers la qualité des lots retenus plutôt que vers les volumes.",
+    },
+    {
+      question: "Les produits sont-ils différents de ceux vendus à l'unité ?",
+      answer:
+        "Ce sont les mêmes produits, issus des lots que nous jugeons les plus aboutis. Nous n'introduisons aucune référence exclusive au coffret.",
+    },
+    {
+      question: "Comment conserver les produits du coffret ?",
+      answer:
+        "À température ambiante, chaque produit dans son contenant refermé, à l'abri de la lumière et de l'humidité. Évitez le réfrigérateur.",
+    },
+    {
+      question: "Combien de temps se conservent-ils ?",
+      answer:
+        "Bien conservés, ils gardent durablement leurs qualités, en perdant progressivement de l'intensité. Référez-vous aux mentions portées sur chaque contenant.",
+    },
+    {
+      question: "Peut-on congeler les produits ?",
+      answer:
+        "Non, ce n'est pas recommandé : le froid n'apporte rien et la condensation nuit aux gousses comme aux poudres.",
+    },
+    {
+      question: "Convient-il à un usage professionnel ?",
+      answer:
+        "Il peut servir de coffret de dégustation ou de présentation. Pour une production régulière, le coffret professionnel ou les formats à l'unité restent plus adaptés.",
+    },
+    {
+      question: "Bénéficie-t-il d'une distinction particulière ?",
+      answer:
+        "Non. Nous ne revendiquons aucune certification, aucun label ni aucune récompense pour ce coffret. Sa valeur tient à la sélection des lots, rien d'autre.",
+    },
+  ],
+};
+
 export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
   "vanille-bourbon-madagascar": {
     title: "Vanille Bourbon de Madagascar",
@@ -783,6 +1074,23 @@ export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
 
   // Produit non encore créé en base : l'entrée reste inerte jusque-là.
   "vanille-givree": VANILLE_GIVREE,
+
+  /* ================= COFFRETS / PACKS =================
+     `pack-artisan-2` est le slug réellement en base (le suffixe vient d'un
+     doublon supprimé). On indexe aussi `pack-artisan` pour que le contenu
+     survive à une éventuelle correction du slug, sans réécrire ce fichier.
+     `pack-signature` reste inerte tant que le coffret n'existe pas en base.
+  ==================================================== */
+
+  "pack-decouverte": PACK_DECOUVERTE,
+
+  "pack-artisan-2": PACK_ARTISAN,
+  "pack-artisan": PACK_ARTISAN,
+
+  "pack-pro": PACK_PRO,
+
+  // Coffret non encore créé en base : l'entrée reste inerte jusque-là.
+  "pack-signature": PACK_SIGNATURE,
 
   /* ================= ÉPICES =================
      Chaque produit est indexé sur le slug actuellement en base ET sur le
