@@ -17,6 +17,19 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+
+    // bcrypt est un module natif, chargé au runtime par node-gyp-build. Ses
+    // prebuilds (.node) échappent au tracing de fichiers de Next : ils étaient
+    // donc absents du bundle serverless Vercel, d'où le 500 sur /api/login et
+    // /api/register :
+    //   "No native build was found for platform=linux arch=x64 runtime=node"
+    // On les inclut explicitement dans les deux seules routes qui importent
+    // bcrypt. NB : ces prebuilds sont N-API (aucun tag d'ABI) — le problème
+    // n'était pas la version de Node, mais un fichier manquant dans le bundle.
+    outputFileTracingIncludes: {
+      "/api/login": ["./node_modules/bcrypt/prebuilds/linux-x64/**"],
+      "/api/register": ["./node_modules/bcrypt/prebuilds/linux-x64/**"],
+    },
   },
 
   typescript: {
