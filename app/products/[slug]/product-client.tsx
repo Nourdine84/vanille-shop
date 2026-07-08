@@ -28,6 +28,7 @@ type ProductType = {
   stock: number;
   pricing?: PricingMap | null;
   isPack?: boolean;
+  packItems?: string | null;
 };
 
 type Review = {
@@ -54,6 +55,22 @@ function renderStars(
   rating: number
 ) {
   return "★".repeat(rating);
+}
+
+/* ================= PACK ITEMS ================= */
+
+/**
+ * `packItems` est saisi en base sous forme de lignes à puces
+ * (« * Vanille Bourbon Gourmet – 100 g\r\n* … »). On le découpe en lignes,
+ * en retirant la puce éventuelle. Renvoie [] si le champ est vide.
+ */
+function parsePackItems(items?: string | null): string[] {
+  if (!items) return [];
+
+  return items
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*[*•-]\s*/, "").trim())
+    .filter(Boolean);
 }
 
 /* ================= ORDER FORMATS ================= */
@@ -119,7 +136,20 @@ export default function ClientProduct({
 
   /* ================= PRICING ================= */
 
+  const isPack = Boolean(product.isPack);
+
+  const packItems = useMemo(
+    () => parsePackItems(product.packItems),
+    [product.packItems]
+  );
+
   const formats = useMemo(() => {
+    // Un pack n'a pas de format : son `pricing` est null en base. Sans ce
+    // garde-fou, le fallback ci-dessous inventait un format "100g" inexistant,
+    // que le serveur rejetait ensuite (prix introuvable dans `pricing`), ce qui
+    // retirait silencieusement le pack de la commande.
+    if (isPack) return [];
+
     const raw =
       product.pricing || {
         "100g":
@@ -307,6 +337,30 @@ export default function ClientProduct({
       return;
     }
 
+    // Pack : aucun format. On envoie l'id nu, sans suffixe `-<format>`, afin
+    // que le serveur emprunte sa branche « article sans format » et retienne
+    // `product.priceCents` comme prix de vérité.
+    if (isPack) {
+      addToCart({
+        id: product.id,
+
+        name: product.name,
+
+        priceCents: product.priceCents,
+
+        imageUrl:
+          image || undefined,
+
+        quantity: 1,
+      });
+
+      openCart();
+
+      return;
+    }
+
+    if (!selected) return;
+
     addToCart({
       id: `${product.id}-${selected.label}`,
 
@@ -439,7 +493,10 @@ export default function ClientProduct({
 
           <p style={price}>
             {formatPrice(
-              selected.value
+              isPack
+                ? product.priceCents
+                : selected?.value ??
+                  product.priceCents
             )}
           </p>
 
@@ -448,8 +505,33 @@ export default function ClientProduct({
               "Produit premium Vanille'Or, sélectionné pour sa qualité exceptionnelle."}
           </p>
 
+          {/* PACK : composition au lieu du sélecteur de format */}
+
+          {isPack && (
+            <div style={selectorWrapper}>
+              <p style={selectorTitle}>
+                Composition complète
+              </p>
+
+              {packItems.length > 0 ? (
+                <ul style={packList}>
+                  {packItems.map((item) => (
+                    <li key={item} style={packListItem}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={desc}>
+                  Coffret Vanille’Or.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* SELECTOR */}
 
+          {!isPack && formats.length > 0 && (
           <div
             style={
               selectorWrapper
@@ -497,13 +579,13 @@ export default function ClientProduct({
                           : "pointer",
 
                       border:
-                        selected.label ===
+                        selected?.label ===
                         f.label
                           ? "2px solid #a16207"
                           : "1px solid #ddd",
 
                       background:
-                        selected.label ===
+                        selected?.label ===
                         f.label
                           ? "#fff7ed"
                           : "white",
@@ -529,6 +611,7 @@ export default function ClientProduct({
               )}
             </div>
           </div>
+          )}
 
           {/* CTA */}
 
@@ -1019,6 +1102,21 @@ const selectorTitle = {
   fontWeight: 700,
 
   fontSize: 15,
+};
+
+/* Composition d'un pack : liste sobre, tokens identiques au reste de la fiche. */
+const packList: React.CSSProperties = {
+  margin: 0,
+  paddingLeft: 18,
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+};
+
+const packListItem: React.CSSProperties = {
+  color: "#555",
+  fontSize: 15,
+  lineHeight: 1.6,
 };
 
 const optionsGrid = {
