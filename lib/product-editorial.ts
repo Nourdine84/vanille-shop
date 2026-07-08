@@ -31,6 +31,440 @@ export type ProductEditorial = {
   faq?: ProductFaq[];
 };
 
+/* =========================================================================
+   ÉPICES — définies en constantes plutôt qu'en littéraux inline afin de
+   pouvoir référencer un même contenu sous plusieurs slugs (aliasing).
+   Certains slugs en base portent un format ou une faute de frappe
+   (« canelle-10g », « huile-de-girofle-15ml »). On indexe le contenu sur le
+   slug actuel ET sur le slug propre, pour que la fiche reste alimentée si le
+   slug est corrigé ultérieurement — sans réécrire ce fichier.
+
+   `origin` n'est renseigné que lorsque l'origine est déjà affirmée
+   publiquement par le site (cf. règle de non-fabrication ci-dessus).
+========================================================================= */
+
+const CANNELLE: ProductEditorial = {
+  title: "Cannelle",
+  hook: "Chaleureuse et enveloppante, une cannelle choisie pour son équilibre : elle parfume sans jamais dominer.",
+  aromaticProfile:
+    "Des arômes doux, épicés et légèrement sucrés, portés par une chaleur boisée. Son intensité reste mesurée : elle apporte de la profondeur à une préparation sans écraser les autres saveurs. En bâton, elle libère lentement ses arômes à l'infusion ; moulue, elle se diffuse immédiatement et demande une main plus légère.",
+  uses: [
+    "pâtisserie",
+    "compotes et fruits cuits",
+    "boissons chaudes",
+    "chocolat chaud",
+    "infusions",
+    "plats mijotés et tajines",
+    "marinades",
+    "vins et punchs chauds",
+    "riz au lait et desserts lactés",
+  ],
+  conservation:
+    "À conserver dans un contenant hermétique, à température ambiante, à l'abri de la lumière, de la chaleur et de l'humidité. Les bâtons conservent leurs arômes plus longtemps que la cannelle moulue, qui s'évente plus vite une fois le contenant ouvert.",
+  trust:
+    "Nous retenons la cannelle pour la finesse de son parfum et la régularité de son intensité d'un lot à l'autre. Chaque lot est contrôlé avant mise en vente, et nous privilégions un produit expédié rapidement plutôt qu'un stock dormant : une épice se juge à la vivacité de ses arômes.",
+  faq: [
+    {
+      question: "Bâton ou cannelle moulue : que choisir ?",
+      answer:
+        "Le bâton convient aux préparations longues et liquides, où il infuse lentement : boissons chaudes, compotes, plats mijotés. La cannelle moulue s'incorpore directement aux pâtes, biscuits et crèmes, et libère ses arômes immédiatement.",
+    },
+    {
+      question: "Quelle quantité utiliser ?",
+      answer:
+        "Commencez petit. Une demi-cuillère à café de cannelle moulue suffit généralement pour une pâte à gâteau familiale, et un bâton pour un litre de liquide. La cannelle monte vite en puissance : il est plus simple d'en ajouter que d'en retirer.",
+    },
+    {
+      question: "Peut-on réutiliser un bâton de cannelle ?",
+      answer:
+        "Oui, une seconde fois si le bâton a infusé dans un liquide, à condition de le rincer, de le sécher complètement et de le conserver au sec. Il aura toutefois perdu une partie de ses arômes.",
+    },
+    {
+      question: "Faut-il retirer le bâton avant de servir ?",
+      answer:
+        "Oui, dans la plupart des préparations. Le bâton n'est pas destiné à être consommé : il sert à parfumer, puis se retire en fin de cuisson ou d'infusion.",
+    },
+    {
+      question: "La cannelle convient-elle aux plats salés ?",
+      answer:
+        "Tout à fait. Elle est traditionnellement utilisée dans les tajines, les plats mijotés, les currys et certaines marinades, où elle apporte une chaleur ronde qui équilibre l'acidité et le gras.",
+    },
+    {
+      question: "Comment la conserver ?",
+      answer:
+        "Dans un contenant hermétique, à température ambiante, à l'abri de la lumière et de l'humidité. Évitez de la stocker au-dessus d'une plaque de cuisson : la chaleur accélère la perte d'arômes.",
+    },
+    {
+      question: "Combien de temps se conserve-t-elle ?",
+      answer:
+        "Conservée dans de bonnes conditions, la cannelle ne devient pas impropre à la consommation, mais elle perd progressivement son intensité. Les bâtons tiennent nettement plus longtemps que la poudre. Fiez-vous à son parfum : s'il ne se dégage plus à l'ouverture, l'épice a fait son temps.",
+    },
+    {
+      question: "Peut-on la congeler ?",
+      answer:
+        "Ce n'est pas recommandé. Le froid n'apporte rien à une épice sèche, et les variations de température favorisent la condensation, donc l'humidité — l'ennemi principal de la cannelle.",
+    },
+    {
+      question: "Convient-elle à un usage professionnel ?",
+      answer:
+        "Oui. La régularité d'intensité entre les lots est précisément l'un de nos critères de sélection, afin qu'une recette calibrée reste reproductible d'une commande à l'autre.",
+    },
+  ],
+};
+
+const CACAO_PUR: ProductEditorial = {
+  title: "Cacao Pur",
+  hook: "Un cacao pur, sans sucre ajouté, à l'amertume franche et au caractère profond.",
+  aromaticProfile:
+    "Une amertume nette, portée par des notes torréfiées, boisées et une légère acidité fruitée. Sans sucre pour l'adoucir, sa puissance se révèle telle quelle : c'est un ingrédient de construction, qui donne de la profondeur et de la longueur plutôt que de la gourmandise immédiate.",
+  uses: [
+    "pâtisserie",
+    "chocolaterie",
+    "ganaches",
+    "mousses et crèmes",
+    "glaces",
+    "biscuits et sablés",
+    "boissons chaudes",
+    "enrobages et finitions",
+    "sauces salées et viandes mijotées",
+  ],
+  conservation:
+    "À conserver dans un contenant hermétique, à température ambiante, à l'abri de la lumière, de l'humidité et des odeurs fortes — le cacao les capte facilement. Prélevez avec une cuillère sèche pour éviter tout apport d'humidité.",
+  trust:
+    "Nous sélectionnons un cacao pur, sans sucre ni additif, pour laisser le contrôle au cuisinier. Chaque lot est contrôlé avant mise en vente, et nous refusons ceux dont le profil manque de netteté : dans une préparation, un cacao médiocre ne se rattrape pas.",
+  faq: [
+    {
+      question: "Quelle différence avec un chocolat en poudre du commerce ?",
+      answer:
+        "Un chocolat en poudre pour petit-déjeuner est très majoritairement composé de sucre. Ce cacao est pur : aucun sucre, aucun arôme ajouté. Il est donc nettement plus amer, plus puissant, et vous maîtrisez seul le sucrage.",
+    },
+    {
+      question: "Quelle quantité utiliser ?",
+      answer:
+        "Comptez environ 10 à 20 g pour 100 g de farine dans une pâte, et 1 à 2 cuillères à café pour une boisson chaude. Sans sucre pour l'équilibrer, il vaut mieux doser progressivement.",
+    },
+    {
+      question: "Pourquoi est-il si amer ?",
+      answer:
+        "Parce qu'il ne contient rien d'autre que du cacao. L'amertume est la signature du produit brut ; elle s'équilibre par le sucre, le gras ou le lait de votre préparation.",
+    },
+    {
+      question: "Faut-il le tamiser ?",
+      answer:
+        "Oui, systématiquement pour les pâtes et les crèmes. Le cacao pur a tendance à former de petits grumeaux qui se dissolvent mal une fois la préparation montée.",
+    },
+    {
+      question: "Peut-on l'utiliser en cuisine salée ?",
+      answer:
+        "Oui, en très petite quantité. Une pointe de cacao dans une sauce, un plat de viande mijoté ou un jus de cuisson apporte de la profondeur et de la longueur, sans que le goût de chocolat ne domine.",
+    },
+    {
+      question: "Se dissout-il dans un liquide froid ?",
+      answer:
+        "Mal. Le cacao pur se disperse bien mieux dans un liquide chaud, ou délayé au préalable en pâte lisse avec un peu de liquide avant d'être incorporé au reste.",
+    },
+    {
+      question: "Comment le conserver ?",
+      answer:
+        "Dans un contenant hermétique, à température ambiante, à l'abri de la lumière et de l'humidité. Tenez-le éloigné des épices puissantes et de tout produit odorant : le cacao absorbe les odeurs.",
+    },
+    {
+      question: "Peut-on le congeler ?",
+      answer:
+        "Ce n'est pas conseillé. Une poudre sèche n'y gagne rien, et la condensation au moment de la sortie du froid risque de la faire s'agglomérer.",
+    },
+    {
+      question: "Convient-il aux professionnels ?",
+      answer:
+        "Oui. L'absence de sucre et d'additif en fait une base de travail prévisible pour la chocolaterie, la pâtisserie et la glacerie, où le dosage doit rester maîtrisé.",
+    },
+  ],
+};
+
+const POIVRE_SAUVAGE: ProductEditorial = {
+  title: "Poivre Sauvage (Voatsiperifery)",
+  hook: "Récolté à l'état sauvage, un poivre au caractère singulier, boisé et long en bouche.",
+  origin: "Madagascar",
+  aromaticProfile:
+    "Moins standardisé que les poivres cultivés, le voatsiperifery développe des notes boisées, fraîches et légèrement résineuses, avec une pointe florale. Sa force piquante reste mesurée ; c'est sa longueur en bouche et sa complexité qui le distinguent, davantage que sa puissance brute.",
+  uses: [
+    "viandes rouges et grillades",
+    "volailles",
+    "poissons",
+    "sauces",
+    "légumes rôtis",
+    "foie gras",
+    "fromages",
+    "desserts au chocolat",
+    "fruits rouges et ananas",
+  ],
+  conservation:
+    "À conserver en grains, dans un contenant hermétique, à température ambiante et à l'abri de la lumière. Ne moulez qu'au moment de servir : un poivre moulu à l'avance perd l'essentiel de ses arômes volatils en quelques jours.",
+  trust:
+    "Ce poivre est issu d'une récolte sauvage, ce qui implique une variabilité naturelle de calibre et d'aspect que nous assumons plutôt que de la gommer. Nous sélectionnons les lots sur le parfum et la longueur en bouche, et contrôlons chaque lot avant mise en vente.",
+  faq: [
+    {
+      question: "Quelle différence avec un poivre noir classique ?",
+      answer:
+        "Le poivre noir est cultivé et calibré. Le voatsiperifery est récolté à l'état sauvage sur des lianes : ses grains sont plus petits, irréguliers, souvent munis d'une petite queue. Il pique moins franchement mais offre une palette aromatique plus complexe et une longueur en bouche supérieure.",
+    },
+    {
+      question: "Quand faut-il le poivrer ?",
+      answer:
+        "En fin de cuisson, ou directement à l'assiette. Une cuisson prolongée détruit ses arômes les plus fins et ne laisse subsister que le piquant — c'est-à-dire précisément ce qui fait le moins son intérêt.",
+    },
+    {
+      question: "Faut-il le moudre ou l'écraser ?",
+      answer:
+        "Les deux fonctionnent. Le moulin donne une mouture régulière ; l'écrasement au mortier libère des morceaux plus grossiers, qui offrent des éclats de saveur au moment de la dégustation. Dans les deux cas, au dernier moment.",
+    },
+    {
+      question: "Pourquoi les grains sont-ils irréguliers ?",
+      answer:
+        "C'est la conséquence directe de la récolte sauvage : aucun tri industriel ne vient uniformiser les calibres. Cette irrégularité est caractéristique du produit, non un défaut.",
+    },
+    {
+      question: "Peut-on l'utiliser en dessert ?",
+      answer:
+        "Oui, et c'est l'un de ses usages les plus intéressants. Ses notes boisées et florales s'accordent avec le chocolat noir, les fruits rouges, l'ananas ou une crème vanillée — en quantité très mesurée.",
+    },
+    {
+      question: "Quelle quantité utiliser ?",
+      answer:
+        "Un ou deux tours de moulin par assiette suffisent. Sa longueur en bouche fait qu'une petite quantité s'exprime longtemps ; le surdoser masque la complexité qu'on recherche.",
+    },
+    {
+      question: "Comment le conserver ?",
+      answer:
+        "En grains entiers, dans un contenant hermétique, à température ambiante et à l'abri de la lumière. Ne le stockez pas moulu : c'est le meilleur moyen d'en perdre l'intérêt.",
+    },
+    {
+      question: "Peut-on le congeler ?",
+      answer:
+        "Ce n'est ni utile ni recommandé. Un grain sec se conserve très bien à température ambiante, et le passage au froid favorise la condensation.",
+    },
+    {
+      question: "Pourquoi est-il plus onéreux qu'un poivre courant ?",
+      answer:
+        "Parce qu'il n'est pas cultivé. La récolte se fait à la main sur des lianes en forêt, avec des rendements faibles et une saisonnalité contraignante. Le prix reflète cette réalité.",
+    },
+    {
+      question: "Convient-il à un usage professionnel ?",
+      answer:
+        "Oui, en poivre de finition. Sa signature aromatique en fait un produit de dressage plutôt qu'un poivre de cuisson à intégrer en grande quantité.",
+    },
+  ],
+};
+
+const POIVRE_VERT: ProductEditorial = {
+  title: "Poivre Vert",
+  hook: "Le même fruit que le poivre noir, cueilli avant maturité : plus vif, plus végétal, moins piquant.",
+  aromaticProfile:
+    "Récolté jeune, le poivre vert conserve une fraîcheur végétale et herbacée que la maturation fait disparaître. Son piquant est nettement plus discret que celui du poivre noir, laissant place à des notes vives, presque acidulées, qui réveillent une sauce sans l'alourdir.",
+  uses: [
+    "sauces à la crème",
+    "volailles",
+    "poissons",
+    "viandes blanches",
+    "steak au poivre",
+    "terrines et pâtés",
+    "marinades",
+    "légumes vapeur",
+    "beurres composés",
+  ],
+  conservation:
+    "Conservez-le dans un contenant hermétique, à l'abri de la lumière et de l'humidité. Selon la présentation, les conditions diffèrent : les grains séchés se gardent à température ambiante, tandis qu'un poivre vert en saumure se conserve au réfrigérateur une fois le bocal ouvert. Référez-vous à l'étiquette du produit reçu.",
+  trust:
+    "Nous sélectionnons le poivre vert pour la netteté de sa note végétale, qui doit rester franche et non éventée. Chaque lot est contrôlé avant mise en vente, et nous privilégions une rotation rapide des stocks : la fraîcheur est ici l'essentiel du produit.",
+  faq: [
+    {
+      question: "Quelle différence avec le poivre noir ?",
+      answer:
+        "C'est la même baie, récoltée à un stade différent. Cueilli avant maturité, le poivre vert n'a pas subi la fermentation ni le séchage qui donnent au poivre noir sa puissance. Résultat : moins de piquant, plus de fraîcheur végétale.",
+    },
+    {
+      question: "Est-il vraiment moins fort ?",
+      answer:
+        "Oui, sensiblement. Son piquant est plus discret, ce qui permet d'en utiliser davantage sans dominer le plat — c'est précisément ce qui en fait un bon compagnon des sauces crémeuses.",
+    },
+    {
+      question: "Comment l'utiliser dans une sauce ?",
+      answer:
+        "Écrasez légèrement les grains pour libérer les arômes, puis incorporez-les à la crème ou au jus de cuisson en fin de préparation. Une cuisson trop longue atténue sa fraîcheur.",
+    },
+    {
+      question: "Faut-il le moudre ?",
+      answer:
+        "Rarement. Le poivre vert s'utilise le plus souvent en grains entiers ou simplement écrasés, pour conserver les éclats de saveur en bouche.",
+    },
+    {
+      question: "Quelle quantité utiliser ?",
+      answer:
+        "Une cuillère à café de grains pour une sauce destinée à deux personnes constitue un bon point de départ. Son piquant modéré autorise une main plus généreuse qu'avec le poivre noir.",
+    },
+    {
+      question: "Avec quoi l'associer ?",
+      answer:
+        "Il s'accorde particulièrement avec la crème, le beurre, les volailles, les poissons à chair blanche et les terrines. Il équilibre le gras sans le masquer.",
+    },
+    {
+      question: "Comment le conserver ?",
+      answer:
+        "Les grains séchés se gardent dans un contenant hermétique, à température ambiante et à l'abri de la lumière. En saumure, le produit se conserve au réfrigérateur après ouverture. Suivez l'indication portée sur l'emballage.",
+    },
+    {
+      question: "Peut-on le congeler ?",
+      answer:
+        "Pour des grains séchés, ce n'est pas utile. Un poivre vert frais ou en saumure supporte en revanche la congélation, avec une perte de tenue à la décongélation.",
+    },
+    {
+      question: "Convient-il aux professionnels ?",
+      answer:
+        "Oui. C'est un classique des sauces de restaurant, apprécié pour sa régularité et pour la lisibilité de sa note végétale dans une préparation riche.",
+    },
+  ],
+};
+
+const CLOUS_DE_GIROFLE: ProductEditorial = {
+  title: "Clous de Girofle",
+  hook: "Une épice de caractère, chaude et pénétrante, à manier avec retenue.",
+  aromaticProfile:
+    "Un parfum puissant, chaud et légèrement camphré, dû à l'eugénol qu'il contient naturellement en forte proportion. Le clou de girofle ne se dose pas comme une épice d'appoint : quelques unités suffisent à marquer durablement un plat entier, avec une persistance importante en bouche.",
+  uses: [
+    "plats mijotés",
+    "bouillons et pot-au-feu",
+    "vin chaud",
+    "pain d'épices",
+    "compotes de fruits",
+    "marinades",
+    "riz et currys",
+    "oignon piqué",
+    "chutneys",
+  ],
+  conservation:
+    "À conserver entiers, dans un contenant hermétique, à température ambiante et à l'abri de la lumière et de l'humidité. Entiers, les clous gardent leur puissance très longtemps ; moulus, ils s'éventent rapidement. Ne moudre qu'au moment de l'usage.",
+  trust:
+    "Nous retenons des clous entiers, réguliers et bien formés, dont la tête n'est pas brisée — signe d'une manipulation soignée. Chaque lot est contrôlé avant mise en vente : sur une épice aussi puissante, la qualité du lot détermine directement l'équilibre du plat.",
+  faq: [
+    {
+      question: "Quelle quantité utiliser ?",
+      answer:
+        "Très peu. Deux à quatre clous suffisent pour un plat mijoté familial, et un seul peut suffire dans une préparation délicate. Le girofle est l'une des épices où l'excès est le plus difficile à rattraper.",
+    },
+    {
+      question: "Faut-il les retirer avant de servir ?",
+      answer:
+        "Oui, dans la plupart des cas. Croquer un clou entier libère une amertume et un effet légèrement anesthésiant en bouche, désagréables en dégustation. Piquez-les dans un oignon ou un bouquet garni pour les retrouver facilement.",
+    },
+    {
+      question: "Pourquoi cette épice est-elle si puissante ?",
+      answer:
+        "Le clou de girofle est naturellement très riche en eugénol, le composé aromatique responsable de son odeur chaude et camphrée. Cette concentration explique à la fois sa force et sa persistance.",
+    },
+    {
+      question: "Clous entiers ou girofle moulu ?",
+      answer:
+        "Privilégiez les clous entiers. Ils se conservent bien plus longtemps et vous permettent de les retirer après cuisson. La poudre s'incorpore mieux aux pâtes et biscuits, mais s'évente vite et ne se rattrape pas.",
+    },
+    {
+      question: "Peut-on les moudre soi-même ?",
+      answer:
+        "Oui, au mortier ou dans un moulin à épices, juste avant usage. Une tête de clou moulue très finement s'incorpore bien à un pain d'épices ou à une pâte à biscuits.",
+    },
+    {
+      question: "Peut-on les utiliser en pâtisserie ?",
+      answer:
+        "Oui, avec parcimonie. Le pain d'épices, les compotes de pommes, les poires pochées et certains biscuits d'hiver en tirent une chaleur caractéristique — à condition de rester en dessous du seuil où le girofle devient envahissant.",
+    },
+    {
+      question: "Combien de temps se conservent-ils ?",
+      answer:
+        "Entiers et bien conservés, les clous gardent leur puissance très longtemps. Fiez-vous à l'odeur à l'ouverture : elle doit être immédiate et franche. Une fois moulus, comptez quelques mois seulement.",
+    },
+    {
+      question: "Peut-on les congeler ?",
+      answer:
+        "Ce n'est ni nécessaire ni recommandé. Une épice sèche n'y gagne rien, et la condensation à la sortie du froid introduit de l'humidité.",
+    },
+    {
+      question: "Conviennent-ils à un usage professionnel ?",
+      answer:
+        "Oui, notamment pour les fonds, bouillons et préparations mijotées. La régularité de forme facilite le dosage et le retrait avant service.",
+    },
+  ],
+};
+
+const HUILE_DE_GIROFLE: ProductEditorial = {
+  title: "Huile de Girofle",
+  hook: "Une essence concentrée, à manier avec précision : quelques gouttes suffisent.",
+  aromaticProfile:
+    "Extrêmement concentrée, l'huile de girofle porte les notes chaudes, épicées et camphrées du clou, mais démultipliées. Là où l'on compte les clous, on compte ici les gouttes. C'est un produit de précision, réservé à ceux qui maîtrisent le dosage et cherchent à marquer un profil aromatique d'une empreinte nette.",
+  uses: [
+    "préparations aromatiques très diluées",
+    "pâtisserie d'assemblage",
+    "chocolaterie",
+    "sirops et infusions",
+    "marinades",
+    "usage professionnel encadré",
+  ],
+  conservation:
+    "À conserver dans son flacon d'origine soigneusement refermé, à température ambiante, à l'abri de la lumière et de la chaleur. Tenir hors de portée des enfants. Conservez le flacon debout et évitez les écarts de température, qui favorisent l'oxydation.",
+  trust:
+    "Nous traitons ce produit pour ce qu'il est : une essence concentrée, et non une épice d'appoint. Nous ne lui prêtons aucune vertu autre qu'aromatique, et nous invitons à respecter scrupuleusement les mentions d'usage portées sur l'étiquette du produit reçu.",
+  faq: [
+    {
+      question: "Quelle quantité utiliser ?",
+      answer:
+        "Une goutte, voire moins. L'huile de girofle est bien plus concentrée que le clou entier. Diluez-la toujours au préalable dans un corps gras, un sirop ou un alcool, jamais directement dans la préparation finale.",
+    },
+    {
+      question: "Peut-on la consommer pure ?",
+      answer:
+        "Non. Elle ne doit jamais être ingérée pure ni appliquée pure. Elle s'emploie exclusivement très diluée, et uniquement si l'étiquette du produit reçu en mentionne l'usage alimentaire.",
+    },
+    {
+      question: "Quelle différence avec les clous de girofle ?",
+      answer:
+        "Le clou est l'épice entière, dosable à l'unité. L'huile en est une extraction concentrée : même famille aromatique, tout autre rapport de force. Elles ne se substituent pas l'une à l'autre à quantité égale.",
+    },
+    {
+      question: "L'huile de girofle a-t-elle des vertus médicinales ?",
+      answer:
+        "Nous ne formulons aucune allégation de santé, thérapeutique ou médicale concernant ce produit. Nous le proposons pour son intérêt aromatique. Pour toute question relevant de la santé, adressez-vous à un professionnel de santé.",
+    },
+    {
+      question: "Y a-t-il des précautions particulières ?",
+      answer:
+        "Oui. Tenez le flacon hors de portée des enfants, évitez le contact avec les yeux et les muqueuses, et respectez les mentions figurant sur l'étiquette. En cas de grossesse, d'allaitement, de traitement en cours ou de doute, demandez l'avis d'un professionnel de santé avant tout usage.",
+    },
+    {
+      question: "Comment la diluer correctement ?",
+      answer:
+        "Incorporez la goutte dans un support gras ou sucré — beurre fondu, sirop, alcool, masse de chocolat — puis mélangez soigneusement avant d'intégrer ce mélange à votre préparation. Une goutte versée directement ne se répartira pas.",
+    },
+    {
+      question: "Comment la conserver ?",
+      answer:
+        "Flacon bien refermé, debout, à température ambiante, à l'abri de la lumière et de la chaleur. La lumière et l'air sont les deux facteurs qui altèrent le plus rapidement une essence concentrée.",
+    },
+    {
+      question: "Combien de temps se conserve-t-elle ?",
+      answer:
+        "Bien conservée, elle se garde longtemps, mais son profil évolue avec l'oxydation. Référez-vous à la date indiquée sur le flacon reçu, et jugez à l'odeur : une essence oxydée perd sa netteté.",
+    },
+    {
+      question: "Peut-on la congeler ?",
+      answer:
+        "Non, cela n'apporte rien et n'est pas recommandé. Une conservation à température ambiante, à l'abri de la lumière, est la solution adaptée.",
+    },
+    {
+      question: "Convient-elle à un usage professionnel ?",
+      answer:
+        "Oui, dans un cadre maîtrisé, où le dosage est pesé et la dilution contrôlée. C'est un produit d'assemblage et de finition aromatique, pas un ingrédient de volume.",
+    },
+  ],
+};
+
 export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
   "vanille-bourbon-madagascar": {
     title: "Vanille Bourbon de Madagascar",
@@ -255,6 +689,29 @@ export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
       },
     ],
   },
+
+  /* ================= ÉPICES =================
+     Chaque produit est indexé sur le slug actuellement en base ET sur le
+     slug « propre » cible, afin que la fiche reste alimentée si le slug est
+     corrigé (cf. audit catalogue). Les deux clés pointent vers le même objet.
+  ========================================== */
+
+  "canelle-10g": CANNELLE,
+  cannelle: CANNELLE,
+
+  "cacao-pur": CACAO_PUR,
+
+  "poivre-sauvage-noir-voatsiperifery": POIVRE_SAUVAGE,
+  "poivre-sauvage": POIVRE_SAUVAGE,
+
+  // Produit non encore créé en base : l'entrée reste inerte jusque-là.
+  "poivre-vert": POIVRE_VERT,
+
+  "clous-de-girofle-100g": CLOUS_DE_GIROFLE,
+  "clous-de-girofle": CLOUS_DE_GIROFLE,
+
+  "huile-de-girofle-15ml": HUILE_DE_GIROFLE,
+  "huile-de-girofle": HUILE_DE_GIROFLE,
 };
 
 export function getProductEditorial(
