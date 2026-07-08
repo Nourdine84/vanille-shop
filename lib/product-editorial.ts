@@ -470,6 +470,92 @@ const HUILE_DE_GIROFLE: ProductEditorial = {
   ],
 };
 
+/* =========================================================================
+   VANILLE GIVRÉE — produit non encore créé en base.
+   L'entrée reste inerte jusqu'à sa création (getProductEditorial renvoie
+   simplement le contenu dès que le slug existera côté produit).
+========================================================================= */
+
+const VANILLE_GIVREE: ProductEditorial = {
+  title: "Vanille Givrée de Madagascar",
+  hook: "Des gousses parées de fins cristaux nés du temps : la signature d'un affinage patient.",
+  origin: "Madagascar",
+  aromaticProfile:
+    "Le givrage est une cristallisation naturelle de la vanilline, qui remonte lentement à la surface de certaines gousses particulièrement bien affinées. Ces gousses développent des notes chaudes, boisées et cacaotées, d'une profondeur marquée. Le voile cristallin ne se provoque pas : il apparaît, ou non, au terme d'un affinage long et bien conduit.",
+  uses: [
+    "pâtisserie",
+    "crèmes et custards",
+    "glaces",
+    "ganaches et chocolat",
+    "infusions",
+    "rhums arrangés",
+    "sucres parfumés",
+    "dressage et dégustation",
+  ],
+  conservation:
+    "À conserver à température ambiante, dans un contenant hermétique, à l'abri de la lumière et de l'humidité. Évitez le réfrigérateur : la condensation dissout les cristaux et abîme la gousse. Le givre peut évoluer, s'accentuer ou s'estomper selon la température et l'hygrométrie — c'est le comportement normal d'un cristal naturel.",
+  trust:
+    "Nous ne provoquons pas le givrage : nous le constatons. Ces gousses sont mises de côté au moment du tri, lorsqu'un affinage prolongé a laissé les cristaux apparaître d'eux-mêmes. Leur disponibilité dépend donc des lots, et nous préférons ne pas en proposer plutôt que de forcer un produit qui ne s'obtient pas sur commande.",
+  faq: [
+    {
+      question: "Qu'est-ce que le givrage exactement ?",
+      answer:
+        "C'est une cristallisation naturelle de la vanilline, le principal composé aromatique de la vanille. Sur certaines gousses longuement affinées, elle migre lentement vers la surface et y forme de fins cristaux blancs. Rien n'est ajouté : le givre vient de la gousse elle-même.",
+    },
+    {
+      question: "Ces cristaux blancs sont-ils de la moisissure ?",
+      answer:
+        "Non. Le givre de vanilline se présente en cristaux secs, fins et brillants, sans odeur particulière autre que celle de la vanille. Une moisissure, elle, est duveteuse ou cotonneuse, souvent grisâtre ou verdâtre, et dégage une odeur de renfermé. En cas de doute sur une gousse reçue, ne la consommez pas et contactez notre service client.",
+    },
+    {
+      question: "Le givrage est-il un signe de qualité ?",
+      answer:
+        "Il témoigne d'un affinage long et bien conduit, et se rencontre le plus souvent sur des gousses riches en arômes. Ce n'est pas pour autant un critère de qualité exclusif : une excellente gousse peut ne jamais givrer. Nous jugeons toujours une vanille sur son parfum, sa souplesse et son aspect général.",
+    },
+    {
+      question: "Toutes les gousses du lot sont-elles givrées ?",
+      answer:
+        "Non, et nous ne le promettons pas. Le givrage est un phénomène naturel qui touche certaines gousses, à des degrés variables. L'intensité du voile cristallin diffère d'une gousse à l'autre au sein d'un même lot.",
+    },
+    {
+      question: "Le givre peut-il disparaître ?",
+      answer:
+        "Oui. La chaleur et l'humidité peuvent dissoudre les cristaux, qui se reforment parfois lorsque les conditions redeviennent favorables. La disparition du givre n'altère pas la qualité aromatique de la gousse : la vanilline est toujours là, simplement plus répartie.",
+    },
+    {
+      question: "Faut-il retirer les cristaux avant utilisation ?",
+      answer:
+        "Surtout pas. Ces cristaux sont précisément ce que vous recherchez : ils concentrent l'arôme. Utilisez la gousse normalement, cristaux compris.",
+    },
+    {
+      question: "Comment l'utiliser ?",
+      answer:
+        "Comme une gousse classique : fendez-la dans la longueur, prélevez les graines à la pointe d'un couteau, puis incorporez-les à votre préparation. La gousse vidée continue de parfumer un sucre, un lait ou une infusion.",
+    },
+    {
+      question:
+        "Quelle différence avec une Vanille Bourbon classique ?",
+      answer:
+        "C'est la même vanille de Madagascar, sélectionnée à un stade d'affinage plus avancé. La givrée se distingue par ses cristaux de surface et une profondeur aromatique souvent plus marquée. Elle s'utilise exactement de la même façon.",
+    },
+    {
+      question: "Comment la conserver ?",
+      answer:
+        "Dans un contenant hermétique, à température ambiante, à l'abri de la lumière et de l'humidité. Refermez soigneusement après chaque usage.",
+    },
+    {
+      question: "Peut-on la mettre au réfrigérateur ou la congeler ?",
+      answer:
+        "Non, ce n'est pas recommandé. Le froid favorise la condensation, qui dissout les cristaux et peut détremper la gousse. La température ambiante, au sec et à l'obscurité, reste la meilleure conservation.",
+    },
+    {
+      question: "Convient-elle à un usage professionnel ?",
+      answer:
+        "Oui. Sa concentration aromatique en fait une vanille appréciée en pâtisserie et en glacerie. Sa disponibilité dépend toutefois des lots : nous ne pouvons pas garantir un approvisionnement continu en gousses givrées.",
+    },
+  ],
+};
+
 export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
   "vanille-bourbon-madagascar": {
     title: "Vanille Bourbon de Madagascar",
@@ -694,6 +780,9 @@ export const PRODUCT_EDITORIAL: Record<string, ProductEditorial> = {
       },
     ],
   },
+
+  // Produit non encore créé en base : l'entrée reste inerte jusque-là.
+  "vanille-givree": VANILLE_GIVREE,
 
   /* ================= ÉPICES =================
      Chaque produit est indexé sur le slug actuellement en base ET sur le
