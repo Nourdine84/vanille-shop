@@ -84,21 +84,21 @@ const cards: TrustCard[] = [
     title: "Livraison",
     description:
       "Délais, zones de livraison et suivi de commande.",
-    href: "/legal/livraison",
+    href: "/legal/cgv#preparation-livraison",
   },
   {
     icon: CreditCard,
     title: "Paiements sécurisés",
     description:
       "Le paiement en ligne sécurisé via Stripe.",
-    href: "/legal/paiements",
+    href: "/legal/cgv#paiement",
   },
   {
     icon: RotateCcw,
     title: "Retours",
     description:
       "Notre politique de retours et de rétractation.",
-    href: "/legal/retours",
+    href: "/legal/cgv#retours",
   },
   {
     icon: HelpCircle,
